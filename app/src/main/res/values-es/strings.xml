@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Trackermaster</string>
+    <string name="tagline">Una app para organizar toda tu vida.</string>
+    <string name="tracker_habits">Hábitos</string>
+    <string name="tracker_mood">Estado de ánimo</string>
+    <string name="tracker_expense">Gastos</string>
+    <string name="tracker_focus">Enfoque</string>
+    <string name="tracker_journal">Diario</string>
+    <string name="mood_level">Último ánimo: %1$d/10</string>
+    <string name="mood_log_prompt">Toca para registrar</string>
+    <string name="focus_score">Puntuación de enfoque: %1$d</string>
+    <string name="journal_streak">Racha de escritura: %1$d días</string>
+    <string name="onboarding_title_1">Elige tu tracker</string>
+    <string name="onboarding_body_1">Hábitos, ánimo, gastos, enfoque y diario en un solo panel.</string>
+    <string name="onboarding_title_2">Registra en segundos</string>
+    <string name="onboarding_body_2">Un toque con widgets inteligentes.</string>
+    <string name="onboarding_title_3">Descubre insights</string>
+    <string name="onboarding_body_3">Tus datos permanecen en el dispositivo. Funciona sin conexión.</string>
+    <string name="next">Siguiente</string>
+    <string name="get_started">Empezar</string>
+    <string name="biometric_title">Desbloquear Trackermaster</string>
+    <string name="biometric_subtitle">Usa huella o rostro</string>
+    <string name="cancel">Cancelar</string>
+    <string name="reminder_title">Recordatorio: %1$s</string>
+    <string name="reminder_body">Hora de completar tu hábito</string>
+    <string name="mark_done">Hecho</string>
+    <string name="snooze">Posponer</string>
+    <string name="focus_timer_running">Sesión de enfoque activa</string>
+    <string name="focus_timer_subtitle">Mantén el enfoque</string>
+</resources>

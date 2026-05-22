@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Trackermaster</string>
+    <string name="tagline">一款应用整理你的整个生活。</string>
+    <string name="tracker_habits">习惯追踪</string>
+    <string name="tracker_mood">心情日记</string>
+    <string name="tracker_expense">开支追踪</string>
+    <string name="tracker_focus">专注计时</string>
+    <string name="tracker_journal">日记</string>
+    <string name="mood_level">最近心情：%1$d/10</string>
+    <string name="mood_log_prompt">点击记录心情</string>
+    <string name="focus_score">专注分数：%1$d</string>
+    <string name="journal_streak">写作连续：%1$d 天</string>
+    <string name="onboarding_title_1">选择追踪器</string>
+    <string name="onboarding_body_1">习惯、心情、开支、专注和日记，尽在一个面板。</string>
+    <string name="onboarding_title_2">秒速记录</string>
+    <string name="onboarding_body_2">一键记录，智能小组件。</string>
+    <string name="onboarding_title_3">发现洞察</string>
+    <string name="onboarding_body_3">数据保存在设备上，可离线使用。</string>
+    <string name="next">下一步</string>
+    <string name="get_started">开始</string>
+    <string name="biometric_title">解锁 Trackermaster</string>
+    <string name="biometric_subtitle">使用指纹或面部识别</string>
+    <string name="cancel">取消</string>
+    <string name="reminder_title">提醒：%1$s</string>
+    <string name="reminder_body">该完成你的习惯了</string>
+    <string name="mark_done">完成</string>
+    <string name="snooze">稍后</string>
+    <string name="focus_timer_running">专注进行中</string>
+    <string name="focus_timer_subtitle">保持专注</string>
+</resources>

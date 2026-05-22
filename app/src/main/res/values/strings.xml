@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Trackermaster</string>
+    <string name="tagline">One app to organize your entire life.</string>
+    <string name="tracker_habits">Habit Tracker</string>
+    <string name="tracker_mood">Mood Tracker</string>
+    <string name="tracker_expense">Expense Tracker</string>
+    <string name="tracker_focus">Focus Timer</string>
+    <string name="tracker_journal">Journal</string>
+    <string name="mood_level">Latest mood: %1$d/10</string>
+    <string name="mood_log_prompt">Tap to log your mood</string>
+    <string name="focus_score">Focus score: %1$d</string>
+    <string name="journal_streak">Writing streak: %1$d days</string>
+    <string name="onboarding_title_1">Choose Your Tracker</string>
+    <string name="onboarding_body_1">Habits, Mood, Expenses, Focus, and Journal — all in one beautiful dashboard.</string>
+    <string name="onboarding_title_2">Track in Seconds</string>
+    <string name="onboarding_body_2">One-tap logging with smart home screen widgets.</string>
+    <string name="onboarding_title_3">Discover Insights</string>
+    <string name="onboarding_body_3">Charts reveal patterns. Your data stays on device. Works offline.</string>
+    <string name="next">Next</string>
+    <string name="get_started">Get Started</string>
+    <string name="biometric_title">Unlock Trackermaster</string>
+    <string name="biometric_subtitle">Use fingerprint or face to continue</string>
+    <string name="cancel">Cancel</string>
+    <string name="reminder_title">Reminder: %1$s</string>
+    <string name="reminder_body">Time to complete your habit</string>
+    <string name="mark_done">Mark Done</string>
+    <string name="snooze">Snooze</string>
+    <string name="focus_timer_running">Focus session active</string>
+    <string name="focus_timer_subtitle">Stay focused — timer running</string>
+    <string name="widget_habits">Habit Progress</string>
+    <string name="widget_streaks">Streak Overview</string>
+    <string name="widget_mood">Mood Log</string>
+    <string name="widget_balance">Expense Balance</string>
+    <string name="widget_focus">Focus Quick Start</string>
+    <string name="widget_dashboard">Life Dashboard</string>
+</resources>
