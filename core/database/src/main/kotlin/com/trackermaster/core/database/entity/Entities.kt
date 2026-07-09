@@ -18,6 +18,8 @@ data class HabitEntity(
     val reminderHour: Int? = null,
     val reminderMinute: Int? = null,
     val archived: Boolean = false,
+    val description: String = "",
+    val sortOrder: Int = 0,
 )
 
 @Entity(tableName = "habit_logs", indices = [Index("habitId"), Index("dateEpoch")])
@@ -73,6 +75,7 @@ data class TransactionEntity(
     val categoryId: Long,
     val dateEpoch: Long,
     val note: String = "",
+    val imageUri: String? = null,
 )
 
 @Entity(tableName = "budgets")
@@ -109,6 +112,7 @@ data class JournalEntryEntity(
     val richTextHtml: String,
     val createdAtEpoch: Long,
     val updatedAtEpoch: Long,
+    val moodLevel: Int? = null,
 )
 
 @Entity(tableName = "attachments")
@@ -127,3 +131,13 @@ data class AchievementEntity(
     val unlockedAtEpoch: Long,
     val relatedId: Long? = null,
 )
+
+@Entity(tableName = "tasks")
+data class TaskEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val completed: Boolean = false,
+    val createdAtEpoch: Long = System.currentTimeMillis(),
+    val subtasksJson: String = "",
+)
+

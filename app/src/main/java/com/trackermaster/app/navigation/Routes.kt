@@ -11,4 +11,5 @@ sealed class Routes(val route: String, val label: String) {
     data object Settings : Routes("settings", "Settings")
     data object MoodCalendar : Routes("mood_calendar", "Calendar")
     data object Achievements : Routes("achievements", "Badges")
+    data object Tasks : Routes("tasks", "Tasks")
 }

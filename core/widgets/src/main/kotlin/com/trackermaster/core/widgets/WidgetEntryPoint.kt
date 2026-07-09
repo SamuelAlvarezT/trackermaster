@@ -1,7 +1,6 @@
 package com.trackermaster.core.widgets
 
 import android.content.Context
-import android.content.Intent
 import com.trackermaster.core.data.repository.DashboardRepository
 import com.trackermaster.core.data.repository.ExpenseRepository
 import com.trackermaster.core.data.repository.HabitRepository
@@ -20,12 +19,5 @@ interface WidgetHiltEntryPoint {
     companion object {
         fun get(context: Context): WidgetHiltEntryPoint =
             EntryPointAccessors.fromApplication(context.applicationContext, WidgetHiltEntryPoint::class.java)
-
-        fun launchIntent(context: Context, tab: String): Intent =
-            Intent().apply {
-                setClassName(context.packageName, "com.trackermaster.app.MainActivity")
-                putExtra("tab", tab)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
     }
 }

@@ -9,7 +9,14 @@ import java.time.ZoneId
 
 private fun encodeList(items: List<String>) = items.joinToString("\u001E")
 private fun decodeList(raw: String): List<String> = if (raw.isBlank()) emptyList() else raw.split("\u001E")
-private fun encodeLongList(items: List<Long>) = items.joinToString(",")
+private const val SUBTASK_SEP = "\u001E"
+private const val SUBTASK_FIELD_SEP = "\u001F"
+private fun encodeSubtasks(items: List<SubTask>): String =
+    items.joinToString(SUBTASK_SEP) { "${it.title.replace(SUBTASK_SEP, " ").replace(SUBTASK_FIELD_SEP, " ")}$SUBTASK_FIELD_SEP${it.completed}" }
+private fun decodeSubtasks(raw: String): List<SubTask> = if (raw.isBlank()) emptyList() else raw.split(SUBTASK_SEP).mapNotNull {
+    val parts = it.split(SUBTASK_FIELD_SEP)
+    parts.firstOrNull()?.takeIf { title -> title.isNotBlank() }?.let { title -> SubTask(title, parts.getOrNull(1).toBoolean()) }
+}
 private fun decodeLongList(raw: String): List<Long> = if (raw.isBlank()) emptyList() else raw.split(",").mapNotNull { it.toLongOrNull() }
 private fun encodeMap(map: Map<String, Boolean>) = map.entries.joinToString("\u001E") { "${it.key}=${it.value}" }
 private fun decodeMap(raw: String): Map<String, Boolean> = if (raw.isBlank()) emptyMap() else raw.split("\u001E").mapNotNull {
@@ -41,6 +48,8 @@ fun HabitEntity.toDomain(): Habit = Habit(
     reminderHour = reminderHour,
     reminderMinute = reminderMinute,
     archived = archived,
+    description = description,
+    sortOrder = sortOrder,
 )
 
 fun Habit.toEntity(): HabitEntity = HabitEntity(
@@ -56,6 +65,8 @@ fun Habit.toEntity(): HabitEntity = HabitEntity(
     reminderHour = reminderHour,
     reminderMinute = reminderMinute,
     archived = archived,
+    description = description,
+    sortOrder = sortOrder,
 )
 
 fun HabitLogEntity.toDomain(): HabitLog = HabitLog(
@@ -93,7 +104,7 @@ fun AccountEntity.toDomain(): Account = Account(id, name, AccountType.valueOf(ty
 fun ExpenseCategoryEntity.toDomain(): ExpenseCategory = ExpenseCategory(id, name, isIncome, colorArgb)
 
 fun TransactionEntity.toDomain(): Transaction = Transaction(
-    id, accountId, amount, TransactionType.valueOf(type), categoryId, dateEpoch.toLocalDate(), note
+    id, accountId, amount, TransactionType.valueOf(type), categoryId, dateEpoch.toLocalDate(), note, imageUri
 )
 
 fun BudgetEntity.toDomain(): Budget = Budget(id, categoryId, limitAmount, period, alertThresholdPercent)
@@ -104,9 +115,30 @@ fun FocusSessionEntity.toDomain(): FocusSession = FocusSession(
 )
 
 fun JournalEntryEntity.toDomain(): JournalEntry = JournalEntry(
-    id, title, richTextHtml, createdAtEpoch.toLocalDateTime(), updatedAtEpoch.toLocalDateTime()
+    id, title, richTextHtml, createdAtEpoch.toLocalDateTime(), updatedAtEpoch.toLocalDateTime(), moodLevel
 )
+
+fun AttachmentEntity.toDomain(): Attachment = Attachment(id, entryId, path, mimeType)
+
+fun Attachment.toEntity(): AttachmentEntity = AttachmentEntity(id, entryId, path, mimeType)
 
 fun AchievementEntity.toDomain(): Achievement = Achievement(
     id, type, title, unlockedAtEpoch.toLocalDateTime(), relatedId
 )
+
+fun TaskEntity.toDomain(): Task = Task(
+    id = id,
+    title = title,
+    completed = completed,
+    createdAt = createdAtEpoch.toLocalDateTime(),
+    subtasks = decodeSubtasks(subtasksJson),
+)
+
+fun Task.toEntity(): TaskEntity = TaskEntity(
+    id = id,
+    title = title,
+    completed = completed,
+    createdAtEpoch = createdAt.toEpochMilli(),
+    subtasksJson = encodeSubtasks(subtasks),
+)
+

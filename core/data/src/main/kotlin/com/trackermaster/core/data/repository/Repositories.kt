@@ -23,11 +23,56 @@ class HabitRepository @Inject constructor(
     fun observeActiveHabits(): Flow<List<Habit>> =
         habitDao.observeActive().map { list -> list.map { it.toDomain() } }
 
+    fun observeArchivedHabits(): Flow<List<Habit>> =
+        habitDao.observeArchived().map { list -> list.map { it.toDomain() } }
+
     fun observeTodayHabits(date: LocalDate = LocalDate.now()): Flow<List<Pair<Habit, HabitLog?>>> =
         combine(observeActiveHabits(), habitLogDao.observeByDate(date.toEpochMilli())) { habits, logs ->
             habits.filter { HabitScheduleLogic.isDueOnDate(it, date) }.map { h ->
                 h to logs.find { it.habitId == h.id }?.toDomain()
             }
+        }
+
+    fun observeActiveHabitsWithLogs(since: LocalDate): Flow<List<Pair<Habit, List<HabitLog>>>> =
+        combine(observeActiveHabits(), habitLogDao.observeLogsSince(since.toEpochMilli())) { habits, logs ->
+            habits.map { habit ->
+                val habitLogs = logs.filter { it.habitId == habit.id }.map { it.toDomain() }
+                habit to habitLogs
+            }
+        }
+
+    fun observeArchivedHabitsWithLogs(since: LocalDate): Flow<List<Pair<Habit, List<HabitLog>>>> =
+        combine(observeArchivedHabits(), habitLogDao.observeLogsSince(since.toEpochMilli())) { habits, logs ->
+            habits.map { habit ->
+                val habitLogs = logs.filter { it.habitId == habit.id }.map { it.toDomain() }
+                habit to habitLogs
+            }
+        }
+
+    suspend fun updateHabitsOrder(habits: List<Habit>) {
+        habits.forEachIndexed { index, habit ->
+            habitDao.update(habit.copy(sortOrder = index).toEntity())
+        }
+    }
+
+    suspend fun archiveHabit(habitId: Long, archive: Boolean) {
+        habitDao.getById(habitId)?.let { entity ->
+            habitDao.update(entity.copy(archived = archive))
+        }
+    }
+
+    suspend fun deleteHabit(habit: Habit) {
+        habitDao.delete(habit.toEntity())
+    }
+
+    fun observeHabitLogs(habitId: Long): Flow<List<HabitLog>> =
+        habitLogDao.observeByHabit(habitId).map { logs ->
+            logs.map { it.toDomain() }
+        }
+
+    fun observeCompletionsCount(habitId: Long): Flow<Int> =
+        habitLogDao.observeByHabit(habitId).map { logs ->
+            logs.count { it.completed }
         }
 
     suspend fun saveHabit(habit: Habit): Long {
@@ -57,6 +102,40 @@ class HabitRepository @Inject constructor(
             completed = completed,
             value = if (completed) 1 else 0,
         ))
+    }
+
+    suspend fun toggleHabitDayState(habit: Habit, date: LocalDate) {
+        val existing = habitLogDao.getForDate(habit.id, date.toEpochMilli())?.toDomain()
+        val nextLog = when {
+            existing == null || (!existing.completed && existing.value >= 0) -> {
+                HabitLog(
+                    id = existing?.id ?: 0,
+                    habitId = habit.id,
+                    date = date,
+                    completed = true,
+                    value = 1
+                )
+            }
+            existing.completed -> {
+                HabitLog(
+                    id = existing.id,
+                    habitId = habit.id,
+                    date = date,
+                    completed = false,
+                    value = -1
+                )
+            }
+            else -> {
+                HabitLog(
+                    id = existing.id,
+                    habitId = habit.id,
+                    date = date,
+                    completed = false,
+                    value = 0
+                )
+            }
+        }
+        logHabit(habit, nextLog)
     }
 
     fun streakFor(habitId: Long): Flow<StreakInfo> =
@@ -101,9 +180,6 @@ class MoodRepository @Inject constructor(
     fun observeEntries(): Flow<List<MoodEntry>> =
         moodDao.observeEntries().map { it.map { e -> e.toDomain() } }
 
-    fun observeTags(): Flow<List<MoodTag>> =
-        moodDao.observeTags().map { it.map { t -> t.toDomain() } }
-
     suspend fun logMood(level: Int, note: String = "", tagIds: List<Long> = emptyList()) {
         moodDao.insertEntry(
             com.trackermaster.core.database.entity.MoodEntryEntity(
@@ -113,10 +189,6 @@ class MoodRepository @Inject constructor(
                 tagIdsJson = tagIds.joinToString(","),
             )
         )
-    }
-
-    suspend fun addTag(name: String, colorArgb: Int) {
-        moodDao.insertTag(com.trackermaster.core.database.entity.MoodTagEntity(name = name, colorArgb = colorArgb))
     }
 
     fun calendarForMonth(month: YearMonth): Flow<Map<LocalDate, Int>> =
@@ -170,19 +242,7 @@ class ExpenseRepository @Inject constructor(
     }
 
     suspend fun addAccount(account: Account) = expenseDao.insertAccount(account.toEntity())
-    suspend fun addCategory(cat: ExpenseCategory) = expenseDao.insertCategory(cat.toEntity())
     suspend fun addTransaction(tx: Transaction) = expenseDao.insertTransaction(tx.toEntity())
-    suspend fun addBudget(budget: Budget) = expenseDao.insertBudget(budget.toEntity())
-
-    fun budgetUsage(categoryId: Long, month: YearMonth = YearMonth.now()): Flow<Pair<Double, Double>> =
-        combine(observeBudgets(), observeTransactions()) { budgets, txs ->
-            val budget = budgets.find { it.categoryId == categoryId } ?: return@combine 0.0 to 0.0
-            val spent = txs.filter {
-                it.categoryId == categoryId && it.type == TransactionType.EXPENSE &&
-                    YearMonth.from(it.date) == month
-            }.sumOf { it.amount }
-            spent to budget.limitAmount
-        }
 
     suspend fun seedDefaultCategories() {
         if (expenseDao.observeCategories().first().isEmpty()) {
@@ -196,6 +256,15 @@ class ExpenseRepository @Inject constructor(
                 )
             }
         }
+        if (expenseDao.observeAccounts().first().isEmpty()) {
+            expenseDao.insertAccount(
+                com.trackermaster.core.database.entity.AccountEntity(
+                    name = "Main account",
+                    type = AccountType.CHECKING.name,
+                    currencyCode = "USD",
+                )
+            )
+        }
     }
 }
 
@@ -208,7 +277,7 @@ private fun ExpenseCategory.toEntity() = com.trackermaster.core.database.entity.
 )
 
 private fun Transaction.toEntity() = com.trackermaster.core.database.entity.TransactionEntity(
-    id, accountId, amount, type.name, categoryId, date.toEpochMilli(), note
+    id, accountId, amount, type.name, categoryId, date.toEpochMilli(), note, imageUri
 )
 
 private fun Budget.toEntity() = com.trackermaster.core.database.entity.BudgetEntity(
@@ -242,6 +311,18 @@ class FocusRepository @Inject constructor(
         )
     }
 
+    suspend fun stopSession(id: Long, actualSeconds: Int, completed: Boolean = false) {
+        val sessions = focusDao.observeSessions().first()
+        val s = sessions.find { it.id == id } ?: return
+        focusDao.update(
+            s.copy(
+                actualSeconds = actualSeconds,
+                completed = completed,
+                completedAtEpoch = LocalDateTime.now().toEpochMilli(),
+            )
+        )
+    }
+
     fun weeklyFocusScore(): Flow<Int> = observeSessions().map { sessions ->
         val weekAgo = LocalDateTime.now().minusDays(7)
         HabitScheduleLogic.calculateFocusScore(
@@ -255,14 +336,22 @@ class JournalRepository @Inject constructor(
     private val journalDao: JournalDao,
 ) {
     fun observeEntries(): Flow<List<JournalEntry>> =
-        journalDao.observeEntries().map { it.map { e -> e.toDomain() } }
+        combine(journalDao.observeEntries(), journalDao.observeAllAttachments()) { entries, attachments ->
+            entries.map { entry ->
+                entry.toDomain().copy(
+                    attachments = attachments.filter { it.entryId == entry.id }.map { it.toDomain() }
+                )
+            }
+        }
 
     suspend fun save(entry: JournalEntry): Long {
-        return if (entry.id == 0L) journalDao.insert(entry.toEntity())
+        val id = if (entry.id == 0L) journalDao.insert(entry.toEntity())
         else { journalDao.update(entry.toEntity()); entry.id }
+        entry.attachments.forEach { attachment ->
+            journalDao.insertAttachment(attachment.copy(entryId = id).toEntity())
+        }
+        return id
     }
-
-    suspend fun delete(entry: JournalEntry) = journalDao.delete(entry.toEntity())
 
     fun writingStreak(): Flow<Int> = observeEntries().map { entries ->
         HabitScheduleLogic.journalWritingStreak(entries.map { it.createdAt.toLocalDate() })
@@ -270,7 +359,7 @@ class JournalRepository @Inject constructor(
 }
 
 private fun JournalEntry.toEntity() = com.trackermaster.core.database.entity.JournalEntryEntity(
-    id, title, richTextHtml, createdAt.toEpochMilli(), updatedAt.toEpochMilli()
+    id, title, richTextHtml, createdAt.toEpochMilli(), updatedAt.toEpochMilli(), moodLevel
 )
 
 @Singleton
@@ -302,9 +391,23 @@ class DashboardRepository @Inject constructor(
     }
 }
 
-interface PremiumGate {
-    fun isUnlimited(): Boolean = true
+@Singleton
+class TaskRepository @Inject constructor(
+    private val taskDao: TaskDao,
+) {
+    fun observeTasks(): Flow<List<Task>> =
+        taskDao.observeTasks().map { list -> list.map { it.toDomain() } }
+
+    suspend fun insertTask(task: Task): Long =
+        taskDao.insert(task.toEntity())
+
+    suspend fun toggleTask(task: Task) =
+        taskDao.update(task.copy(completed = !task.completed).toEntity())
+
+    suspend fun updateTask(task: Task) =
+        taskDao.update(task.toEntity())
+
+    suspend fun deleteTask(task: Task) =
+        taskDao.delete(task.toEntity())
 }
 
-@Singleton
-class NoOpPremiumGate @Inject constructor() : PremiumGate

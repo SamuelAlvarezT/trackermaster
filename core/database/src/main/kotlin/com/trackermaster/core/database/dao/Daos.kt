@@ -11,10 +11,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HabitDao {
-    @Query("SELECT * FROM habits WHERE archived = 0 ORDER BY name")
+    @Query("SELECT * FROM habits WHERE archived = 0 ORDER BY sortOrder ASC, name ASC")
     fun observeActive(): Flow<List<HabitEntity>>
 
-    @Query("SELECT * FROM habits ORDER BY name")
+    @Query("SELECT * FROM habits WHERE archived = 1 ORDER BY sortOrder ASC, name ASC")
+    fun observeArchived(): Flow<List<HabitEntity>>
+
+    @Query("SELECT * FROM habits ORDER BY sortOrder ASC, name ASC")
     fun observeAll(): Flow<List<HabitEntity>>
 
     @Query("SELECT * FROM habits WHERE id = :id")
@@ -37,6 +40,9 @@ interface HabitLogDao {
 
     @Query("SELECT * FROM habit_logs WHERE dateEpoch = :dateEpoch")
     fun observeByDate(dateEpoch: Long): Flow<List<HabitLogEntity>>
+
+    @Query("SELECT * FROM habit_logs WHERE dateEpoch >= :sinceEpoch")
+    fun observeLogsSince(sinceEpoch: Long): Flow<List<HabitLogEntity>>
 
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND dateEpoch = :dateEpoch LIMIT 1")
     suspend fun getForDate(habitId: Long, dateEpoch: Long): HabitLogEntity?
@@ -134,6 +140,9 @@ interface JournalDao {
     @Query("SELECT * FROM attachments WHERE entryId = :entryId")
     suspend fun getAttachments(entryId: Long): List<AttachmentEntity>
 
+    @Query("SELECT * FROM attachments")
+    fun observeAllAttachments(): Flow<List<AttachmentEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAttachment(a: AttachmentEntity): Long
 }
@@ -149,3 +158,19 @@ interface AchievementDao {
     @Query("SELECT COUNT(*) FROM achievements WHERE type = :type AND relatedId = :relatedId")
     suspend fun countByType(type: String, relatedId: Long): Int
 }
+
+@Dao
+interface TaskDao {
+    @Query("SELECT * FROM tasks ORDER BY id DESC")
+    fun observeTasks(): Flow<List<TaskEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(task: TaskEntity): Long
+
+    @Update
+    suspend fun update(task: TaskEntity)
+
+    @Delete
+    suspend fun delete(task: TaskEntity)
+}
+

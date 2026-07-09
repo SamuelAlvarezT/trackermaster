@@ -14,7 +14,14 @@ object HabitScheduleLogic {
         if (habit.archived) return false
         return when (habit.scheduleType) {
             ScheduleType.DAILY -> true
-            ScheduleType.WEEKLY -> date.dayOfWeek == DayOfWeek.MONDAY
+            ScheduleType.WEEKLY -> {
+                val bit = 1 shl (date.dayOfWeek.value - 1)
+                if (habit.scheduleDaysBitmask != 0) {
+                    habit.scheduleDaysBitmask and bit != 0
+                } else {
+                    date.dayOfWeek == DayOfWeek.MONDAY // Fallback
+                }
+            }
             ScheduleType.MONTHLY -> date.dayOfMonth == 1
             ScheduleType.YEARLY -> date.dayOfYear == 1
             ScheduleType.SPECIFIC_DAYS -> {

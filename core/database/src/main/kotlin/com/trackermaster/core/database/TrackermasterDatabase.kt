@@ -20,8 +20,9 @@ import com.trackermaster.core.database.entity.*
         JournalEntryEntity::class,
         AttachmentEntity::class,
         AchievementEntity::class,
+        TaskEntity::class,
     ],
-    version = 1,
+    version = 4,
     exportSchema = false,
 )
 abstract class TrackermasterDatabase : RoomDatabase() {
@@ -32,4 +33,5 @@ abstract class TrackermasterDatabase : RoomDatabase() {
     abstract fun focusDao(): FocusDao
     abstract fun journalDao(): JournalDao
     abstract fun achievementDao(): AchievementDao
+    abstract fun taskDao(): TaskDao
 }

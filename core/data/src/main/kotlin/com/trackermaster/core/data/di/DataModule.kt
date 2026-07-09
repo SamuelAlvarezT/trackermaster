@@ -29,4 +29,5 @@ object DataModule {
     @Provides fun provideFocusDao(db: TrackermasterDatabase): FocusDao = db.focusDao()
     @Provides fun provideJournalDao(db: TrackermasterDatabase): JournalDao = db.journalDao()
     @Provides fun provideAchievementDao(db: TrackermasterDatabase): AchievementDao = db.achievementDao()
+    @Provides fun provideTaskDao(db: TrackermasterDatabase): TaskDao = db.taskDao()
 }

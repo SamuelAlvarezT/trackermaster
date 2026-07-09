@@ -7,13 +7,13 @@ enum class ProgressType { CHECKBOX, COUNTER, TIMER, STOPWATCH, CHECKLIST }
 
 enum class ScheduleType { DAILY, WEEKLY, MONTHLY, CUSTOM, SPECIFIC_DAYS, YEARLY }
 
-enum class TrackerType { HABIT, MOOD, EXPENSE, FOCUS, JOURNAL }
-
 enum class AccountType { CHECKING, SAVINGS, CARD, CASH }
 
 enum class TransactionType { INCOME, EXPENSE }
 
 enum class ThemeMode { LIGHT, DARK, OLED }
+
+enum class BackupFrequency { APP_START, DAILY, WEEKLY, MONTHLY }
 
 enum class FocusCategoryType {
     WORK, STUDY, CREATIVE, CODING, READING, WRITING, EXERCISE, OTHER
@@ -32,6 +32,8 @@ data class Habit(
     val reminderHour: Int? = null,
     val reminderMinute: Int? = null,
     val archived: Boolean = false,
+    val description: String = "",
+    val sortOrder: Int = 0,
 )
 
 data class HabitLog(
@@ -88,6 +90,7 @@ data class Transaction(
     val categoryId: Long,
     val date: LocalDate,
     val note: String = "",
+    val imageUri: String? = null,
 )
 
 data class Budget(
@@ -96,13 +99,6 @@ data class Budget(
     val limitAmount: Double,
     val period: String = "MONTHLY",
     val alertThresholdPercent: Int = 80,
-)
-
-data class ExchangeRate(
-    val fromCurrency: String,
-    val toCurrency: String,
-    val rate: Double,
-    val updatedAt: LocalDateTime,
 )
 
 data class FocusSession(
@@ -120,11 +116,13 @@ data class JournalEntry(
     val richTextHtml: String,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
+    val moodLevel: Int? = null,
+    val attachments: List<Attachment> = emptyList(),
 )
 
 data class Attachment(
     val id: Long = 0,
-    val entryId: Long,
+    val entryId: Long = 0,
     val path: String,
     val mimeType: String,
 )
@@ -146,6 +144,24 @@ data class AppSettings(
     val pomodoroWorkMinutes: Int = 25,
     val pomodoroBreakMinutes: Int = 5,
     val pomodoroLongBreakMinutes: Int = 15,
+    val defumblrEnabled: Boolean = true,
+    val lockscreenWidgetsEnabled: Boolean = true,
+    val newInterfaceEnabled: Boolean = false,
+    val backupFrequency: BackupFrequency = BackupFrequency.APP_START,
+    val lastBackupAtMillis: Long = 0L,
+)
+
+data class Task(
+    val id: Long = 0,
+    val title: String,
+    val completed: Boolean = false,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    val subtasks: List<SubTask> = emptyList(),
+)
+
+data class SubTask(
+    val title: String,
+    val completed: Boolean = false,
 )
 
 data class StreakInfo(

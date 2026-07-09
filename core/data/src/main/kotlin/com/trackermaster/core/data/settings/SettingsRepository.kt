@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import com.trackermaster.core.domain.model.AppSettings
+import com.trackermaster.core.domain.model.BackupFrequency
 import com.trackermaster.core.domain.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -27,6 +28,11 @@ class SettingsRepository @Inject constructor(
         val POMODORO_WORK = intPreferencesKey("pomodoro_work")
         val POMODORO_BREAK = intPreferencesKey("pomodoro_break")
         val POMODORO_LONG = intPreferencesKey("pomodoro_long")
+        val DEFUMBLR = booleanPreferencesKey("defumblr_enabled")
+        val LOCKSCREEN_WIDGETS = booleanPreferencesKey("lockscreen_widgets_enabled")
+        val NEW_INTERFACE = booleanPreferencesKey("new_interface_enabled")
+        val BACKUP_FREQUENCY = stringPreferencesKey("backup_frequency")
+        val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -40,6 +46,12 @@ class SettingsRepository @Inject constructor(
             pomodoroWorkMinutes = p[Keys.POMODORO_WORK] ?: 25,
             pomodoroBreakMinutes = p[Keys.POMODORO_BREAK] ?: 5,
             pomodoroLongBreakMinutes = p[Keys.POMODORO_LONG] ?: 15,
+            defumblrEnabled = p[Keys.DEFUMBLR] ?: true,
+            lockscreenWidgetsEnabled = p[Keys.LOCKSCREEN_WIDGETS] ?: true,
+            newInterfaceEnabled = p[Keys.NEW_INTERFACE] ?: false,
+            backupFrequency = runCatching { BackupFrequency.valueOf(p[Keys.BACKUP_FREQUENCY] ?: BackupFrequency.APP_START.name) }
+                .getOrDefault(BackupFrequency.APP_START),
+            lastBackupAtMillis = p[Keys.LAST_BACKUP_AT] ?: 0L,
         )
     }
 
@@ -53,6 +65,11 @@ class SettingsRepository @Inject constructor(
         it[Keys.POMODORO_BREAK] = shortBreak
         it[Keys.POMODORO_LONG] = longBreak
     }
+    suspend fun setDefumblrEnabled(enabled: Boolean) = edit { it[Keys.DEFUMBLR] = enabled }
+    suspend fun setLockscreenWidgetsEnabled(enabled: Boolean) = edit { it[Keys.LOCKSCREEN_WIDGETS] = enabled }
+    suspend fun setNewInterfaceEnabled(enabled: Boolean) = edit { it[Keys.NEW_INTERFACE] = enabled }
+    suspend fun setBackupFrequency(frequency: BackupFrequency) = edit { it[Keys.BACKUP_FREQUENCY] = frequency.name }
+    suspend fun setLastBackupAtMillis(value: Long) = edit { it[Keys.LAST_BACKUP_AT] = value }
 
     private suspend fun edit(block: (MutablePreferences) -> Unit) {
         context.dataStore.edit(block)
