@@ -5,7 +5,7 @@ This plan addresses a series of enhancements for Habits, Tasks, Focus, and Journ
 ## User Review Required
 
 > [!WARNING]
-> Database schema updates are required for `tasks`, `journal_entries`, and `transactions` tables. Room `fallbackToDestructiveMigration()` is enabled, which will reset database storage in development.
+> Database schema updates are required for `tasks`, `journal_entries`, and `transactions` tables. Room `fallbackToDestructiveMigration()` has been replaced with proper migration paths to maintain backward compatibility with existing backups.
 
 ## Proposed Changes
 
@@ -118,3 +118,37 @@ This plan addresses a series of enhancements for Habits, Tasks, Focus, and Journ
 - Test Focus timer and verify sessions are stored and listed correctly grouped by day.
 - Add a new journal entry with a selected mood level and attach an image, audio, and PDF file. Verify rendering in detailed view.
 - Share an external image/text link to Trackermaster, select destination (Money/Journal), and verify correct pre-population.
+
+# Backup Compatibility Fix
+
+## Problem
+The app crashes when opening old backups because Room's `fallbackToDestructiveMigration()` destroys the old database schema when upgrading to version 4.
+
+## Solution
+Replace destructive migration with proper migration paths that preserve existing data while updating the schema.
+
+## Changes Needed
+
+### 1. Update Database Migration Strategy
+**File:** `core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt`
+- Remove `.fallbackToDestructiveMigration()`
+- Add migration paths from previous versions to current version 4
+
+### 2. Define Migration Paths
+**File:** `core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt`
+- Add `MIGRATION_3_4` for version 3 to 4
+- Add `MIGRATION_2_3` if needed (based on actual version history)
+- Add `MIGRATION_1_2` if needed
+
+### 3. Migration Implementation Details
+For version 3 → 4 migration:
+- Add `createdAtEpoch` (INTEGER NOT NULL DEFAULT 0) and `subtasksJson` (TEXT NOT NULL DEFAULT '') to `tasks` table
+- Add `moodLevel` (INTEGER) to `journal_entries` table  
+- Add `imageUri` (TEXT) to `transactions` table
+- Create `attachments` table if not exists
+
+## Testing
+1. Create backup with version 3 database
+2. Install app with version 4 and migration
+3. Verify backup opens successfully without data loss
+4. Check that new fields have appropriate default values
