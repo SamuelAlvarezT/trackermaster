@@ -1,0 +1,8 @@
+<resources>
+    <string name="money_category_food">Alimentación</string>
+    <string name="money_category_transport">Transporte</string>
+    <string name="money_category_shopping">Compras</string>
+    <string name="money_category_bills">Servicios</string>
+    <string name="money_category_salary">Salario</string>
+    <string name="money_default_account">Cuenta principal</string>
+</resources>

@@ -1,6 +1,8 @@
 package com.trackermaster.core.database.entity
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -56,17 +58,26 @@ data class AccountEntity(
     val type: String,
     val currencyCode: String,
     val initialBalance: Double = 0.0,
+    @ColumnInfo(defaultValue = "0") val initialBalanceMinor: Long = 0,
+    @ColumnInfo(defaultValue = "1") val spaceId: Long = 1,
+    @ColumnInfo(defaultValue = "0") val archived: Boolean = false,
 )
 
-@Entity(tableName = "expense_categories")
+@Entity(tableName = "expense_categories", indices = [Index(value = ["builtinKey"], unique = true)])
 data class ExpenseCategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val isIncome: Boolean = false,
     val colorArgb: Int,
+    val builtinKey: String? = null,
 )
 
-@Entity(tableName = "transactions", indices = [Index("accountId"), Index("dateEpoch")])
+@Entity(tableName = "transactions", indices = [Index("accountId"), Index("dateEpoch"),
+    Index("pocketId"), Index("dateEpochDay"), Index(value = ["spaceId", "dateEpochDay"]),
+    Index(value = ["transferId", "type"], unique = true), Index(value = ["entryRequestId"], unique = true)], foreignKeys = [
+    ForeignKey(entity = MoneyPocketEntity::class, parentColumns = ["id"], childColumns = ["pocketId"], onDelete = ForeignKey.RESTRICT),
+    ForeignKey(entity = MoneyTransferEntity::class, parentColumns = ["id"], childColumns = ["transferId"], onDelete = ForeignKey.RESTRICT),
+])
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val accountId: Long,
@@ -76,6 +87,12 @@ data class TransactionEntity(
     val dateEpoch: Long,
     val note: String = "",
     val imageUri: String? = null,
+    @ColumnInfo(defaultValue = "0") val amountMinor: Long = 0,
+    @ColumnInfo(defaultValue = "0") val dateEpochDay: Long = 0,
+    @ColumnInfo(defaultValue = "1") val spaceId: Long = 1,
+    val pocketId: Long? = null,
+    val transferId: String? = null,
+    val entryRequestId: String? = null,
 )
 
 @Entity(tableName = "budgets")
@@ -85,6 +102,9 @@ data class BudgetEntity(
     val limitAmount: Double,
     val period: String = "MONTHLY",
     val alertThresholdPercent: Int = 80,
+    val limitAmountMinor: Long? = null,
+    val currencyCode: String? = null,
+    val spaceId: Long? = null,
 )
 
 @Entity(tableName = "exchange_rates", primaryKeys = ["fromCurrency", "toCurrency"])

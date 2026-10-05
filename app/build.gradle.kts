@@ -1,3 +1,7 @@
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.tasks.Classpath
+import org.gradle.process.CommandLineArgumentProvider
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +9,24 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+}
+
+abstract class MockitoAgentArguments : CommandLineArgumentProvider {
+    @get:Classpath
+    abstract val agentFiles: ConfigurableFileCollection
+
+    override fun asArguments(): Iterable<String> =
+        listOf("-javaagent:${agentFiles.singleFile.absolutePath}", "-Xshare:off")
+}
+
+val mockitoAgent = configurations.create("mockitoAgent") {
+    isCanBeConsumed = false
+}
+
+tasks.withType<Test>().configureEach {
+    jvmArgumentProviders.add(objects.newInstance(MockitoAgentArguments::class.java).apply {
+        agentFiles.from(mockitoAgent)
+    })
 }
 
 android {
@@ -20,6 +42,8 @@ android {
     }
 
     buildFeatures { compose = true }
+    // Keep EN/ES/ZH available offline when distributing an App Bundle.
+    bundle { language { enableSplit = false } }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -66,5 +90,9 @@ dependencies {
     ksp(libs.hilt.compiler.work)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.mockito.core)
+    mockitoAgent(libs.mockito.core) { isTransitive = false }
     testImplementation(project(":core:domain"))
 }

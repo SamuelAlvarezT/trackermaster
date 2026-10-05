@@ -18,12 +18,18 @@ import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import com.trackermaster.core.domain.money.formatBalances
+import com.trackermaster.core.data.money.MoneyPreferences
+import com.trackermaster.core.data.money.MoneyPreferencesRepository
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,9 +53,12 @@ class DashboardViewModel @Inject constructor(
     repo: DashboardRepository,
     taskRepo: TaskRepository,
     settingsRepo: SettingsRepository,
+    moneyPreferencesRepo: MoneyPreferencesRepository,
 ) : ViewModel() {
     val summary = repo.observeSummary().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardSummary(0, 0, null, 0.0, 0, 0))
     val pendingTasksCount = taskRepo.observeTasks().map { list -> list.count { !it.completed } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val moneyPreferences = moneyPreferencesRepo.preferences.catch { emit(MoneyPreferences(hideAmounts = true)) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, MoneyPreferences(hideAmounts = true))
     val settings = settingsRepo.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
 }
 
@@ -62,6 +71,15 @@ fun DashboardScreen(
     val summary by vm.summary.collectAsStateWithLifecycle()
     val pendingTasks by vm.pendingTasksCount.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val moneyPreferences by vm.moneyPreferences.collectAsStateWithLifecycle()
+    val moneyLocale = remember(settings.localeTag) { java.util.Locale.forLanguageTag(settings.localeTag) }
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val moneyContext = remember(context, configuration, moneyLocale) {
+        context.createConfigurationContext(android.content.res.Configuration(configuration).apply { setLocale(moneyLocale) })
+    }
+    val moneyBalance = if (moneyPreferences.hideAmounts) moneyContext.getString(R.string.money_balance_hidden)
+        else summary.balancesByCurrency.formatBalances(moneyLocale)
     Scaffold(
         topBar = {
             TopAppBar(
@@ -81,6 +99,7 @@ fun DashboardScreen(
             ModernDashboardContent(
                 summary = summary,
                 pendingTasks = pendingTasks,
+                moneyBalance = moneyBalance,
                 onNavigate = onNavigate,
                 modifier = Modifier.padding(pad),
             )
@@ -115,7 +134,7 @@ fun DashboardScreen(
             item {
                 TrackerCard(
                     title = stringResource(R.string.tracker_expense),
-                    subtitle = "$${"%.2f".format(summary.totalBalance)}",
+                    subtitle = moneyBalance,
                     onClick = { onNavigate(Routes.Expense.route) },
                 )
             }
@@ -141,6 +160,7 @@ fun DashboardScreen(
 private fun ModernDashboardContent(
     summary: DashboardSummary,
     pendingTasks: Int,
+    moneyBalance: String,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -185,7 +205,7 @@ private fun ModernDashboardContent(
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CompactStatCard("Balance", "$${"%.2f".format(summary.totalBalance)}", Modifier.weight(1f))
+                CompactStatCard(stringResource(R.string.money_balance_title), moneyBalance, Modifier.weight(1f))
                 CompactStatCard("Journal", stringResource(R.string.journal_streak, summary.journalStreak), Modifier.weight(1f))
             }
         }
@@ -201,7 +221,7 @@ private fun ModernDashboardContent(
                 ModernNavCard(Icons.Default.Mood, stringResource(R.string.tracker_mood), moodText, Color(0xFFAD1457)) {
                     onNavigate(Routes.Journal.route)
                 }
-                ModernNavCard(Icons.Default.Payments, stringResource(R.string.tracker_expense), "$${"%.2f".format(summary.totalBalance)}", Color(0xFF00695C)) {
+                ModernNavCard(Icons.Default.Payments, stringResource(R.string.tracker_expense), moneyBalance, Color(0xFF00695C)) {
                     onNavigate(Routes.Expense.route)
                 }
                 ModernNavCard(Icons.Default.Psychology, stringResource(R.string.tracker_focus), stringResource(R.string.focus_score, summary.focusScoreWeek), Color(0xFF5E35B1)) {

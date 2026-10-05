@@ -1,0 +1,8 @@
+<resources>
+    <string name="money_category_food">Food</string>
+    <string name="money_category_transport">Transport</string>
+    <string name="money_category_shopping">Shopping</string>
+    <string name="money_category_bills">Bills</string>
+    <string name="money_category_salary">Salary</string>
+    <string name="money_default_account">Main account</string>
+</resources>

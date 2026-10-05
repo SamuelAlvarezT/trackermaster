@@ -13,6 +13,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    testOptions { unitTests.isIncludeAndroidResources = true }
+    sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")
+    sourceSets.getByName("debug").assets.srcDir("$projectDir/schemas")
 }
 
 dependencies {
@@ -20,4 +23,10 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.androidx.test.core)
 }
+
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }

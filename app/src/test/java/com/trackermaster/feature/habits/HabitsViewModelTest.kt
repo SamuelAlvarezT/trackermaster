@@ -8,6 +8,9 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.launch
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -51,8 +54,11 @@ class HabitsViewModelTest {
 
     @Test
     fun `selectTab updates selectedTab and resets isReorderMode`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        runCurrent()
         viewModel.toggleReorderMode() // set to true
         viewModel.selectTab(1)
+        runCurrent()
         
         val state = viewModel.uiState.value
         assertEquals(1, state.selectedTab)
@@ -61,10 +67,14 @@ class HabitsViewModelTest {
 
     @Test
     fun `toggleReorderMode toggles the state correctly`() = runTest {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        runCurrent()
         viewModel.toggleReorderMode()
+        runCurrent()
         assertEquals(true, viewModel.uiState.value.isReorderMode)
         
         viewModel.toggleReorderMode()
+        runCurrent()
         assertEquals(false, viewModel.uiState.value.isReorderMode)
     }
 }

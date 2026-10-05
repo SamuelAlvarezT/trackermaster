@@ -1,0 +1,10 @@
+<resources>
+    <string name="money_balance_title">Saldo disponible por moneda</string>
+    <string name="money_transactions">Movimientos</string>
+    <string name="money_add">Añadir movimiento</string>
+    <string name="money_quick_expense">Gasto rápido</string>
+    <string name="money_amount">Monto</string>
+    <string name="money_save">Guardar</string>
+    <string name="money_save_error">No se pudo guardar. Revisa la cuenta, la categoría y el monto.</string>
+    <string name="money_spending_category">Gastos por categoría y moneda</string>
+</resources>

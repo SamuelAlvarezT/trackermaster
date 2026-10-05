@@ -99,12 +99,14 @@ fun MoodEntryEntity.toDomain(): MoodEntry = MoodEntry(
 
 fun MoodTagEntity.toDomain(): MoodTag = MoodTag(id, name, colorArgb)
 
-fun AccountEntity.toDomain(): Account = Account(id, name, AccountType.valueOf(type), currencyCode, initialBalance)
+fun AccountEntity.toDomain(): Account = Account(id, name, AccountType.valueOf(type), currencyCode,
+    com.trackermaster.core.domain.money.Money(initialBalanceMinor, currencyCode.uppercase(java.util.Locale.ROOT)).decimal.toDouble())
 
 fun ExpenseCategoryEntity.toDomain(): ExpenseCategory = ExpenseCategory(id, name, isIncome, colorArgb)
 
-fun TransactionEntity.toDomain(): Transaction = Transaction(
-    id, accountId, amount, TransactionType.valueOf(type), categoryId, dateEpoch.toLocalDate(), note, imageUri
+fun TransactionEntity.toDomain(currencyCode: String): Transaction = Transaction(
+    id, accountId, com.trackermaster.core.domain.money.Money(amountMinor, currencyCode).decimal.toDouble(), TransactionType.valueOf(type),
+    categoryId, LocalDate.ofEpochDay(dateEpochDay), note, imageUri
 )
 
 fun BudgetEntity.toDomain(): Budget = Budget(id, categoryId, limitAmount, period, alertThresholdPercent)

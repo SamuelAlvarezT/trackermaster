@@ -1,0 +1,8 @@
+<resources>
+    <string name="money_category_food">餐饮</string>
+    <string name="money_category_transport">交通</string>
+    <string name="money_category_shopping">购物</string>
+    <string name="money_category_bills">账单</string>
+    <string name="money_category_salary">工资</string>
+    <string name="money_default_account">主要账户</string>
+</resources>

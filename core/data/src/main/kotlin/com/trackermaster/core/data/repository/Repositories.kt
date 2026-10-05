@@ -13,6 +13,12 @@ import java.time.LocalDateTime
 import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.content.Context
+import androidx.room.withTransaction
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.trackermaster.core.database.TrackermasterDatabase
+import com.trackermaster.core.data.money.MoneyRepository
+import com.trackermaster.core.domain.money.*
 
 @Singleton
 class HabitRepository @Inject constructor(
@@ -228,56 +234,67 @@ class MoodRepository @Inject constructor(
 @Singleton
 class ExpenseRepository @Inject constructor(
     private val expenseDao: ExpenseDao,
+    private val moneyRepository: MoneyRepository,
+    private val database: TrackermasterDatabase,
+    @ApplicationContext private val context: Context,
 ) {
     fun observeAccounts(): Flow<List<Account>> = expenseDao.observeAccounts().map { it.map { a -> a.toDomain() } }
     fun observeCategories(): Flow<List<ExpenseCategory>> = expenseDao.observeCategories().map { it.map { it.toDomain() } }
-    fun observeTransactions(): Flow<List<Transaction>> = expenseDao.observeTransactions().map { it.map { it.toDomain() } }
-    fun observeBudgets(): Flow<List<Budget>> = expenseDao.observeBudgets().map { it.map { it.toDomain() } }
-
-    fun totalBalance(): Flow<Double> = combine(observeAccounts(), observeTransactions()) { accounts, txs ->
-        accounts.sumOf { acc ->
-            val accTx = txs.filter { it.accountId == acc.id }
-            acc.initialBalance + accTx.sumOf { if (it.type == TransactionType.INCOME) it.amount else -it.amount }
+    fun observeTransactions(): Flow<List<Transaction>> = moneyRepository.observeMovements().map { rows ->
+        rows.filter { it.transferId == null }.map {
+            Transaction(it.id, it.accountId, it.amount.decimal.toDouble(), TransactionType.valueOf(it.direction.name),
+                it.categoryId ?: 0, it.date, it.note, it.attachmentPath)
         }
     }
+    fun observeBudgets(): Flow<List<Budget>> = expenseDao.observeBudgets().map { it.map { it.toDomain() } }
 
-    suspend fun addAccount(account: Account) = expenseDao.insertAccount(account.toEntity())
-    suspend fun addTransaction(tx: Transaction) = expenseDao.insertTransaction(tx.toEntity())
+    fun balancesByCurrency(): Flow<List<Money>> = moneyRepository.observeSnapshot().map { it.currencies }
 
-    suspend fun seedDefaultCategories() {
+    /** Compatibility for the unchanged lock-screen UI: a single COP balance, never mixed currencies. */
+    fun totalBalance(currencyCode: String = "COP"): Flow<Double> = balancesByCurrency().map { amounts ->
+        amounts.firstOrNull { it.currencyCode == currencyCode }?.decimal?.toDouble() ?: 0.0
+    }
+
+    suspend fun addAccount(account: Account): Long {
+        val initial = Money.fromDecimal(java.math.BigDecimal.valueOf(account.initialBalance), account.currencyCode)
+        return if (account.id == 0L) moneyRepository.createAccount(account.name, account.type, initial, 2) else {
+            moneyRepository.updateAccountDetails(account.id, account.name, account.type, initial)
+            account.id
+        }
+    }
+    suspend fun addTransaction(tx: Transaction): Long = database.withTransaction {
+        val account = requireNotNull(database.moneyDao().account(tx.accountId))
+        moneyRepository.record(MoneyMovement(id = tx.id, accountId = tx.accountId,
+            amount = Money.fromDecimal(java.math.BigDecimal.valueOf(tx.amount), account.currencyCode),
+            direction = MoneyDirection.valueOf(tx.type.name), date = tx.date, spaceId = account.spaceId,
+            categoryId = tx.categoryId, note = tx.note, attachmentPath = tx.imageUri))
+    }
+
+    suspend fun seedDefaultCategories() = database.withTransaction {
         if (expenseDao.observeCategories().first().isEmpty()) {
-            listOf("Food", "Transport", "Shopping", "Bills", "Salary").forEachIndexed { i, name ->
+            listOf(com.trackermaster.core.data.R.string.money_category_food,
+                com.trackermaster.core.data.R.string.money_category_transport,
+                com.trackermaster.core.data.R.string.money_category_shopping,
+                com.trackermaster.core.data.R.string.money_category_bills,
+                com.trackermaster.core.data.R.string.money_category_salary).forEachIndexed { i, resource ->
                 expenseDao.insertCategory(
                     com.trackermaster.core.database.entity.ExpenseCategoryEntity(
-                        name = name,
-                        isIncome = name == "Salary",
+                        name = context.getString(resource),
+                        isIncome = i == 4,
                         colorArgb = listOf(0xFFE57373, 0xFF64B5F6, 0xFF81C784, 0xFFFFB74D, 0xFF4DB6AC)[i].toInt(),
                     )
                 )
             }
         }
         if (expenseDao.observeAccounts().first().isEmpty()) {
-            expenseDao.insertAccount(
-                com.trackermaster.core.database.entity.AccountEntity(
-                    name = "Main account",
-                    type = AccountType.CHECKING.name,
-                    currencyCode = "USD",
-                )
-            )
+            moneyRepository.createAccount(context.getString(com.trackermaster.core.data.R.string.money_default_account),
+                AccountType.CHECKING, Money(0, "COP"), 2)
         }
     }
 }
 
-private fun Account.toEntity() = com.trackermaster.core.database.entity.AccountEntity(
-    id, name, type.name, currencyCode, initialBalance
-)
-
 private fun ExpenseCategory.toEntity() = com.trackermaster.core.database.entity.ExpenseCategoryEntity(
     id, name, isIncome, colorArgb
-)
-
-private fun Transaction.toEntity() = com.trackermaster.core.database.entity.TransactionEntity(
-    id, accountId, amount, type.name, categoryId, date.toEpochMilli(), note, imageUri
 )
 
 private fun Budget.toEntity() = com.trackermaster.core.database.entity.BudgetEntity(
@@ -375,7 +392,7 @@ class DashboardRepository @Inject constructor(
         return combine(
             habitRepository.observeTodayHabits(today),
             moodRepository.observeEntries(),
-            expenseRepository.totalBalance(),
+            expenseRepository.balancesByCurrency(),
             focusRepository.weeklyFocusScore(),
             journalRepository.writingStreak(),
         ) { todayHabits, moods, balance, focusScore, journalStreak ->
@@ -383,7 +400,8 @@ class DashboardRepository @Inject constructor(
                 habitsDueToday = todayHabits.size,
                 habitsCompletedToday = todayHabits.count { (_, log) -> log != null && HabitScheduleLogic.isLogComplete(log) },
                 latestMoodLevel = moods.firstOrNull()?.level,
-                totalBalance = balance,
+                totalBalance = balance.firstOrNull { it.currencyCode == "COP" }?.decimal?.toDouble() ?: 0.0,
+                balancesByCurrency = balance,
                 focusScoreWeek = focusScore,
                 journalStreak = journalStreak,
             )

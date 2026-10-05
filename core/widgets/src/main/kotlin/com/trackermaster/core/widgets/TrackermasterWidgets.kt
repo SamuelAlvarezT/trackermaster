@@ -2,7 +2,17 @@ package com.trackermaster.core.widgets
 
 import android.content.ComponentName
 import android.content.Context
+import android.annotation.SuppressLint
+import androidx.compose.ui.graphics.Color
+import com.trackermaster.core.domain.money.formatBalances
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.trackermaster.core.domain.model.AppSettings
+import com.trackermaster.core.domain.model.DashboardSummary
+import com.trackermaster.core.data.money.MoneyPreferences
+import kotlinx.coroutines.flow.catch
 import androidx.glance.action.Action
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,6 +35,8 @@ import com.trackermaster.core.data.repository.MoodRepository
 import com.trackermaster.core.domain.HabitScheduleLogic
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
 class HabitProgressWidget : GlanceAppWidget() {
@@ -61,10 +73,19 @@ class MoodLogWidget : GlanceAppWidget() {
 
 class ExpenseBalanceWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val balance = runBlocking { WidgetHiltEntryPoint.get(context).expenseRepository().totalBalance().first() }
+        val entry = WidgetHiltEntryPoint.get(context)
+        val balances = entry.expenseRepository().balancesByCurrency().flowOn(Dispatchers.Default)
+        val initialBalances = balances.first()
+        val privacyFlow = entry.moneyPreferencesRepository().preferences.catch { emit(MoneyPreferences(hideAmounts = true)) }
         val action = actionStartActivity(ComponentName(context.packageName, "com.trackermaster.app.MainActivity"))
         provideContent {
-            WidgetBox("Balance", "$${"%.0f".format(balance)}", action)
+            val privacy by privacyFlow.collectAsState(MoneyPreferences(hideAmounts = true))
+            val moneyContext = moneyWidgetContext(entry, context)
+            val currentBalances by balances.collectAsState(initialBalances)
+            WidgetBox(moneyContext.getString(R.string.money_balance_title),
+                if (privacy.hideAmounts) moneyContext.getString(R.string.money_balance_hidden)
+                else currentBalances.formatBalances(moneyContext.resources.configuration.locales[0]), action,
+                textColor = ColorProvider(Color.White))
         }
     }
 }
@@ -80,31 +101,40 @@ class FocusQuickStartWidget : GlanceAppWidget() {
 
 class DashboardComboWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val summary = runBlocking { WidgetHiltEntryPoint.get(context).dashboardRepository().observeSummary().first() }
+        val entry = WidgetHiltEntryPoint.get(context)
+        val summaries = entry.dashboardRepository().observeSummary().flowOn(Dispatchers.Default)
+        val initialSummary = summaries.first()
+        val privacyFlow = entry.moneyPreferencesRepository().preferences.catch { emit(MoneyPreferences(hideAmounts = true)) }
         val action = actionStartActivity(ComponentName(context.packageName, "com.trackermaster.app.MainActivity"))
         provideContent {
+            val privacy by privacyFlow.collectAsState(MoneyPreferences(hideAmounts = true))
+            val moneyContext = moneyWidgetContext(entry, context)
+            val summary by summaries.collectAsState(initialSummary)
             Column(
-                modifier = GlanceModifier.fillMaxSize().background(ColorProvider(android.graphics.Color.parseColor("#1E1E1E"))).padding(12.dp)
+                modifier = GlanceModifier.fillMaxSize().background(ColorProvider(Color(0xFF1E1E1E))).padding(12.dp)
                     .clickable(action),
             ) {
-                Text("Trackermaster", style = TextStyle(fontSize = 14.sp))
-                Text("Habits: ${summary.habitsCompletedToday}/${summary.habitsDueToday}")
-                Text("Mood: ${summary.latestMoodLevel ?: "—"}")
-                Text("Balance: $${"%.0f".format(summary.totalBalance)}")
-                Text("Focus: ${summary.focusScoreWeek}")
-                Text("Journal: ${summary.journalStreak}d streak")
+                Text("Trackermaster", style = TextStyle(fontSize = 14.sp, color = ColorProvider(Color.White)))
+                Text("Habits: ${summary.habitsCompletedToday}/${summary.habitsDueToday}", style = TextStyle(color = ColorProvider(Color.White)))
+                Text("Mood: ${summary.latestMoodLevel ?: "—"}", style = TextStyle(color = ColorProvider(Color.White)))
+                Text(moneyContext.getString(R.string.money_balance_line,
+                    if (privacy.hideAmounts) moneyContext.getString(R.string.money_balance_hidden)
+                    else summary.balancesByCurrency.formatBalances(moneyContext.resources.configuration.locales[0])), style = TextStyle(color = ColorProvider(Color.White)))
+                Text("Focus: ${summary.focusScoreWeek}", style = TextStyle(color = ColorProvider(Color.White)))
+                Text("Journal: ${summary.journalStreak}d streak", style = TextStyle(color = ColorProvider(Color.White)))
             }
         }
     }
 }
 
 @Composable
-private fun WidgetBox(title: String, subtitle: String, action: Action) {
+private fun WidgetBox(title: String, subtitle: String, action: Action,
+    textColor: ColorProvider = ColorProvider(Color.Black)) {
     Column(
-        modifier = GlanceModifier.fillMaxSize().background(ColorProvider(android.graphics.Color.parseColor("#1E1E1E"))).padding(12.dp).clickable(action),
+        modifier = GlanceModifier.fillMaxSize().background(ColorProvider(Color(0xFF1E1E1E))).padding(12.dp).clickable(action),
     ) {
-        Text(title, style = TextStyle(fontSize = 14.sp))
-        Text(subtitle, style = TextStyle(fontSize = 12.sp))
+        Text(title, style = TextStyle(fontSize = 14.sp, color = textColor))
+        Text(subtitle, style = TextStyle(fontSize = 12.sp, color = textColor))
     }
 }
 
@@ -123,5 +153,18 @@ object WidgetRefresh {
         ExpenseBalanceWidget().updateAll(context)
         FocusQuickStartWidget().updateAll(context)
         DashboardComboWidget().updateAll(context)
+    }
+}
+
+// The host app disables language splits, so changing locale needs no network download.
+@SuppressLint("AppBundleLocaleChanges")
+@Composable
+private fun moneyWidgetContext(entry: WidgetHiltEntryPoint, context: Context): Context {
+    val flow = remember(entry) { entry.settingsRepository().settings }
+    val settings by flow.collectAsState(AppSettings(localeTag = context.resources.configuration.locales[0].toLanguageTag()))
+    return remember(context, settings.localeTag) {
+        context.createConfigurationContext(android.content.res.Configuration(context.resources.configuration).apply {
+            setLocale(java.util.Locale.forLanguageTag(settings.localeTag))
+        })
     }
 }

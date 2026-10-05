@@ -1,0 +1,5 @@
+<resources>
+    <string name="money_balance_title">按币种显示可用余额</string>
+    <string name="money_balance_line">可用余额：%1$s</string>
+    <string name="money_balance_hidden">余额已隐藏</string>
+</resources>

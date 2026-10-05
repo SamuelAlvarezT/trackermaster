@@ -21,9 +21,13 @@ import com.trackermaster.core.database.entity.*
         AttachmentEntity::class,
         AchievementEntity::class,
         TaskEntity::class,
+        MoneySpaceEntity::class,
+        MoneyPocketEntity::class,
+        MoneyTransferEntity::class,
+        MoneyReceiptEntity::class,
     ],
-    version = 4,
-    exportSchema = false,
+    version = 7,
+    exportSchema = true,
 )
 abstract class TrackermasterDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
@@ -34,4 +38,6 @@ abstract class TrackermasterDatabase : RoomDatabase() {
     abstract fun journalDao(): JournalDao
     abstract fun achievementDao(): AchievementDao
     abstract fun taskDao(): TaskDao
+    abstract fun moneyDao(): MoneyDao
+    abstract fun moneyReceiptDao(): MoneyReceiptDao
 }

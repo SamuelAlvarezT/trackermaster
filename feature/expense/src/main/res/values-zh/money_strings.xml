@@ -1,0 +1,10 @@
+<resources>
+    <string name="money_balance_title">按币种显示可用余额</string>
+    <string name="money_transactions">交易记录</string>
+    <string name="money_add">添加交易</string>
+    <string name="money_quick_expense">快速记账</string>
+    <string name="money_amount">金额</string>
+    <string name="money_save">保存</string>
+    <string name="money_save_error">无法保存。请检查账户、类别和金额。</string>
+    <string name="money_spending_category">按类别和币种统计支出</string>
+</resources>

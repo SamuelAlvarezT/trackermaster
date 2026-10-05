@@ -183,4 +183,5 @@ data class DashboardSummary(
     val totalBalance: Double,
     val focusScoreWeek: Int,
     val journalStreak: Int,
+    val balancesByCurrency: List<com.trackermaster.core.domain.money.Money> = emptyList(),
 )

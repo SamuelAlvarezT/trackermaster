@@ -1,0 +1,10 @@
+<resources>
+    <string name="money_balance_title">Available balance by currency</string>
+    <string name="money_transactions">Transactions</string>
+    <string name="money_add">Add transaction</string>
+    <string name="money_quick_expense">Quick expense</string>
+    <string name="money_amount">Amount</string>
+    <string name="money_save">Save</string>
+    <string name="money_save_error">Could not save. Check the account, category and amount.</string>
+    <string name="money_spending_category">Spending by category and currency</string>
+</resources>
