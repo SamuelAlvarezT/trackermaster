@@ -1,0 +1,326 @@
+{
+  "tests": {
+    "core/domain": [
+      {
+        "suite": "com.trackermaster.core.domain.money.MoneyLedgerTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:43:24.315Z"
+      },
+      {
+        "suite": "com.trackermaster.core.domain.money.MoneyPlanningRulesTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:43:24.599Z"
+      },
+      {
+        "suite": "com.trackermaster.core.domain.money.MoneyTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:43:24.803Z"
+      },
+      {
+        "suite": "com.trackermaster.core.domain.money.ReceiptParserTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:43:24.906Z"
+      }
+    ],
+    "core/database": [
+      {
+        "suite": "com.trackermaster.core.database.AssistantMigrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:46:04.208Z"
+      },
+      {
+        "suite": "com.trackermaster.core.database.CloudSyncMigrationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:46:23.616Z"
+      },
+      {
+        "suite": "com.trackermaster.core.database.MoneyMigrationSixTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:46:29.581Z"
+      },
+      {
+        "suite": "com.trackermaster.core.database.MoneyMigrationTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:46:33.137Z"
+      },
+      {
+        "suite": "com.trackermaster.core.database.PlanningMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:46:36.777Z"
+      },
+      {
+        "suite": "com.trackermaster.core.database.ReceiptMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T06:46:38.022Z"
+      }
+    ],
+    "core/data": [
+      {
+        "suite": "com.trackermaster.core.data.money.MoneyEntryFlowsTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:10:45.308Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.money.MoneyPlanningPermissionTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:11:46.691Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.money.MoneyPlanningRepositoryTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:12:39.595Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.money.MoneyPreferencesTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:12:48.325Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.money.MoneyReceiptRepositoryTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:12:50.477Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.money.MoneyRepositoryTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:12:56.985Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.money.ReceiptFilesTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:13:04.570Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.sync.AssistantCommandTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:13:07.257Z"
+      },
+      {
+        "suite": "com.trackermaster.core.data.sync.CloudSyncStoreTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T15:13:13.793Z"
+      }
+    ],
+    "core/ui": [
+      {
+        "suite": "com.trackermaster.core.ui.theme.AccentContrastTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-09T16:09:37.694Z"
+      }
+    ],
+    "feature/expense": [
+      {
+        "suite": "com.trackermaster.feature.expense.MoneyPlanningUiTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:55:25.200Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.expense.MoneyPlanningViewModelTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:56:48.334Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.expense.MoneyPresentationTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:56:58.422Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.expense.MoneyUiTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:56:59.175Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.expense.MoneyViewModelTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:57:26.308Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.expense.ReceiptIntentTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:57:27.560Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.expense.ReceiptUiTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:57:28.075Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.expense.ReceiptViewModelTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T00:57:35.831Z"
+      }
+    ],
+    "app": [
+      {
+        "suite": "com.trackermaster.core.domain.HabitScheduleLogicTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T01:07:04.597Z"
+      },
+      {
+        "suite": "com.trackermaster.feature.habits.HabitsViewModelTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "timestamp": "2026-10-10T01:07:04.769Z"
+      }
+    ]
+  },
+  "resource_keys": {
+    "money_planning.xml": 79,
+    "money_planning_notifications.xml": 4
+  },
+  "preservation_checks_passed": true,
+  "external_changes_preserved": [
+    ".gitignore",
+    "README.md",
+    "app/src/main/java/com/trackermaster/app/MainActivity.kt",
+    "feature/backup/src/main/kotlin/com/trackermaster/feature/backup/BackupManager.kt",
+    "feature/settings/src/main/kotlin/com/trackermaster/feature/settings/SettingsScreens.kt",
+    "app/src/main/java/com/trackermaster/app/tasks/TasksScreens.kt",
+    "core/data/src/main/kotlin/com/trackermaster/core/data/mapper/Mappers.kt",
+    "core/data/src/main/kotlin/com/trackermaster/core/data/repository/Repositories.kt",
+    "core/domain/src/main/kotlin/com/trackermaster/core/domain/model/Models.kt",
+    "core/database/build.gradle.kts",
+    "feature/habits/src/main/kotlin/com/trackermaster/feature/habits/HabitDialogs.kt"
+  ],
+  "original_baseline_unchanged": false,
+  "module_test_totals": {
+    "core/domain": 43,
+    "core/database": 17,
+    "core/data": 67,
+    "core/ui": 3,
+    "feature/expense": 70,
+    "app": 6
+  },
+  "total_tests": 206,
+  "failed_tests": 0,
+  "apk": {
+    "path": "C:\\Users\\usu\\Desktop\\habit tracker app\\docs\\money\\artifacts\\trackermaster-money-phase5-debug.apk",
+    "bytes": 71298142,
+    "sha256": "1eb0c0e0b10a23e78e976dc3c9c95951d5e9a4b2868417926e9c417e815914bd",
+    "signature_v2_verified": true,
+    "zip_crc_verified": true
+  },
+  "current_sources_match_validation_snapshot": true,
+  "source_differences": [],
+  "native_planning_screenshots": 17,
+  "lint": {
+    "core/data": {
+      "errors": 0,
+      "warning_ids": [
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "NewerVersionAvailable",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead"
+      ]
+    },
+    "feature/expense": {
+      "errors": 0,
+      "warning_ids": [
+        "GradleDependency"
+      ]
+    }
+  },
+  "manifest": {
+    "planning_activity_exported": false,
+    "default_workmanager_initializer_removed": true,
+    "network_permissions_from_existing_cloud_integration": true
+  }
+}

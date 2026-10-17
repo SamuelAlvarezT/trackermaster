@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
+        <activity android:name=".MoneyCommitmentActivity" android:exported="false" android:label="@string/c_title" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".MoneyPlanningActivity" android:exported="false" android:label="@string/p_planning" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".MoneyReceiptActivity" android:exported="true" android:label="@string/r_share_label" android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

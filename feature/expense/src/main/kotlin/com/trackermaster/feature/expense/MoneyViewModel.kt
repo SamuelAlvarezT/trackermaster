@@ -60,6 +60,8 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
     }
     fun onEvent(event: MoneyEvent) {
         when (event) {
+            is MoneyEvent.Commitments -> effectChannel.trySend(MoneyEffect.Commitments(event.tab,controls.value.currency,controls.value.spaceId))
+            is MoneyEvent.Planning -> effectChannel.trySend(MoneyEffect.Planning(event.tab,event.budgetId,controls.value.currency,controls.value.spaceId))
             MoneyEvent.ImportReceipt -> effectChannel.trySend(MoneyEffect.ImportReceipt)
             is MoneyEvent.ViewReceipt -> if (!uiState.value.preferences.hideAmounts) effectChannel.trySend(MoneyEffect.ViewReceipt(event.path))
             MoneyEvent.Retry -> observe()
@@ -145,6 +147,10 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
     private fun notice(kind: MoneyNoticeKind) { change { it.copy(notice = MoneyNotice(++noticeId, kind)) } }
 
     private fun openEntry(event: MoneyEvent.OpenEntry) {
+        if(event.row?.movement?.principal == true) {
+            effectChannel.trySend(MoneyEffect.Commitments("debts",controls.value.currency,controls.value.spaceId))
+            return
+        }
         if (writing) return
         val data = workspace ?: return
         val original = event.row?.movement

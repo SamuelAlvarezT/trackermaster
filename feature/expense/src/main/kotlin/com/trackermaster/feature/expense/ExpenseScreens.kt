@@ -31,6 +31,11 @@ fun ExpenseReportsScreen(vm: MoneyViewModel = hiltViewModel()) {
 private fun MoneyEffects(vm: MoneyViewModel) {
     val context = LocalContext.current
     LaunchedEffect(vm,context) { vm.effects.collect { effect -> when(effect) {
+        is MoneyEffect.Commitments -> context.startActivity(Intent(context,MoneyCommitmentActivity::class.java)
+            .putExtra("commitment_tab",effect.tab).putExtra("commitment_currency",effect.currency).putExtra("commitment_space",effect.space?:0L))
+        is MoneyEffect.Planning -> context.startActivity(Intent(context,MoneyPlanningActivity::class.java)
+            .putExtra("planning_tab",effect.tab).putExtra("planning_budget",effect.budgetId?:0L)
+            .putExtra("planning_currency",effect.currency).putExtra("planning_space",effect.space?:0L))
         MoneyEffect.ImportReceipt -> context.startActivity(Intent(context,MoneyReceiptActivity::class.java))
         is MoneyEffect.ViewReceipt -> ReceiptViewer.open(context,effect.path,vm.localeTag.value)
     } } }

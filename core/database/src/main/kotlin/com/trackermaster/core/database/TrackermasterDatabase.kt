@@ -7,6 +7,10 @@ import com.trackermaster.core.database.entity.*
 
 @Database(
     entities = [
+        AssistantCommandReceipt::class,
+        CloudRecordVersion::class,
+        CloudSyncOperation::class,
+        CloudSyncState::class,
         HabitEntity::class,
         HabitLogEntity::class,
         MoodEntryEntity::class,
@@ -25,8 +29,14 @@ import com.trackermaster.core.database.entity.*
         MoneyPocketEntity::class,
         MoneyTransferEntity::class,
         MoneyReceiptEntity::class,
+        MoneyPlanEntity::class,
+        MoneyPlanOccurrenceEntity::class,
+        MoneyPlanningAlertEntity::class,
+        MoneyDebtEntity::class,
+        DebtPaymentEntity::class,
+        SavingsGoalEntity::class,
     ],
-    version = 7,
+    version = 11,
     exportSchema = true,
 )
 abstract class TrackermasterDatabase : RoomDatabase() {
@@ -40,4 +50,6 @@ abstract class TrackermasterDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun moneyDao(): MoneyDao
     abstract fun moneyReceiptDao(): MoneyReceiptDao
+    abstract fun moneyPlanningDao(): MoneyPlanningDao
+    abstract fun moneyCommitmentDao(): MoneyCommitmentDao
 }

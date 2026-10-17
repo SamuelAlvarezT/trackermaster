@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.trackermaster.core.database.TrackermasterDatabase
 import com.trackermaster.core.database.MoneyMigrations
 import com.trackermaster.core.database.ReceiptMigration
+import com.trackermaster.core.database.PlanningMigration
 import com.trackermaster.core.database.MoneyDatabaseCallback
 import com.trackermaster.core.database.dao.*
 import dagger.Module
@@ -24,8 +25,11 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): TrackermasterDatabase =
         Room.databaseBuilder(context, TrackermasterDatabase::class.java, "trackermaster.db")
-            .addMigrations(MIGRATION_3_4, MoneyMigrations.MIGRATION_4_5, MoneyMigrations.MIGRATION_5_6, ReceiptMigration.MIGRATION_6_7)
+            .addMigrations(MIGRATION_3_4, MoneyMigrations.MIGRATION_4_5, MoneyMigrations.MIGRATION_5_6, ReceiptMigration.MIGRATION_6_7, PlanningMigration.MIGRATION_7_8)
             .addCallback(MoneyDatabaseCallback)
+            .addMigrations(com.trackermaster.core.database.CloudSyncSchema.MIGRATION_8_9)
+            .addMigrations(com.trackermaster.core.database.AssistantMigration.MIGRATION_9_10)
+            .addMigrations(com.trackermaster.core.database.CommitmentMigration.MIGRATION_10_11)
             .build()
 
     @Provides fun provideHabitDao(db: TrackermasterDatabase): HabitDao = db.habitDao()

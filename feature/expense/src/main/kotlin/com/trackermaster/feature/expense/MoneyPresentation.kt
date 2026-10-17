@@ -99,7 +99,7 @@ object MoneyPresentation {
         val allRows = rows(data, categories, controls.spaceId, code, range)
         val history = rows(data, categories, controls.spaceId, code, range, controls.filters)
         val totals = MoneyLedger.periodTotals(data.movements, code, range.from, range.through, controls.spaceId)
-        val expenses = data.movements.filter { it.transferId == null && it.direction == MoneyDirection.EXPENSE &&
+        val expenses = data.movements.filter { it.transferId == null && !it.principal && it.direction == MoneyDirection.EXPENSE &&
             it.amount.currencyCode == code && (controls.spaceId == null || it.spaceId == controls.spaceId) &&
             !it.date.isBefore(range.from) && !it.date.isAfter(range.through) }
         val categoryTotals = expenses.groupBy { it.categoryId }.map { (id, rows) ->
@@ -140,8 +140,8 @@ class MoneyPresenter {
     fun build(data: MoneyWorkspaceData, controls: MoneyControls): MoneyHomeUiState {
         val current = Scope(controls.spaceId, controls.currency, controls.period, controls.localeTag)
         if (source !== data || current != scope) {
-            val budgets = data.budgets.map { budget -> MoneyBudgetItem(budget.id,
-                data.categories.find { it.id == budget.categoryId }, budget.legacyAmount, budget.limit, budget.spaceId, budget.period) }
+            val budgets = data.budgets.map { budget -> planningBudgetItem(budget,data,
+                if(controls.period.kind==MoneyPeriodKind.RANGE)controls.period.through else controls.period.anchor,Locale.forLanguageTag(controls.localeTag)) }
             base = MoneyPresentation.present(data.ledger, data.categories, data.spaces, budgets,
                 controls.copy(filters = MoneyFilters(), editor = null))
             source = data; scope = current; previousFilters = null
@@ -163,6 +163,8 @@ class MoneyPresenter {
                 saving = controls.saving)
         }
         return content.copy(controls = controls.copy(editor = editor), history = requireNotNull(filtered),
+            overview = content.overview.copy(upcoming = data.plans.filter { it.active && !it.archived && it.currency==controls.currency &&
+                (controls.spaceId==null || it.spaceId==controls.spaceId) }.take(3)),
             accounts = content.accounts.copy(showArchived = controls.showArchived))
     }
 }

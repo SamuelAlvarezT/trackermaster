@@ -15,18 +15,23 @@ import androidx.fragment.app.FragmentActivity
 /** Stored settings must arrive before any private financial content is composed. */
 @Composable internal fun ReceiptAccess(state:ReceiptUiState,authenticated:Boolean,gate: @Composable () -> Unit,
     failure: @Composable () -> Unit = {},content: @Composable () -> Unit) {
+    MoneyPrivateAccess(state.loading,state.workspace!=null,state.settings.biometricEnabled,authenticated,gate,failure,content)
+}
+@Composable internal fun MoneyPrivateAccess(loading:Boolean,hasData:Boolean,biometric:Boolean,authenticated:Boolean,
+    gate: @Composable () -> Unit,failure: @Composable () -> Unit,content: @Composable () -> Unit) {
     Surface(Modifier.fillMaxSize()) {when {
-        state.loading -> Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator()}
-        state.workspace==null -> failure()
-        state.settings.biometricEnabled && !authenticated -> gate()
+        loading -> Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator()}
+        !hasData -> failure()
+        biometric && !authenticated -> gate()
         else -> content()
     }}
 }
-@Composable internal fun ReceiptAuthentication(activity:FragmentActivity,onUnlocked:()->Unit,onClose:()->Unit) {
+@Composable internal fun ReceiptAuthentication(activity:FragmentActivity,onUnlocked:()->Unit,onClose:()->Unit,
+    titleId:Int=R.string.r_auth_title,subtitleId:Int=R.string.r_auth_subtitle) {
     val unlocked by rememberUpdatedState(onUnlocked)
     var unavailable by remember {mutableStateOf(false)}
-    val title=stringResource(R.string.r_auth_title)
-    val subtitle=stringResource(R.string.r_auth_subtitle)
+    val title=stringResource(titleId)
+    val subtitle=stringResource(subtitleId)
     val cancel=stringResource(R.string.m_cancel)
     val prompt=remember(activity) {BiometricPrompt(activity,ContextCompat.getMainExecutor(activity),object:BiometricPrompt.AuthenticationCallback(){
         override fun onAuthenticationSucceeded(result:BiometricPrompt.AuthenticationResult){unlocked()}

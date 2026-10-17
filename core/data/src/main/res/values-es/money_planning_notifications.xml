@@ -1,0 +1,6 @@
+<resources>
+    <string name="money_planning_channel">Recordatorios de Money</string>
+    <string name="money_planning_notification_title">Trackermaster · Dinero</string>
+    <string name="money_planning_notification_due">Tienes un pago o una compra pendiente. Abre Money para revisarlo.</string>
+    <string name="money_planning_notification_budget">Un presupuesto requiere atención. Abre Money para revisarlo.</string>
+</resources>

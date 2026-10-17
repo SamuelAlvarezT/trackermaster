@@ -1,0 +1,6 @@
+<resources>
+    <string name="money_planning_channel">资金提醒</string>
+    <string name="money_planning_notification_title">Trackermaster · 资金</string>
+    <string name="money_planning_notification_due">有付款或购物待处理。打开资金页面查看。</string>
+    <string name="money_planning_notification_budget">预算需要关注。打开资金页面查看。</string>
+</resources>

@@ -23,15 +23,9 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
     fun observeCategories() = dao.observeCategories().map { rows ->
         rows.map { MoneyCategory(it.id, it.name, it.isIncome, it.builtinKey) }
     }
-    fun observeWorkspace() = combine(observeLedgerData(), observeCategories(), observeSpaces(), dao.observeBudgets()) {
-        ledger, categories, spaces, budgets ->
-        MoneyWorkspaceData(ledger, categories, spaces, budgets.map {
-            val minor = it.limitAmountMinor
-            val code = it.currencyCode
-            MoneyBudget(it.id, it.categoryId, it.limitAmount,
-                if (minor != null && code != null) Money(minor, code) else null,
-                it.spaceId, it.period)
-        })
+    fun observeWorkspace() = combine(observeLedgerData(), observeCategories(), observeSpaces(), dao.observeBudgets(),
+        database.moneyPlanningDao().observePlans()) { ledger, categories, spaces, budgets, plans ->
+        MoneyWorkspaceData(ledger, categories, spaces, budgets.map { it.moneyBudget() }, plans.map { it.moneyPlan() })
     }
     suspend fun ensureCategories() = database.withTransaction {
         val existing = dao.categories()
@@ -115,8 +109,20 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
         dao.insertPocket(MoneyPocketEntity(accountId = accountId, spaceId = spaceId, name = name.trim()))
     }
 
-    suspend fun record(movement: MoneyMovement): Long = database.withTransaction {
+    suspend fun record(movement: MoneyMovement): Long {
+        require(!movement.principal)
+        return recordInternal(movement)
+    }
+
+    internal suspend fun recordPrincipal(movement: MoneyMovement): Long {
+        require(movement.principal && movement.id == 0L && movement.categoryId == null)
+        return recordInternal(movement)
+    }
+
+    private suspend fun recordInternal(movement: MoneyMovement): Long = database.withTransaction {
         require(movement.transferId == null) { "Transfers must be saved as a pair" }
+        if (movement.id != 0L && dao.movement(movement.id)?.principal == true)
+            throw MoneyWriteException(MoneyWriteFailure.REQUEST_CONFLICT)
         validateMovement(movement)
         movement.entryRequestId?.let { request ->
             require(request.isNotBlank())
@@ -205,6 +211,8 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
 
     suspend fun deleteEntry(id: Long): MoneyUndoToken = database.withTransaction {
         val movement = dao.movement(id) ?: throw MoneyWriteException(MoneyWriteFailure.STALE_ENTRY)
+        if (movement.principal || database.moneyCommitmentDao().linked(id) != null)
+            throw MoneyWriteException(MoneyWriteFailure.REQUEST_CONFLICT)
         val transfer = movement.transferId?.let { requireNotNull(dao.transfer(it)) }
         val rows = if (transfer == null) listOf(movement) else dao.transferMovements(transfer.id)
         val currencies = rows.associate { row -> row.accountId to requireNotNull(dao.account(row.accountId)).currencyCode }
@@ -246,8 +254,10 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
         require(!account.archived)
         require(account.currencyCode.equals(movement.amount.currencyCode, ignoreCase = true))
         require(movement.spaceId == fundingSpace(account, movement.pocketId))
-        val category = requireNotNull(movement.categoryId?.let { dao.category(it) })
-        require(category.isIncome == (movement.direction == MoneyDirection.INCOME))
+        if (!movement.principal) {
+            val category = requireNotNull(movement.categoryId?.let { dao.category(it) })
+            require(category.isIncome == (movement.direction == MoneyDirection.INCOME))
+        }
     }
 
     private suspend fun validatePocketBalances() {
@@ -262,7 +272,7 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
         id = id, accountId = accountId, amount = amount.decimal.toDouble(), type = direction.name,
         categoryId = categoryId ?: 0, dateEpoch = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
         note = note, imageUri = attachmentPath, amountMinor = amount.minorUnits, dateEpochDay = date.toEpochDay(),
-        spaceId = spaceId, pocketId = pocketId, transferId = transferId, entryRequestId = entryRequestId)
+        spaceId = spaceId, pocketId = pocketId, transferId = transferId, entryRequestId = entryRequestId, principal = principal)
 }
 
 interface MoneyUndoToken

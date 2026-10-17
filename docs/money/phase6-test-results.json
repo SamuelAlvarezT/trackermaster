@@ -1,0 +1,524 @@
+{
+  "preservation_checks": 216,
+  "protected_changes_preserved": true,
+  "source_snapshot_matches": true,
+  "translations": {
+    "feature/expense": 57,
+    "core/data": 1
+  },
+  "tests": {
+    "core/domain": [
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyCommitmentRulesTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyLedgerTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyPlanningRulesTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.ReceiptParserTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "core/database": [
+      {
+        "name": "com.trackermaster.core.database.AssistantMigrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.CloudSyncMigrationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.CommitmentMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.MoneyMigrationSixTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.MoneyMigrationTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.PlanningMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.ReceiptMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "core/data": [
+      {
+        "name": "com.trackermaster.core.data.money.MoneyCommitmentRepositoryTest",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyEntryFlowsTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPlanningPermissionTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPlanningRepositoryTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPreferencesTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyReceiptRepositoryTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyRepositoryTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.ReceiptFilesTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.sync.AssistantCommandTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.sync.CloudSyncStoreTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "core/ui": [
+      {
+        "name": "com.trackermaster.core.ui.theme.AccentContrastTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "feature/expense": [
+      {
+        "name": "com.trackermaster.feature.expense.MoneyCommitmentUiTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyCommitmentViewModelTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPlanningUiTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPlanningViewModelTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPresentationTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyUiTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyViewModelTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptIntentTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptUiTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptViewModelTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "app": [
+      {
+        "name": "com.trackermaster.core.domain.HabitScheduleLogicTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.habits.HabitsViewModelTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "module_test_totals": {
+    "core/domain": 53,
+    "core/database": 19,
+    "core/data": 88,
+    "core/ui": 3,
+    "feature/expense": 87,
+    "app": 6
+  },
+  "total_tests": 256,
+  "failed_tests": 0,
+  "lint": {
+    "core/data": {
+      "errors": 0,
+      "warnings": 13,
+      "issue_ids": [
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "NewerVersionAvailable",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead"
+      ]
+    },
+    "feature/expense": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    }
+  },
+  "lint_warning_ids_unchanged": true,
+  "compiler_warnings": [
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:292:55 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:295:57 'val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:413:38 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:437:38 'val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook."
+  ],
+  "commitment_activity_exported": false,
+  "apk": {
+    "path": "C:\\Users\\usu\\Desktop\\habit tracker app\\docs\\money\\artifacts\\trackermaster-money-phase6-debug.apk",
+    "bytes": 72181344,
+    "sha256": "adf0415478674ed11b2054319413c4a0c9d00384c63d1662dabf6e6f1b2e1730",
+    "crc_valid": true,
+    "schema_version": 11,
+    "apk_v2_verified": true,
+    "same_certificate_as_phase5": true,
+    "certificate_sha256": "167b7b7e30866a503616024c6099db344aa5f24e66d5a761f8bb2c5384153c53",
+    "apk_sha256": "adf0415478674ed11b2054319413c4a0c9d00384c63d1662dabf6e6f1b2e1730",
+    "apk_bytes": 72181344
+  },
+  "screenshots": [
+    "debt-card.png",
+    "debts.png",
+    "editor-allocation.png",
+    "editor-debt.png",
+    "editor-goal.png",
+    "editor-repayment.png",
+    "goal-card-font150-en.png",
+    "goal-card-font150-es.png",
+    "goal-card-font150-zh.png",
+    "goals-dark-en.png",
+    "goals-dark-es.png",
+    "goals-dark-zh.png",
+    "goals-font150-en.png",
+    "goals-font150-es.png",
+    "goals-font150-zh.png",
+    "goals-light-en.png",
+    "goals-light-es.png",
+    "goals-light-zh.png",
+    "goals-oled-en.png",
+    "goals-oled-es.png",
+    "goals-oled-zh.png",
+    "private.png"
+  ],
+  "changed_files": [
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyCommitmentRepository.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyMappings.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyPlanningRepository.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyPlanningWorker.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyRepository.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/res/values-es/money_commitments.xml",
+      "change": "added"
+    },
+    {
+      "path": "core/data/src/main/res/values-zh/money_commitments.xml",
+      "change": "added"
+    },
+    {
+      "path": "core/data/src/main/res/values/money_commitments.xml",
+      "change": "added"
+    },
+    {
+      "path": "core/data/src/test/kotlin/com/trackermaster/core/data/money/MoneyCommitmentRepositoryTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/schemas/com.trackermaster.core.database.TrackermasterDatabase/11.json",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/CommitmentMigration.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/TrackermasterDatabase.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/dao/MoneyCommitmentDao.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/Entities.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/MoneyCommitmentEntities.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/test/kotlin/com/trackermaster/core/database/CommitmentMigrationTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyCommitments.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyLedger.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyModels.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyPlanning.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/money/MoneyCommitmentRulesTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/debug/kotlin/com/trackermaster/feature/expense/CommitmentPreviews.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/AndroidManifest.xml",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/ExpenseScreens.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentActivity.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentDrafts.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentGateway.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentScreen.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentState.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentViewModel.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyHistory.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyOverview.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPlanningViewModel.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPresentation.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyUiState.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyViewModel.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/res/values-es/money_commitments.xml",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/res/values-zh/money_commitments.xml",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/res/values/money_commitments.xml",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/FakeCommitmentGateway.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyCommitmentUiTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyCommitmentViewModelTest.kt",
+      "change": "added"
+    }
+  ]
+}

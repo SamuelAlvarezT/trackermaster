@@ -29,6 +29,7 @@ data class MoneyMovement(
     val note: String = "",
     val attachmentPath: String? = null,
     val entryRequestId: String? = null,
+    val principal: Boolean = false,
 )
 data class MoneyAccountBalance(val account: MoneyAccount, val total: Money, val unallocated: Money)
 data class MoneyPocketBalance(val pocket: MoneyPocket, val balance: Money)
@@ -46,8 +47,9 @@ data class MoneyPeriodTotals(val income: Money, val expenses: Money) {
 data class MoneyCategory(val id: Long, val name: String, val isIncome: Boolean, val builtinKey: String? = null)
 data class MoneyLedgerData(val snapshot: MoneySnapshot, val movements: List<MoneyMovement>)
 data class MoneyBudget(val id: Long, val categoryId: Long, val legacyAmount: Double,
-    val limit: Money?, val spaceId: Long?, val period: String)
+    val limit: Money?, val spaceId: Long?, val period: String, val alertThreshold: Int = 80,
+    val startDate: LocalDate? = null, val endDate: LocalDate? = null)
 data class MoneyWorkspaceData(val ledger: MoneyLedgerData, val categories: List<MoneyCategory>,
-    val spaces: List<MoneySpace>, val budgets: List<MoneyBudget>)
+    val spaces: List<MoneySpace>, val budgets: List<MoneyBudget>, val plans: List<MoneyPlan> = emptyList())
 enum class MoneyWriteFailure { INSUFFICIENT_FUNDS, STALE_ENTRY, CURRENCY_CHANGED, REQUEST_CONFLICT }
 class MoneyWriteException(val reason: MoneyWriteFailure) : IllegalArgumentException(reason.name)

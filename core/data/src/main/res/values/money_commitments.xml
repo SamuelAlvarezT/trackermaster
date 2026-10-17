@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="money_debt_notification_due">You have a debt payment or collection to review.</string>
+</resources>

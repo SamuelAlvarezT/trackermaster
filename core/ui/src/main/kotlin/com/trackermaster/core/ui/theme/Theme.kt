@@ -1,11 +1,14 @@
 package com.trackermaster.core.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.material3.ColorScheme
 import com.trackermaster.core.domain.model.ThemeMode
 
 val AccentColors = listOf(
@@ -22,22 +25,36 @@ fun TrackermasterTheme(
     accentIndex: Int,
     content: @Composable () -> Unit,
 ) {
-    val accent = AccentColors[accentIndex.coerceIn(AccentColors.indices)]
-    val useDark = when (themeMode) {
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK, ThemeMode.OLED -> true
-    } || (themeMode == ThemeMode.LIGHT && isSystemInDarkTheme().not() && false)
+    val colors = remember(themeMode, accentIndex) { trackermasterColors(themeMode, accentIndex) }
+    MaterialTheme(
+        colorScheme = colors,
+        content = content,
+    )
+}
 
-    val darkScheme = darkColorScheme(
-        primary = accent,
-        secondary = accent.copy(alpha = 0.8f),
+internal fun trackermasterColors(themeMode: ThemeMode, accentIndex: Int): ColorScheme {
+    val base = if (themeMode == ThemeMode.LIGHT) lightColorScheme() else darkColorScheme(
         background = if (themeMode == ThemeMode.OLED) Color.Black else Color(0xFF121212),
         surface = if (themeMode == ThemeMode.OLED) Color.Black else Color(0xFF1E1E1E),
     )
-    val lightScheme = lightColorScheme(primary = accent, secondary = accent.copy(alpha = 0.8f))
+    val accent = readableAccent(AccentColors[accentIndex.coerceIn(AccentColors.indices)], base.surfaceContainerHighest)
+    return base.copy(primary = accent, secondary = accent, surfaceTint = accent)
+}
 
-    MaterialTheme(
-        colorScheme = if (useDark) darkScheme else lightScheme,
-        content = content,
-    )
+/** Preserve the selected hue while making accent text readable on Material card surfaces. */
+internal fun readableAccent(accent: Color, background: Color): Color {
+    fun contrast(color: Color): Float {
+        val a = color.luminance()
+        val b = background.luminance()
+        return (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
+    }
+    if (contrast(accent) >= 4.5f) return accent
+    val target = if (background.luminance() < 0.5f) Color.White else Color.Black
+    var low = 0f
+    var high = 1f
+    repeat(16) {
+        val middle = (low + high) / 2f
+        if (contrast(lerp(accent, target, middle)) >= 4.5f) high = middle else low = middle
+    }
+    return lerp(accent, target, high)
 }

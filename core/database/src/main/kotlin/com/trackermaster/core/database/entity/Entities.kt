@@ -33,6 +33,8 @@ data class HabitLogEntity(
     val durationMs: Long = 0,
     val checklistStateJson: String = "{}",
     val completed: Boolean = false,
+    val targetDurationMsAtLog: Long? = null,
+    val completionSource: String? = null,
 )
 
 @Entity(tableName = "mood_entries", indices = [Index("timestampEpoch")])
@@ -93,6 +95,7 @@ data class TransactionEntity(
     val pocketId: Long? = null,
     val transferId: String? = null,
     val entryRequestId: String? = null,
+    @ColumnInfo(defaultValue = "0") val principal: Boolean = false,
 )
 
 @Entity(tableName = "budgets")
@@ -105,6 +108,8 @@ data class BudgetEntity(
     val limitAmountMinor: Long? = null,
     val currencyCode: String? = null,
     val spaceId: Long? = null,
+    val startDateEpochDay: Long? = null,
+    val endDateEpochDay: Long? = null,
 )
 
 @Entity(tableName = "exchange_rates", primaryKeys = ["fromCurrency", "toCurrency"])
@@ -123,6 +128,7 @@ data class FocusSessionEntity(
     val actualSeconds: Int = 0,
     val completedAtEpoch: Long? = null,
     val completed: Boolean = false,
+    val startedAtEpoch: Long? = null,
 )
 
 @Entity(tableName = "journal_entries", indices = [Index("createdAtEpoch")])
@@ -159,5 +165,8 @@ data class TaskEntity(
     val completed: Boolean = false,
     val createdAtEpoch: Long = System.currentTimeMillis(),
     val subtasksJson: String = "",
+    val plannedDate: String? = null,
+    val completedAtEpoch: Long? = null,
+    val cancelledAtEpoch: Long? = null,
 )
 

@@ -30,3 +30,8 @@ dependencies {
 }
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+
+// Include a newly generated schema in the same build that first creates it.
+tasks.matching { it.name == "mergeDebugAssets" || it.name == "mergeDebugUnitTestAssets" }.configureEach {
+    dependsOn("kspDebugKotlin")
+}

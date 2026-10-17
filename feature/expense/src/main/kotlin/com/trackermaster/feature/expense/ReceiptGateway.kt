@@ -28,7 +28,7 @@ interface ReceiptGateway {
 }
 class LocalReceiptGateway @Inject constructor(private val receipts: MoneyReceiptRepository, private val money: MoneyRepository,
     private val files: ReceiptFiles, private val reader: ReceiptReader, private val prefs: MoneyPreferencesRepository,
-    settingsRepo: SettingsRepository) : ReceiptGateway {
+    settingsRepo: SettingsRepository, private val scheduler: MoneyPlanningScheduler) : ReceiptGateway {
     override val workspace = money.observeWorkspace()
     override val drafts = receipts.drafts
     override val preferences = prefs.preferences
@@ -49,7 +49,7 @@ class LocalReceiptGateway @Inject constructor(private val receipts: MoneyReceipt
     override suspend fun confirm(id: String, draft: ReceiptDraft) {
         receipts.confirm(id,draft)
         // A refresh failure must not present an already committed movement as unsaved.
-        runCatching { prefs.notifyMoneyChanged() }
+        runCatching { prefs.notifyMoneyChanged(); scheduler.refresh() }
     }
     override suspend fun discard(id: String) { receipts.discard(id) }
     override suspend fun privacy(hidden: Boolean) { prefs.setPrivacy(hidden) }

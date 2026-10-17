@@ -39,13 +39,14 @@ data class MoneyOverviewUiState(
     val totals: MoneyPeriodTotals = MoneyPeriodTotals(Money(0, "COP"), Money(0, "COP")),
     val recent: List<MoneyHistoryRow> = emptyList(),
     val hasAccounts: Boolean = false,
+    val upcoming: List<MoneyPlan> = emptyList(),
 )
 data class MoneyHistoryUiState(val groups: List<MoneyDayGroup> = emptyList(),
     val filters: MoneyFilters = MoneyFilters(), val totalRows: Int = 0, val hasAccounts: Boolean = false)
 data class MoneyAccountsUiState(val accounts: List<MoneyAccountBalance> = emptyList(),
     val pockets: List<MoneyPocketBalance> = emptyList(), val showArchived: Boolean = false)
 data class MoneyBudgetItem(val id: Long, val category: MoneyCategory?, val legacyAmount: Double,
-    val limit: Money?, val spaceId: Long?, val period: String)
+    val limit: Money?, val spaceId: Long?, val period: String, val progress: BudgetProgress? = null, val allCategories: Boolean = false)
 data class MoneyBudgetsUiState(val items: List<MoneyBudgetItem> = emptyList())
 data class MoneyCategoryTotal(val category: MoneyCategory?, val amount: Money)
 data class MoneyMonthTotal(val day: LocalDate, val income: Money, val expense: Money) {
@@ -110,6 +111,8 @@ data class MoneyHomeUiState(
 )
 
 sealed interface MoneyEvent {
+    data class Commitments(val tab: String = "debts") : MoneyEvent
+    data class Planning(val tab: String = "budgets", val budgetId: Long? = null) : MoneyEvent
     data object ImportReceipt : MoneyEvent
     data class ViewReceipt(val path: String) : MoneyEvent
     data class Navigate(val destination: MoneyDestination) : MoneyEvent
@@ -147,6 +150,8 @@ sealed interface MoneyEvent {
 }
 
 sealed interface MoneyEffect {
+    data class Commitments(val tab: String, val currency: String, val space: Long?) : MoneyEffect
+    data class Planning(val tab: String, val budgetId: Long?, val currency: String, val space: Long?) : MoneyEffect
     data object ImportReceipt : MoneyEffect
     data class ViewReceipt(val path: String) : MoneyEffect
 }

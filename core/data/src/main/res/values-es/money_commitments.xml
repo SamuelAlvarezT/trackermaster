@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="money_debt_notification_due">Tienes un pago o cobro de deuda por revisar.</string>
+</resources>

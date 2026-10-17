@@ -40,6 +40,19 @@ internal fun MoneyOverviewBody(state: MoneyHomeUiState, onEvent: (MoneyEvent) ->
         MoneyOutlinedButton({onEvent(MoneyEvent.ImportReceipt)},Modifier.fillMaxWidth().testTag("money_import_receipt")) {
             Icon(Icons.AutoMirrored.Filled.ReceiptLong,null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.r_import))
         }
+        MoneyTextButton({onEvent(MoneyEvent.Planning("plans"))},Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.EventRepeat,null);Spacer(Modifier.width(8.dp));Text(stringResource(R.string.p_plans))
+        }
+        if(state.preferences.detailed && state.overview.upcoming.isNotEmpty())Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.p_plans),style=MaterialTheme.typography.titleMedium)
+                state.overview.upcoming.forEach { plan ->
+                    Text(plan.name);Text(stringResource(R.string.p_due,dayLabel(plan.nextDue)),style=MaterialTheme.typography.bodySmall)
+                    plan.amount?.let{MoneyAmount(it,hidden)}
+                }
+                MoneyTextButton({onEvent(MoneyEvent.Planning("plans"))}){Text(stringResource(R.string.m_see_all))}
+            }
+        }
         Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -75,6 +88,12 @@ internal fun MoneyOverviewBody(state: MoneyHomeUiState, onEvent: (MoneyEvent) ->
                     Icon(Icons.Default.SwapHoriz, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.m_transfer))
                 }
             }
+        }
+        MoneyOutlinedButton({onEvent(MoneyEvent.Commitments())},Modifier.fillMaxWidth().testTag("money_debts")) {
+            Icon(Icons.Default.Handshake,null);Spacer(Modifier.width(8.dp));Text(stringResource(R.string.c_debts))
+        }
+        MoneyOutlinedButton({onEvent(MoneyEvent.Commitments("goals"))},Modifier.fillMaxWidth().testTag("money_goals")) {
+            Icon(Icons.Default.Savings,null);Spacer(Modifier.width(8.dp));Text(stringResource(R.string.c_goals))
         }
     }
 }

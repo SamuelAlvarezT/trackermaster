@@ -1,0 +1,6 @@
+<resources>
+    <string name="money_planning_channel">Money reminders</string>
+    <string name="money_planning_notification_title">Trackermaster · Money</string>
+    <string name="money_planning_notification_due">A payment or purchase is due. Open Money to review it.</string>
+    <string name="money_planning_notification_budget">A budget needs attention. Open Money to review it.</string>
+</resources>

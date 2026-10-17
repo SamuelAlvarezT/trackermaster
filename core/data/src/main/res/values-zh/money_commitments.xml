@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="money_debt_notification_due">您有待查看的债务付款或收款。</string>
+</resources>

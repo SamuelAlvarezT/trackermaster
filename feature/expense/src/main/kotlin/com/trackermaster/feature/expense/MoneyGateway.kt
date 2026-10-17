@@ -49,7 +49,7 @@ interface MoneyGateway {
 
 @Singleton
 class LocalMoneyGateway @Inject constructor(private val repo: MoneyRepository,
-    private val prefs: MoneyPreferencesRepository, settings: SettingsRepository) : MoneyGateway {
+    private val prefs: MoneyPreferencesRepository, settings: SettingsRepository, private val scheduler: MoneyPlanningScheduler) : MoneyGateway {
     override val data = repo.observeWorkspace()
     override val preferences = prefs.preferences
     override val localeTag = settings.settings.map { it.localeTag }
@@ -71,7 +71,7 @@ class LocalMoneyGateway @Inject constructor(private val repo: MoneyRepository,
     override suspend fun appearance(detailed: Boolean, sections: Boolean) { prefs.setAppearance(detailed, sections) }
     override suspend fun privacy(hidden: Boolean) = prefs.setPrivacy(hidden)
     override suspend fun rememberFunding(account: Long, pocket: Long?) { prefs.rememberFunding(account, pocket) }
-    override fun notifyChanged() = prefs.notifyMoneyChanged()
+    override fun notifyChanged() { prefs.notifyMoneyChanged(); scheduler.refresh() }
 }
 
 @Module

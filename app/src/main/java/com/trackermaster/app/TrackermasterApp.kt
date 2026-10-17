@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.trackermaster.core.data.repository.ExpenseRepository
+import com.trackermaster.core.data.money.MoneyPlanningScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ class TrackermasterApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var expenseRepository: ExpenseRepository
+    @Inject lateinit var moneyPlanningScheduler: MoneyPlanningScheduler
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -24,6 +26,9 @@ class TrackermasterApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        appScope.launch { expenseRepository.seedDefaultCategories() }
+        appScope.launch {
+            expenseRepository.seedDefaultCategories()
+            moneyPlanningScheduler.ensureScheduled()
+        }
     }
 }

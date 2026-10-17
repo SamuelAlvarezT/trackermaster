@@ -53,7 +53,7 @@ object MoneyLedger {
         var income = Money(0, currencyCode)
         var expenses = Money(0, currencyCode)
         movements.asSequence().filter {
-            it.transferId == null && it.amount.currencyCode == currencyCode &&
+            it.transferId == null && !it.principal && it.amount.currencyCode == currencyCode &&
                 !it.date.isBefore(from) && !it.date.isAfter(through) && (spaceId == null || it.spaceId == spaceId)
         }.forEach { if (it.direction == MoneyDirection.INCOME) income += it.amount else expenses += it.amount }
         return MoneyPeriodTotals(income, expenses)
