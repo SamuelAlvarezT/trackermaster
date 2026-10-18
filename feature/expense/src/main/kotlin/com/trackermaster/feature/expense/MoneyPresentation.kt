@@ -99,7 +99,7 @@ object MoneyPresentation {
         val allRows = rows(data, categories, controls.spaceId, code, range)
         val history = rows(data, categories, controls.spaceId, code, range, controls.filters)
         val totals = MoneyLedger.periodTotals(data.movements, code, range.from, range.through, controls.spaceId)
-        val expenses = data.movements.filter { it.transferId == null && !it.principal && it.direction == MoneyDirection.EXPENSE &&
+        val expenses = data.movements.filter { it.transferId == null && !it.principal && !it.investmentCapital && it.direction == MoneyDirection.EXPENSE &&
             it.amount.currencyCode == code && (controls.spaceId == null || it.spaceId == controls.spaceId) &&
             !it.date.isBefore(range.from) && !it.date.isAfter(range.through) }
         val categoryTotals = expenses.groupBy { it.categoryId }.map { (id, rows) ->
@@ -135,6 +135,7 @@ class MoneyPresenter {
     private var base: MoneyHomeUiState? = null
     private var previousFilters: MoneyFilters? = null
     private var filtered: MoneyHistoryUiState? = null
+    private var reports: MoneyReportsUiState? = null
 
     @Synchronized
     fun build(data: MoneyWorkspaceData, controls: MoneyControls): MoneyHomeUiState {
@@ -152,6 +153,7 @@ class MoneyPresenter {
             val rows = MoneyPresentation.filterRows(all, controls.spaceId, controls.currency, content.range, controls.filters)
             filtered = MoneyHistoryUiState(MoneyPresentation.groups(rows, controls.currency), controls.filters,
                 all.size, content.overview.hasAccounts)
+            reports = moneyReportPresentation(data,controls,content.range)
             previousFilters = controls.filters
         }
         val editor = controls.editor?.let { value ->
@@ -162,9 +164,24 @@ class MoneyPresenter {
                 canSave = !controls.saving && MoneyPresentation.editorError(value, data.ledger, data.categories) == null,
                 saving = controls.saving)
         }
-        return content.copy(controls = controls.copy(editor = editor), history = requireNotNull(filtered),
+        return content.copy(controls = controls.copy(editor = editor), history = requireNotNull(filtered), reports = requireNotNull(reports),
             overview = content.overview.copy(upcoming = data.plans.filter { it.active && !it.archived && it.currency==controls.currency &&
                 (controls.spaceId==null || it.spaceId==controls.spaceId) }.take(3)),
             accounts = content.accounts.copy(showArchived = controls.showArchived))
     }
+}
+
+internal fun moneyReportPresentation(data: MoneyWorkspaceData, controls: MoneyControls, range: MoneyDateRange): MoneyReportsUiState {
+    val filter = controls.filters
+    val report = MoneyReportRules.build(data,MoneyReportScope(controls.currency,range.from,range.through,controls.spaceId,filter.accountId,filter.categoryId,
+        when(filter.kind){MoneyEntryKind.INCOME -> MoneyDirection.INCOME;MoneyEntryKind.EXPENSE -> MoneyDirection.EXPENSE;else -> null},filter.kind == MoneyEntryKind.TRANSFER,filter.query))
+    val positions = data.investments.positions.filter { it.currency == controls.currency && (controls.spaceId == null || it.spaceId == controls.spaceId) }
+        .map { InvestmentRules.progress(it,data.investments.events,LocalDate.now()) }
+    val investmentValue = positions.fold(Money(0,controls.currency)) { total,row -> total + row.value }
+    val cash = if(controls.spaceId == null)data.ledger.snapshot.currencies.find { it.currencyCode == controls.currency }
+        else data.ledger.snapshot.spaces.find { it.spaceId == controls.spaceId && it.balance.currencyCode == controls.currency }?.balance
+    val showAssets = filter == MoneyFilters()
+    return MoneyReportsUiState(report.categories.map { (id,amount) -> MoneyCategoryTotal(data.categories.find { it.id == id },amount) }.sortedByDescending { it.amount.minorUnits },
+        report.months.map { MoneyMonthTotal(it.month.atDay(1),it.totals.income,it.totals.expenses) },report.totals,report,
+        if(showAssets)investmentValue else null,if(showAssets)(cash ?: Money(0,controls.currency)) + investmentValue else null)
 }

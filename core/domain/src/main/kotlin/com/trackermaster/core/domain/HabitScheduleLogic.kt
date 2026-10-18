@@ -32,7 +32,16 @@ object HabitScheduleLogic {
         }
     }
 
-    fun isLogComplete(log: HabitLog): Boolean = log.completed || log.value > 0 || log.durationMs > 0
+    fun isLogComplete(log: HabitLog): Boolean {
+        if(log.completed) return true
+        val type=log.progressTypeAtLog
+        if(type==com.trackermaster.core.domain.model.ProgressType.COUNTER)
+            return log.targetCountAtLog?.let { it>0 && log.value>=it }==true
+        if(type==com.trackermaster.core.domain.model.ProgressType.CHECKLIST)
+            return log.checklistSizeAtLog?.let { it>0 && log.checklistState.values.count { checked->checked }>=it }==true
+        return (type==null || type==com.trackermaster.core.domain.model.ProgressType.TIMER || type==com.trackermaster.core.domain.model.ProgressType.STOPWATCH) &&
+            log.targetDurationMsAtLog?.let { it>0 && log.durationMs>=it }==true
+    }
 
     fun calculateStreak(habit: Habit, logs: List<HabitLog>, today: LocalDate = LocalDate.now()): StreakInfo {
         val completedDates = logs
@@ -80,7 +89,7 @@ object HabitScheduleLogic {
     )
 
     fun calculateFocusScore(sessions: List<com.trackermaster.core.domain.model.FocusSession>): Int {
-        val completed = sessions.filter { it.completed }
+        val completed = sessions.filter { it.actualDurationMs > 0 || it.actualSeconds > 0 }
         if (completed.isEmpty()) return 0
         val totalPlanned = completed.sumOf { it.plannedMinutes }
         val totalActual = completed.sumOf { it.actualSeconds } / 60.0

@@ -1,0 +1,32 @@
+[
+  {
+    "language": "en",
+    "pages": 9,
+    "selectable_text": true,
+    "all_41_movements_present": true,
+    "chinese_text_present": true,
+    "text_normalization": "NFKC",
+    "totals_present": true,
+    "text_within_page_margins": true
+  },
+  {
+    "language": "es",
+    "pages": 9,
+    "selectable_text": true,
+    "all_41_movements_present": true,
+    "chinese_text_present": true,
+    "text_normalization": "NFKC",
+    "totals_present": true,
+    "text_within_page_margins": true
+  },
+  {
+    "language": "zh",
+    "pages": 9,
+    "selectable_text": true,
+    "all_41_movements_present": true,
+    "chinese_text_present": true,
+    "text_normalization": "NFKC",
+    "totals_present": true,
+    "text_within_page_margins": true
+  }
+]

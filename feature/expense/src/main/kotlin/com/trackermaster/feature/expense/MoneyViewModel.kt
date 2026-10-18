@@ -20,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
     private val savedState: SavedStateHandle,
-    @MoneyComputation private val computation: CoroutineDispatcher) : ViewModel() {
+    @MoneyComputation private val computation: CoroutineDispatcher,
+    private val exporter: MoneyReportExportGateway = UnavailableMoneyReportExport) : ViewModel() {
     private val controls = MutableStateFlow(MoneyControls(editor = restoreDraft(savedState["money_draft"])))
     private val _uiState = MutableStateFlow(MoneyHomeUiState(controls = controls.value))
     val uiState = _uiState.asStateFlow()
@@ -36,6 +37,23 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
     private val presenter = MoneyPresenter()
 
     init { observe() }
+    /** Consume a launcher request once after real accounts load; preserve an existing draft. */
+    fun openFromWidget(token: String,kind: String): Boolean {
+        if(kind !in listOf("EXPENSE","INCOME")) return true
+        if(savedState.get<String>("money_widget_request")==token) return true
+        if(uiState.value.load!=MoneyLoadState.CONTENT || workspace==null) return false
+        savedState["money_widget_request"]=token
+        if(controls.value.editor==null && controls.value.accountEditor==null && controls.value.pocketEditor==null) {
+            val prefs=uiState.value.preferences
+            val currency=prefs.widgetCurrency ?: workspace?.ledger?.snapshot?.accounts
+                ?.find { it.account.id==prefs.widgetAccountId }?.total?.currencyCode
+                ?: workspace?.ledger?.snapshot?.spaces?.find { it.spaceId==prefs.widgetSpaceId }?.balance?.currencyCode
+                ?: workspace?.ledger?.snapshot?.currencies?.firstOrNull()?.currencyCode ?: "COP"
+            change { it.copy(currency=currency,spaceId=prefs.widgetSpaceId) }
+            onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.valueOf(kind),source=prefs.widgetAccountId))
+        }
+        return true
+    }
     private fun observe() {
         observation?.cancel()
         observation = viewModelScope.launch {
@@ -60,6 +78,9 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
     }
     fun onEvent(event: MoneyEvent) {
         when (event) {
+            is MoneyEvent.Export -> export(event.pdf)
+            MoneyEvent.ExportFailed -> change { it.copy(error = MoneyUiError.EXPORT) }
+            MoneyEvent.Investments -> effectChannel.trySend(MoneyEffect.Investments(controls.value.currency,controls.value.spaceId))
             is MoneyEvent.Commitments -> effectChannel.trySend(MoneyEffect.Commitments(event.tab,controls.value.currency,controls.value.spaceId))
             is MoneyEvent.Planning -> effectChannel.trySend(MoneyEffect.Planning(event.tab,event.budgetId,controls.value.currency,controls.value.spaceId))
             MoneyEvent.ImportReceipt -> effectChannel.trySend(MoneyEffect.ImportReceipt)
@@ -144,9 +165,27 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
         }
     }
     private fun change(transform: (MoneyControls) -> MoneyControls) { controls.update(transform) }
+    private fun export(pdf: Boolean) {
+        if(controls.value.exporting || controls.value.saving || uiState.value.preferences.hideAmounts) return
+        val document = uiState.value.reports.document ?: return
+        val locale = controls.value.localeTag
+        change { it.copy(exporting = true,error = null) }
+        viewModelScope.launch {
+            try {
+                val filename = exporter.create(document,pdf,locale)
+                if(!uiState.value.preferences.hideAmounts) effectChannel.send(MoneyEffect.ShareReport(filename,pdf))
+            } catch(cancelled:CancellationException) { throw cancelled }
+            catch(_:Exception) { change { it.copy(error = MoneyUiError.EXPORT) } }
+            finally { change { it.copy(exporting = false) } }
+        }
+    }
     private fun notice(kind: MoneyNoticeKind) { change { it.copy(notice = MoneyNotice(++noticeId, kind)) } }
 
     private fun openEntry(event: MoneyEvent.OpenEntry) {
+        if(event.row?.movement?.investmentId != null) {
+            effectChannel.trySend(MoneyEffect.Investments(controls.value.currency,controls.value.spaceId))
+            return
+        }
         if(event.row?.movement?.principal == true) {
             effectChannel.trySend(MoneyEffect.Commitments("debts",controls.value.currency,controls.value.spaceId))
             return

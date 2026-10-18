@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -94,6 +95,9 @@ internal fun MoneyOverviewBody(state: MoneyHomeUiState, onEvent: (MoneyEvent) ->
         }
         MoneyOutlinedButton({onEvent(MoneyEvent.Commitments("goals"))},Modifier.fillMaxWidth().testTag("money_goals")) {
             Icon(Icons.Default.Savings,null);Spacer(Modifier.width(8.dp));Text(stringResource(R.string.c_goals))
+        }
+        MoneyOutlinedButton({onEvent(MoneyEvent.Investments)},Modifier.fillMaxWidth().testTag("money_investments")) {
+            Icon(Icons.AutoMirrored.Filled.TrendingUp,null);Spacer(Modifier.width(8.dp));Text(stringResource(R.string.i_title))
         }
     }
 }

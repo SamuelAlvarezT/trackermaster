@@ -34,6 +34,8 @@ data class Habit(
     val archived: Boolean = false,
     val description: String = "",
     val sortOrder: Int = 0,
+    val createdEpochDay: Long = LocalDate.now().toEpochDay(),
+    val creationDateKnown: Boolean = true,
 )
 
 data class HabitLog(
@@ -44,6 +46,11 @@ data class HabitLog(
     val durationMs: Long = 0,
     val checklistState: Map<String, Boolean> = emptyMap(),
     val completed: Boolean = false,
+    val targetDurationMsAtLog: Long? = null,
+    val completionSource: String? = null,
+    val progressTypeAtLog: ProgressType? = null,
+    val targetCountAtLog: Int? = null,
+    val checklistSizeAtLog: Int? = null,
 )
 
 data class MoodLevel(
@@ -108,6 +115,10 @@ data class FocusSession(
     val actualSeconds: Int = 0,
     val completedAt: LocalDateTime? = null,
     val completed: Boolean = false,
+    val habitId: Long? = null,
+    val actualDurationMs: Long = actualSeconds * 1000L,
+    val startedAt: LocalDateTime? = null,
+    val habitName: String? = null,
 )
 
 data class JournalEntry(

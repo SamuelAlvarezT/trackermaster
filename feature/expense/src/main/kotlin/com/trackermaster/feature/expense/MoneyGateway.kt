@@ -10,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
@@ -49,8 +50,9 @@ interface MoneyGateway {
 
 @Singleton
 class LocalMoneyGateway @Inject constructor(private val repo: MoneyRepository,
-    private val prefs: MoneyPreferencesRepository, settings: SettingsRepository, private val scheduler: MoneyPlanningScheduler) : MoneyGateway {
-    override val data = repo.observeWorkspace()
+    private val prefs: MoneyPreferencesRepository, settings: SettingsRepository, private val scheduler: MoneyPlanningScheduler,
+    investments: MoneyInvestmentRepository) : MoneyGateway {
+    override val data = combine(repo.observeWorkspace(),investments.data) { workspace, book -> workspace.copy(investments = book) }
     override val preferences = prefs.preferences
     override val localeTag = settings.settings.map { it.localeTag }
     override suspend fun initialize() = repo.ensureCategories()
@@ -77,5 +79,6 @@ class LocalMoneyGateway @Inject constructor(private val repo: MoneyRepository,
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class MoneyBindings {
+    @Binds abstract fun exporter(implementation: MoneyReportExporter): MoneyReportExportGateway
     @Binds abstract fun gateway(implementation: LocalMoneyGateway): MoneyGateway
 }

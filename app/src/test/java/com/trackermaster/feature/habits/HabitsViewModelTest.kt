@@ -30,6 +30,7 @@ class HabitsViewModelTest {
         Dispatchers.setMain(testDispatcher)
         mockRepo = mock(HabitRepository::class.java)
         
+        `when`(mockRepo.observeDay()).thenReturn(MutableStateFlow(java.time.LocalDate.now()))
         // Setup mock flows
         `when`(mockRepo.observeActiveHabits()).thenReturn(MutableStateFlow(emptyList()))
         `when`(mockRepo.observeAchievements()).thenReturn(MutableStateFlow(emptyList()))

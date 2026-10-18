@@ -55,9 +55,13 @@ class SettingsRepository @Inject constructor(
         )
     }
 
-    suspend fun setTheme(mode: ThemeMode) = edit { it[Keys.THEME] = mode.name }
+    suspend fun setTheme(mode: ThemeMode) {
+        edit { it[Keys.THEME] = mode.name };refreshMoneyWidget()
+    }
     suspend fun setAccent(index: Int) = edit { it[Keys.ACCENT] = index }
-    suspend fun setLocale(tag: String) = edit { it[Keys.LOCALE] = tag }
+    suspend fun setLocale(tag: String) {
+        edit { it[Keys.LOCALE] = tag };refreshMoneyWidget()
+    }
     suspend fun setBiometric(enabled: Boolean) = edit { it[Keys.BIOMETRIC] = enabled }
     suspend fun setOnboardingComplete() = edit { it[Keys.ONBOARDING] = true }
     suspend fun setPomodoro(work: Int, shortBreak: Int, longBreak: Int) = edit {
@@ -73,5 +77,8 @@ class SettingsRepository @Inject constructor(
 
     private suspend fun edit(block: (MutablePreferences) -> Unit) {
         context.dataStore.edit(block)
+    }
+    private fun refreshMoneyWidget() {
+        context.sendBroadcast(android.content.Intent(com.trackermaster.core.data.money.MoneyPreferencesRepository.ACTION_CHANGED).setPackage(context.packageName))
     }
 }

@@ -3,6 +3,7 @@ package com.trackermaster.feature.expense
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,16 +17,46 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MoneyReportsScreen(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        item("filters") {
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(state.controls.filters.query,{onEvent(MoneyEvent.Filters(state.controls.filters.copy(query=it)))},Modifier.fillMaxWidth().testTag("report_search"),label={Text(stringResource(R.string.x_filters))},singleLine=true)
+                MoneyOutlinedButton({onEvent(MoneyEvent.OpenPanel("filters"))},Modifier.fillMaxWidth().testTag("report_filters")){Icon(Icons.Default.FilterList,null);Spacer(Modifier.width(8.dp));Text(stringResource(R.string.x_filters))}
+                Text(stringResource(R.string.x_scope,state.controls.currency,dayLabel(state.range.from),dayLabel(state.range.through)),style=MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.x_note),style=MaterialTheme.typography.bodySmall)
+                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    MoneyOutlinedButton({onEvent(MoneyEvent.Export(false))},Modifier.testTag("report_csv"),enabled=!state.preferences.hideAmounts && !state.controls.exporting && state.reports.document!=null){Text(stringResource(R.string.x_csv))}
+                    MoneyOutlinedButton({onEvent(MoneyEvent.Export(true))},Modifier.testTag("report_pdf"),enabled=!state.preferences.hideAmounts && !state.controls.exporting && state.reports.document!=null && state.reports.document.entries.size<=MoneyReportExporter.MAX_PDF_ROWS){Text(stringResource(R.string.x_pdf))}
+                }
+                if((state.reports.document?.entries?.size ?: 0)>MoneyReportExporter.MAX_PDF_ROWS)Text(stringResource(R.string.x_pdf_limit))
+                if(state.preferences.hideAmounts)Text(stringResource(R.string.x_private))
+                if(state.controls.exporting){LinearProgressIndicator(Modifier.fillMaxWidth());Text(stringResource(R.string.x_busy))}
+            }
+        }
+        item("totals") { Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+            Text(stringResource(R.string.x_operating),style=MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.m_income));MoneyAmount(state.reports.totals.income,state.preferences.hideAmounts)
+            Text(stringResource(R.string.m_expense));MoneyAmount(state.reports.totals.expenses,state.preferences.hideAmounts)
+            Text(stringResource(R.string.m_net));MoneyAmount(state.reports.totals.net,state.preferences.hideAmounts)
+        }} }
+        state.reports.investmentValue?.let { value -> item("assets") {Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+            Text(stringResource(R.string.x_snapshot,dayLabel(java.time.LocalDate.now())),style=MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.x_assets));MoneyAmount(value,state.preferences.hideAmounts)
+            state.reports.cashAndInvestments?.let { total -> Text(stringResource(R.string.x_cash_assets));MoneyAmount(total,state.preferences.hideAmounts) }
+            Text(stringResource(R.string.x_assets_hint),style=MaterialTheme.typography.bodySmall)
+            MoneyTextButton({onEvent(MoneyEvent.Investments)}){Text(stringResource(R.string.i_title))}
+        }}} }
         item("categories") {
             if (state.reports.categories.isEmpty()) MoneyEmpty(stringResource(R.string.m_no_report), stringResource(R.string.m_no_report_detail),
                 stringResource(R.string.m_add_expense), Icons.Default.PieChart, { onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE)) })

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="money_receipts" path="money/receipts/" />
+    <cache-path name="money_reports" path="money/reports/" />
 </paths>

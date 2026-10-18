@@ -80,7 +80,7 @@ class MoneyCommitmentRepository @Inject constructor(private val db: Trackermaste
         val id = if (linkedId == null) money.recordPrincipal(movement.copy(principal = true, categoryId = null, entryRequestId = "debt:$request")) else {
             require(dao.linked(linkedId) == null && db.moneyPlanningDao().linkedMovement(linkedId) == null)
             val row = requireNotNull(db.moneyDao().movement(linkedId))
-            require(!row.principal && same(movement, linkedId))
+            require(!row.principal && row.investmentId == null && same(movement, linkedId))
             db.moneyDao().updateMovement(row.copy(principal = true))
             linkedId
         }

@@ -20,6 +20,9 @@ data class MoneyPreferences(
     val hideAmounts: Boolean = false,
     val lastAccountId: Long? = null,
     val lastPocketId: Long? = null,
+    val widgetCurrency: String? = null,
+    val widgetSpaceId: Long? = null,
+    val widgetAccountId: Long? = null,
 )
 
 @Singleton
@@ -29,10 +32,13 @@ class MoneyPreferencesRepository @Inject constructor(@ApplicationContext private
     private val privacy = booleanPreferencesKey("privacy")
     private val account = longPreferencesKey("last_account")
     private val pocket = longPreferencesKey("last_pocket")
+    private val widgetCurrency=stringPreferencesKey("widget_currency")
+    private val widgetSpace=longPreferencesKey("widget_space")
+    private val widgetAccount=longPreferencesKey("widget_account")
     private val privacyOverride = MutableStateFlow<Boolean?>(null)
     private val persisted = context.moneyDataStore.data.map { values ->
         MoneyPreferences(values[detailed] ?: false, values[sections] ?: false, values[privacy] ?: false,
-            values[account], values[pocket])
+            values[account], values[pocket],values[widgetCurrency],values[widgetSpace],values[widgetAccount])
     }
     // All active surfaces share the mask immediately, including if disk persistence fails.
     val preferences: Flow<MoneyPreferences> = combine(persisted, privacyOverride) { values, _ ->
@@ -51,6 +57,16 @@ class MoneyPreferencesRepository @Inject constructor(@ApplicationContext private
             it[account] = accountId
             if (pocketId == null) it.remove(pocket) else it[pocket] = pocketId
         }
+    }
+    suspend fun setWidgetSelection(currency: String?,spaceId: Long?,accountId: Long?) {
+        require(currency==null || currency in listOf("COP","USD"))
+        require(spaceId==null || accountId==null)
+        context.moneyDataStore.edit {
+            if(currency==null) it.remove(widgetCurrency) else it[widgetCurrency]=currency
+            if(spaceId==null) it.remove(widgetSpace) else it[widgetSpace]=spaceId
+            if(accountId==null) it.remove(widgetAccount) else it[widgetAccount]=accountId
+        }
+        notifyMoneyChanged()
     }
     fun notifyMoneyChanged() {
         context.sendBroadcast(Intent(ACTION_CHANGED).setPackage(context.packageName))

@@ -29,6 +29,9 @@ interface HabitDao {
     @Update
     suspend fun update(habit: HabitEntity)
 
+    @Query("UPDATE habits SET sortOrder=:position WHERE id=:id")
+    suspend fun updateSortOrder(id: Long, position: Int)
+
     @Delete
     suspend fun delete(habit: HabitEntity)
 }
@@ -38,13 +41,13 @@ interface HabitLogDao {
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId ORDER BY dateEpoch DESC")
     fun observeByHabit(habitId: Long): Flow<List<HabitLogEntity>>
 
-    @Query("SELECT * FROM habit_logs WHERE dateEpoch = :dateEpoch")
+    @Query("SELECT * FROM habit_logs WHERE dateEpoch = :dateEpoch ORDER BY id DESC")
     fun observeByDate(dateEpoch: Long): Flow<List<HabitLogEntity>>
 
     @Query("SELECT * FROM habit_logs WHERE dateEpoch >= :sinceEpoch")
     fun observeLogsSince(sinceEpoch: Long): Flow<List<HabitLogEntity>>
 
-    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND dateEpoch = :dateEpoch LIMIT 1")
+    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND dateEpoch = :dateEpoch ORDER BY id DESC LIMIT 1")
     suspend fun getForDate(habitId: Long, dateEpoch: Long): HabitLogEntity?
 
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId")

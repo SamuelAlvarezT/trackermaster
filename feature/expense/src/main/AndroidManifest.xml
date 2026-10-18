@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
+        <activity android:name=".MoneyInvestmentActivity" android:exported="false" android:label="@string/i_title" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".MoneyCommitmentActivity" android:exported="false" android:label="@string/c_title" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".MoneyPlanningActivity" android:exported="false" android:label="@string/p_planning" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".MoneyReceiptActivity" android:exported="true" android:label="@string/r_share_label" android:windowSoftInputMode="adjustResize">
@@ -12,7 +13,7 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.money.receipts"
+        <provider android:name=".MoneyFileProvider" android:authorities="${applicationId}.money.receipts"
             android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/money_receipt_paths" />
         </provider>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Disable financial entry points in the temporary test application. -->
+        <activity android:name="com.trackermaster.feature.expense.MoneyReceiptActivity" android:enabled="false" />
+        <activity android:name="com.trackermaster.feature.expense.MoneyInvestmentActivity" android:enabled="false" />
+        <activity android:name="com.trackermaster.feature.expense.MoneyCommitmentActivity" android:enabled="false" />
+        <activity android:name="com.trackermaster.feature.expense.MoneyPlanningActivity" android:enabled="false" />
+        <provider android:name="com.trackermaster.feature.expense.MoneyFileProvider"
+            android:authorities="${applicationId}.money.receipts"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/money_receipt_paths" />
+        </provider>
+    </application>
+</manifest>

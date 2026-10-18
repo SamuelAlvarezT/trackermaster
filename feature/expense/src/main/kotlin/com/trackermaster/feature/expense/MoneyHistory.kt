@@ -60,7 +60,7 @@ fun MoneyHistoryScreen(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MoneySwipeRow(row: MoneyHistoryRow, hidden: Boolean, onEvent: (MoneyEvent) -> Unit) {
-    if(row.movement.principal){MoneyTransactionCard(row,hidden,onEvent);return}
+    if(row.movement.principal || row.movement.investmentId!=null){MoneyTransactionCard(row,hidden,onEvent);return}
     val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
             SwipeToDismissBoxValue.StartToEnd -> onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE, row))
@@ -87,10 +87,12 @@ internal fun MoneyTransactionCard(row: MoneyHistoryRow, hidden: Boolean, onEvent
     var confirmDelete by remember { mutableStateOf(false) }
     val edit = stringResource(R.string.m_edit)
     val delete = stringResource(R.string.m_delete)
-    val title = if(row.movement.principal)stringResource(R.string.c_principal)else if (row.incoming == null) categoryTitle(row.category) else stringResource(R.string.m_transfer)
-    val manage = stringResource(R.string.c_debts)
+    val protected = row.movement.principal || row.movement.investmentId != null
+    val manageEvent: MoneyEvent = if(row.movement.investmentId != null)MoneyEvent.Investments else MoneyEvent.Commitments()
+    val title = if(row.movement.investmentId!=null)stringResource(R.string.i_title)else if(row.movement.principal)stringResource(R.string.c_principal)else if (row.incoming == null) categoryTitle(row.category) else stringResource(R.string.m_transfer)
+    val manage = stringResource(if(row.movement.investmentId!=null)R.string.i_title else R.string.c_debts)
     Card(Modifier.fillMaxWidth().testTag("entry:${row.key}").semantics {
-        customActions = if(row.movement.principal)listOf(CustomAccessibilityAction(manage){onEvent(MoneyEvent.Commitments());true})else listOf(CustomAccessibilityAction(edit) { onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE, row)); true },
+        customActions = if(protected)listOf(CustomAccessibilityAction(manage){onEvent(manageEvent);true})else listOf(CustomAccessibilityAction(edit) { onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE, row)); true },
             CustomAccessibilityAction(delete) { confirmDelete = true; true })
     }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Row(Modifier.padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
@@ -106,7 +108,7 @@ internal fun MoneyTransactionCard(row: MoneyHistoryRow, hidden: Boolean, onEvent
                 Text(if (row.incoming == null) source else "$source → $target", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(if(row.movement.principal)stringResource(if(row.movement.direction==MoneyDirection.INCOME)R.string.c_money_in else R.string.c_money_out)else if (row.incoming != null) stringResource(R.string.m_transfer) else
+                    Text(if(protected)stringResource(if(row.movement.direction==MoneyDirection.INCOME)R.string.c_money_in else R.string.c_money_out)else if (row.incoming != null) stringResource(R.string.m_transfer) else
                         stringResource(if (row.movement.direction == MoneyDirection.INCOME) R.string.m_income else R.string.m_expense),
                         style = MaterialTheme.typography.labelSmall)
                     MoneyAmount(row.movement.amount, hidden, style = MaterialTheme.typography.bodyMedium)
@@ -121,7 +123,7 @@ internal fun MoneyTransactionCard(row: MoneyHistoryRow, hidden: Boolean, onEvent
                     row.movement.attachmentPath?.takeIf { it.startsWith("money/receipts/") }?.let { path ->
                         DropdownMenuItem({Text(stringResource(R.string.r_original))}, {menu=false;onEvent(MoneyEvent.ViewReceipt(path))},enabled=!hidden)
                     }
-                    if(row.movement.principal)DropdownMenuItem({Text(manage)},{menu=false;onEvent(MoneyEvent.Commitments())})else {
+                    if(protected)DropdownMenuItem({Text(manage)},{menu=false;onEvent(manageEvent)})else {
                         DropdownMenuItem({ Text(edit) }, { menu = false; onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE, row)) })
                         DropdownMenuItem({ Text(delete) }, { menu = false; confirmDelete = true })
                     }

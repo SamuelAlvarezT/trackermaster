@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,48 +41,98 @@ import com.trackermaster.app.tasks.TasksScreen
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import androidx.lifecycle.Lifecycle
+import com.trackermaster.core.data.unlock.*
+import com.trackermaster.core.data.progress.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
+    private var requestedTab by mutableStateOf<String?>(null)
+    private var navigationRequest by mutableIntStateOf(0)
+    private var autoToken by mutableStateOf<String?>(null)
+    private var quickEntry by mutableStateOf<String?>(null)
+    private var quickToken by mutableStateOf("")
+    private var activityResumed by mutableStateOf(false)
+    private var windowFocused by mutableStateOf(false)
+
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var unlockStore: UnlockLaunchStore
+    @Inject lateinit var unlockController: UnlockMonitorController
+    @Inject lateinit var focusProgress: FocusProgressRepository
+    @Inject lateinit var focusController: FocusTimerController
     @Inject lateinit var backupManager: BackupManager
+
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch {
+            if(unlockStore.settings.first().enabled && !UnlockMonitorSignals.running.value) unlockController.start()
+            val focus=focusProgress.checkpoint()
+            if(focus.status==com.trackermaster.core.domain.focus.FocusRunStatus.RUNNING && !FocusTimerSignals.running.value)
+                runCatching { focusController.send(FocusTimerController.RECOVER) }
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleShareIntent(intent)
-        val startTab = intent?.getStringExtra("tab")
+        requestedTab = intent?.getStringExtra("tab")
+        autoToken = intent?.getStringExtra(UnlockLaunchStore.EXTRA_TOKEN)
+        quickEntry=intent?.getStringExtra("money_quick_entry")
+        quickToken=savedInstanceState?.getString("money_widget_token") ?: java.util.UUID.randomUUID().toString()
 
         lifecycleScope.launch {
             val settings = settingsRepository.settings.first()
-            if (settings.defumblrEnabled) {
+            if (settings.defumblrEnabled && !unlockStore.settings.first().enabled) {
                 startDefumblrLockScreenService()
             }
             if (shouldRunBackup(settings.backupFrequency, settings.lastBackupAtMillis)) {
-                backupManager.exportLocalZip()
-                settingsRepository.setLastBackupAtMillis(System.currentTimeMillis())
+                runCatching {
+                    backupManager.exportLocalZip()
+                    settingsRepository.setLastBackupAtMillis(System.currentTimeMillis())
+                }
             }
         }
 
         setContent {
-            val settings by settingsRepository.settings.collectAsStateWithLifecycle(
-                initialValue = com.trackermaster.core.domain.model.AppSettings()
-            )
-            var unlocked by remember { mutableStateOf(!settings.biometricEnabled) }
-
-            TrackermasterTheme(settings.themeMode, settings.accentIndex) {
-                if (!unlocked && settings.biometricEnabled) {
-                    BiometricGate(activity = this, onUnlocked = { unlocked = true })
-                } else if (!settings.onboardingComplete) {
-                    OnboardingScreen(onComplete = {
+            val settings by remember { settingsRepository.settings.map<com.trackermaster.core.domain.model.AppSettings,com.trackermaster.core.domain.model.AppSettings?> { it } }
+                .collectAsStateWithLifecycle(initialValue=null)
+            val loaded=settings
+            if(loaded==null) {
+                TrackermasterTheme(com.trackermaster.core.domain.model.ThemeMode.DARK,0) {
+                    Surface(Modifier.fillMaxSize()) { Box(contentAlignment=androidx.compose.ui.Alignment.Center) { CircularProgressIndicator() } }
+                }
+            } else {
+                var unlocked by remember(loaded.biometricEnabled,navigationRequest) { mutableStateOf(!loaded.biometricEnabled) }
+                val rootState=rememberSaveableStateHolder()
+                TrackermasterTheme(loaded.themeMode,loaded.accentIndex) {
+                    com.trackermaster.core.ui.LocalizedAppContent(loaded.localeTag) {
+                    if(!unlocked && loaded.biometricEnabled) BiometricGate(activity=this,onUnlocked={unlocked=true})
+                    else if(!loaded.onboardingComplete) OnboardingScreen(onComplete={
                         lifecycleScope.launch { settingsRepository.setOnboardingComplete() }
                     })
-                } else {
-                    TrackermasterRoot(startTab = startTab)
+                    else rootState.SaveableStateProvider("authenticated-root") { TrackermasterRoot(startTab=requestedTab,navigationRequest=navigationRequest,
+                        quickEntry=quickEntry,quickToken=quickToken,onQuickConsumed={quickEntry=null;intent?.removeExtra("money_quick_entry")},
+                        canAcknowledge=activityResumed && windowFocused,onDestinationReady={ route -> acknowledgeAutomaticOpening(route) })
+                    }
+                    }
                 }
+            }
+        }
+    }
+
+    private fun acknowledgeAutomaticOpening(route: String) {
+        val token=autoToken ?: return
+        if(!activityResumed || !windowFocused || getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked) return
+        lifecycleScope.launch {
+            if(unlockStore.acknowledge(token,route)) {
+                unlockController.clearFallback()
+                if(autoToken==token) autoToken=null
             }
         }
     }
@@ -98,8 +149,29 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        requestedTab = intent.getStringExtra("tab")
+        autoToken = intent.getStringExtra(UnlockLaunchStore.EXTRA_TOKEN)
+        quickEntry=intent.getStringExtra("money_quick_entry")
+        quickToken=java.util.UUID.randomUUID().toString()
+        navigationRequest++
         handleShareIntent(intent)
     }
+
+    override fun onResume() {
+        super.onResume()
+        activityResumed=true
+        autoToken?.let { token -> lifecycleScope.launch {
+            if(!getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked) unlockStore.visible(token)
+        } }
+    }
+
+    override fun onPause() { activityResumed=false;super.onPause() }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("money_widget_token",quickToken)
+        super.onSaveInstanceState(outState)
+    }
+    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus);windowFocused=hasFocus }
+
 
     private fun handleShareIntent(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
@@ -126,22 +198,28 @@ class MainActivity : FragmentActivity() {
 }
 
 @Composable
-fun TrackermasterRoot(startTab: String? = null) {
+fun TrackermasterRoot(startTab: String? = null, navigationRequest: Int = 0, canAcknowledge: Boolean = false,
+    quickEntry: String? = null,quickToken: String="",onQuickConsumed: ()->Unit={},onDestinationReady: (String)->Unit = {}) {
     val navController = rememberNavController()
     val navBackStack by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStack?.destination?.route
+    val currentRoute = navBackStack?.destination?.route?.substringBefore('?')
     val sharedContent by ShareIntentHandler.sharedContent.collectAsStateWithLifecycle()
 
-    LaunchedEffect(startTab) {
+    LaunchedEffect(startTab, navigationRequest) {
         when (startTab) {
-            "habits" -> navController.navigate(Routes.Habits.route)
-            "tasks" -> navController.navigate(Routes.Tasks.route)
-            "mood" -> navController.navigate(Routes.Journal.route)
-            "expense" -> navController.navigate(Routes.Expense.route)
-            "focus" -> navController.navigate(Routes.Focus.route)
-            "journal" -> navController.navigate(Routes.Journal.route)
-            "insights" -> navController.navigate(Routes.Insights.route)
+            "home" -> navController.navigate(Routes.Home.route) { launchSingleTop=true }
+            "habits" -> navController.navigate(Routes.Habits.route) { launchSingleTop=true }
+            "tasks" -> navController.navigate(Routes.Tasks.route) { launchSingleTop=true }
+            "mood" -> navController.navigate(Routes.Journal.route) { launchSingleTop=true }
+            "expense" -> navController.navigate(Routes.Expense.route) { launchSingleTop=true }
+            "focus" -> navController.navigate(Routes.Focus.route) { launchSingleTop=true }
+            "journal" -> navController.navigate(Routes.Journal.route) { launchSingleTop=true }
+            "insights" -> navController.navigate(Routes.Insights.route) { launchSingleTop=true }
         }
+    }
+
+    LaunchedEffect(currentRoute,navigationRequest,canAcknowledge,startTab) {
+        if(canAcknowledge && currentRoute==startTab?.substringBefore('?')) currentRoute?.let(onDestinationReady)
     }
 
     val bottomItems = listOf(
@@ -175,10 +253,12 @@ fun TrackermasterRoot(startTab: String? = null) {
             modifier = Modifier.padding(padding),
         ) {
             composable(Routes.Home.route) { DashboardScreen(onNavigate = { navController.navigate(it) }) }
-            composable(Routes.Habits.route) { HabitsScreen() }
+            composable(Routes.Habits.route+"?habitId={habitId}",arguments=listOf(androidx.navigation.navArgument("habitId") {
+                type=androidx.navigation.NavType.StringType;nullable=true;defaultValue=null
+            })) { entry -> HabitsScreen(openHabitId=entry.arguments?.getString("habitId")?.toLongOrNull()) }
             composable(Routes.Tasks.route) { TasksScreen() }
             composable(Routes.Mood.route) { JournalScreen() }
-            composable(Routes.Expense.route) { ExpenseScreen() }
+            composable(Routes.Expense.route) { ExpenseScreen(quickEntry=quickEntry,quickToken=quickToken,onQuickConsumed=onQuickConsumed) }
             composable(Routes.Focus.route) { FocusScreen() }
             composable(Routes.Journal.route) { JournalScreen() }
             composable(Routes.Insights.route) { InsightsScreen() }

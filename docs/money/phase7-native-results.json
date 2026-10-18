@@ -1,0 +1,31 @@
+{
+  "sdk": 34,
+  "package": "com.trackermaster.money.validation.phase7",
+  "synthetic_data": true,
+  "production_database_accessed": false,
+  "pdf": [
+    {
+      "language": "en",
+      "pages": 9,
+      "provider_read": true
+    },
+    {
+      "language": "es",
+      "pages": 9,
+      "provider_read": true
+    },
+    {
+      "language": "zh",
+      "pages": 9,
+      "provider_read": true
+    }
+  ],
+  "csv_provider_read": true,
+  "receipt_provider_read": true,
+  "outside_cache_rejected": true,
+  "test_apk_sha256": "3678acbff0c9020e5d352e178c7cf8abbf122bad4af2dc81c8f99afe00cbf1f0",
+  "native_tests": 1,
+  "failed_tests": 0,
+  "test_package_removed": true,
+  "production_package_unchanged": true
+}

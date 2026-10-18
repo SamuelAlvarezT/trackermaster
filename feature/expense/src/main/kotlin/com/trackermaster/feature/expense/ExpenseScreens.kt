@@ -9,12 +9,14 @@ import android.content.Intent
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-// Retains the existing app route without modifying MainActivity.
 @Composable
-fun ExpenseScreen(vm: MoneyViewModel = hiltViewModel()) {
+fun ExpenseScreen(vm: MoneyViewModel = hiltViewModel(),quickEntry: String?=null,quickToken: String="",onQuickConsumed: ()->Unit={}) {
     MoneyEffects(vm)
     val state by vm.uiState.collectAsStateWithLifecycle()
     val locale by vm.localeTag.collectAsStateWithLifecycle()
+    LaunchedEffect(quickEntry,quickToken,state.load) {
+        if(quickEntry!=null && vm.openFromWidget(quickToken,quickEntry)) onQuickConsumed()
+    }
     MoneyLocale(locale) { MoneyContent(state, vm::onEvent) }
 }
 
@@ -28,9 +30,21 @@ fun ExpenseReportsScreen(vm: MoneyViewModel = hiltViewModel()) {
 }
 
 @Composable
+@SuppressLint("AppBundleLocaleChanges") // All app languages are bundled; no language splits.
 private fun MoneyEffects(vm: MoneyViewModel) {
     val context = LocalContext.current
     LaunchedEffect(vm,context) { vm.effects.collect { effect -> when(effect) {
+        is MoneyEffect.ShareReport -> try {
+            if(!vm.uiState.value.preferences.hideAmounts) {
+                val file = MoneyReportExporter.file(context,effect.filename)
+                val uri = androidx.core.content.FileProvider.getUriForFile(context,"${context.packageName}.money.receipts",file)
+                val share = moneyReportShareIntent(uri,effect.pdf,file.name)
+                val config = Configuration(context.resources.configuration).apply { setLocale(java.util.Locale.forLanguageTag(vm.localeTag.value)) }
+                context.startActivity(Intent.createChooser(share,context.createConfigurationContext(config).getString(R.string.x_share)))
+            }
+        } catch(_:Exception) { vm.onEvent(MoneyEvent.ExportFailed) }
+        is MoneyEffect.Investments -> context.startActivity(Intent(context,MoneyInvestmentActivity::class.java)
+            .putExtra("investment_currency",effect.currency).putExtra("investment_space",effect.space?:0L))
         is MoneyEffect.Commitments -> context.startActivity(Intent(context,MoneyCommitmentActivity::class.java)
             .putExtra("commitment_tab",effect.tab).putExtra("commitment_currency",effect.currency).putExtra("commitment_space",effect.space?:0L))
         is MoneyEffect.Planning -> context.startActivity(Intent(context,MoneyPlanningActivity::class.java)
@@ -39,6 +53,15 @@ private fun MoneyEffects(vm: MoneyViewModel) {
         MoneyEffect.ImportReceipt -> context.startActivity(Intent(context,MoneyReceiptActivity::class.java))
         is MoneyEffect.ViewReceipt -> ReceiptViewer.open(context,effect.path,vm.localeTag.value)
     } } }
+}
+
+/** Share one content URI, with temporary read access and no write permission. */
+internal fun moneyReportShareIntent(uri: android.net.Uri, pdf: Boolean, filename: String): Intent {
+    require(uri.scheme == "content")
+    return Intent(Intent.ACTION_SEND).setType(if(pdf) "application/pdf" else "text/csv")
+        .putExtra(Intent.EXTRA_STREAM,uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).apply {
+            clipData = android.content.ClipData.newRawUri(filename,uri)
+        }
 }
 
 /** App-selected language also works on API 26–32 without changing the host Activity. */

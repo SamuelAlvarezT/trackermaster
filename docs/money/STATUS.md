@@ -1,22 +1,23 @@
-# Money: mejora en curso
+# Money: fase 8 integrada, aceptación manual pendiente
 
-**El rediseño completo de Money todavía no está terminado.** Estado al 18 de octubre de 2026:
+Estado de publicación al 24 de octubre de 2026: las ocho fases tienen implementación integrada. **El cierre de calidad y la aceptación en Android real todavía requieren las comprobaciones manuales documentadas.**
 
-- Fase 1: auditoría, diseño y prototipo realizados.
-- Fase 2: base monetaria, espacios, cuentas, bolsillos y migraciones implementados.
-- Fase 3: nueva interfaz, movimientos, transferencias, privacidad y navegación configurable implementados.
-- Fase 4: importación de comprobantes, OCR local, revisión, borradores, duplicados y adjuntos implementados.
-- Fase 5 implementada y validada: presupuestos, pagos/ingresos recurrentes, recordatorios de compra, previsión, avisos locales y contraste en los tres temas. Véase [fase 5](PHASE5.md).
-- **Fase 6 implementada y validada:** deudas por pagar/cobrar, abonos, vinculación de comprobantes a abonos, correcciones del capital y metas respaldadas por bolsillos reales. COP/USD separados; capital de préstamos excluido del ingreso/gasto operativo. Véase [fase 6](PHASE6.md).
-- Fase 7 pendiente: inversiones, ampliación de reportes y exportación CSV/PDF.
-- Fase 8 pendiente: ampliación del widget y respaldo/restauración integral, incluidos comprobantes y preferencias.
+- Fase 1: auditoría, diseño y prototipo.
+- Fases 2–3: base monetaria, espacios, cuentas, movimientos, transferencias, privacidad y navegación configurable.
+- Fase 4: comprobantes, OCR local, revisión, duplicados y adjuntos.
+- Fase 5: presupuestos, recurrencias, compras, previsión y recordatorios. [Detalle](PHASE5.md).
+- Fase 6: deudas, abonos y metas respaldadas por bolsillos. [Detalle](PHASE6.md).
+- Fase 7: inversiones, valoraciones, reportes y CSV/PDF. [Detalle](PHASE7.md).
+- Fase 8: widget y respaldo/restauración integral; calendario de Habits, apertura al desbloquear, Focus vinculado a hábitos y Top 3 proporcional en Today. [Detalle y límites](PHASE8.md).
 
-La entrega actual incluye un [APK debug de fase 6](artifacts/trackermaster-money-phase6-debug.apk), 256 pruebas aprobadas, 22 capturas nativas nuevas y cero errores de lint en datos y Money. La firma v2 coincide con la entrega anterior; se verificaron la integridad del archivo y las huellas de las fuentes compiladas. No hay advertencias nuevas de código Money; permanecen los avisos anteriores de configuración/dependencias y los iconos del bloqueo.
+La validación histórica del espacio de trabajo integrado produjo el [APK debug local de fase 8](artifacts/trackermaster-money-phase8-debug.apk): 395 pruebas JVM/Robolectric aprobadas, 14 capturas de fase 8, compilación debug y lint completados, esquema 13 y certificado de firma idéntico al de fase 7. Se conservan todas las migraciones, incluida la ruta 4→13; las pruebas usan datos sintéticos.
 
-Money conserva las migraciones 4→5→6→7→8 y añade 10→11. Los cambios independientes de sincronización y métricas incorporaron 8→9→10. La ruta completa 4→11 está probada con datos antiguos; no hay restauración destructiva. Se conservaron los cambios locales independientes de hábitos, ajustes, bloqueo, modelos compartidos y otras funciones.
+**Android real pendiente:** la instrumentación de fase 8 no se pudo completar. Estado registrado: `installation_rejected`. Los resultados JVM/Robolectric no sustituyen estas pruebas. Véase el detalle de conexión/instalación en [resultado nativo](phase8-native-results.json).
 
-Antes de distribuir queda verificar en un teléfono comprobantes reales de Nequi, OCR/PDF, compartir y abrir adjuntos, biometría, TalkBack, teclado, notificaciones con Doze/reinicio, actualización con datos existentes y el objetivo de registrar en menos de diez segundos. No hay dispositivo ni emulador conectado; las pruebas de interfaz con Robolectric no sustituyen esas comprobaciones. El fallo previo de biometría en MainActivity continúa documentado en PHASE4.md.
+El contenido exacto de la publicación conjunta aprobó nuevamente la compilación debug y 385 pruebas JVM/Robolectric.
 
-Las fases 5 y 6 se publicaron en origin/master mediante el commit 970573b. La fase 7 se desarrolla localmente a continuación; la mejora completa sigue pendiente. El APK, las cachés y los registros de ejecución permanecen locales. Véase PUBLICATION.md para el alcance exacto del commit y la separación de cambios independientes.
+Antes de distribuir siguen pendientes la apertura después de 30 minutos reales y reinicio, permisos/restricciones del fabricante, el widget en el launcher, TalkBack, actualización sobre datos reales, comprobantes reales de Nequi y registro en menos de diez segundos. Las metas y fechas históricas no guardadas por versiones antiguas no se pueden reconstruir; la UI identifica el inicio de seguimiento conocido. El fallo previo de acceso automático sin biometría fue corregido en esta fase y tiene una prueba de regresión.
 
-Detalles: [diseño y fases](DESIGN.md), [fase 2](PHASE2.md), [fase 3](PHASE3.md), [fase 4](PHASE4.md), [fase 5](PHASE5.md), [fase 6](PHASE6.md) y [resultados finales](phase6-test-results.json).
+Las fases 7 y 8 se publican juntas en un único commit sobre `5636684`. El commit local anterior `c0b7fc9` queda sustituido. Se conservan los cambios locales independientes. Véase [publicación y validación del contenido exacto](PUBLICATION78.md). APK, cachés, capturas y registros completos permanecen locales.
+
+Evidencia: [fase 8](PHASE8.md), [resultados](phase8-test-results.json), [archivos](phase8-files.json), [preservación](phase8-preservation.json). La exportación nativa de fase 7 en Android 14 es una comprobación previa distinta de las pruebas de fase 8.

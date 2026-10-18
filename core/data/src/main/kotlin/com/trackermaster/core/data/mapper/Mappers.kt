@@ -50,6 +50,8 @@ fun HabitEntity.toDomain(): Habit = Habit(
     archived = archived,
     description = description,
     sortOrder = sortOrder,
+    createdEpochDay = createdEpochDay,
+    creationDateKnown = creationDateKnown,
 )
 
 fun Habit.toEntity(): HabitEntity = HabitEntity(
@@ -67,6 +69,8 @@ fun Habit.toEntity(): HabitEntity = HabitEntity(
     archived = archived,
     description = description,
     sortOrder = sortOrder,
+    createdEpochDay = createdEpochDay,
+    creationDateKnown = creationDateKnown,
 )
 
 fun HabitLogEntity.toDomain(): HabitLog = HabitLog(
@@ -77,6 +81,11 @@ fun HabitLogEntity.toDomain(): HabitLog = HabitLog(
     durationMs = durationMs,
     checklistState = decodeMap(checklistStateJson),
     completed = completed,
+    targetDurationMsAtLog = targetDurationMsAtLog,
+    completionSource = completionSource,
+    progressTypeAtLog = progressTypeAtLog?.let { ProgressType.valueOf(it) },
+    targetCountAtLog = targetCountAtLog,
+    checklistSizeAtLog = checklistSizeAtLog,
 )
 
 fun HabitLog.toEntity(): HabitLogEntity = HabitLogEntity(
@@ -87,6 +96,11 @@ fun HabitLog.toEntity(): HabitLogEntity = HabitLogEntity(
     durationMs = durationMs,
     checklistStateJson = encodeMap(checklistState),
     completed = completed,
+    targetDurationMsAtLog = targetDurationMsAtLog,
+    completionSource = completionSource,
+    progressTypeAtLog = progressTypeAtLog?.name,
+    targetCountAtLog = targetCountAtLog,
+    checklistSizeAtLog = checklistSizeAtLog,
 )
 
 fun MoodEntryEntity.toDomain(): MoodEntry = MoodEntry(
@@ -113,7 +127,7 @@ fun BudgetEntity.toDomain(): Budget = Budget(id, categoryId, limitAmount, period
 
 fun FocusSessionEntity.toDomain(): FocusSession = FocusSession(
     id, FocusCategoryType.valueOf(category), plannedMinutes, actualSeconds,
-    completedAtEpoch?.toLocalDateTime(), completed
+    completedAtEpoch?.toLocalDateTime(), completed, habitId, actualDurationMs, startedAtEpoch?.toLocalDateTime(), habitName
 )
 
 fun JournalEntryEntity.toDomain(): JournalEntry = JournalEntry(

@@ -1,0 +1,543 @@
+{
+  "baseline_files": 264,
+  "unchanged_independent_files": 222,
+  "independent_sources_preserved": true,
+  "shared_files_modified_within_authorized_scope": [
+    "app/build.gradle.kts",
+    "app/src/main/AndroidManifest.xml",
+    "app/src/main/java/com/trackermaster/app/MainActivity.kt",
+    "app/src/main/java/com/trackermaster/app/TrackermasterApp.kt",
+    "app/src/main/java/com/trackermaster/app/focus/FocusTimerService.kt",
+    "app/src/main/java/com/trackermaster/app/lockscreen/BootReceiver.kt",
+    "app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenService.kt",
+    "app/src/main/java/com/trackermaster/app/security/BiometricGate.kt",
+    "app/src/main/java/com/trackermaster/app/ui/DashboardScreen.kt",
+    "app/src/main/res/values-es/strings.xml",
+    "app/src/main/res/values-zh/strings.xml",
+    "app/src/main/res/values/strings.xml",
+    "app/src/main/res/xml/widget_balance.xml",
+    "app/src/test/java/com/trackermaster/feature/habits/HabitsViewModelTest.kt",
+    "core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt",
+    "core/data/src/main/kotlin/com/trackermaster/core/data/mapper/Mappers.kt",
+    "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyPreferencesRepository.kt",
+    "core/data/src/main/kotlin/com/trackermaster/core/data/repository/Repositories.kt",
+    "core/data/src/main/kotlin/com/trackermaster/core/data/settings/SettingsRepository.kt",
+    "core/data/src/test/kotlin/com/trackermaster/core/data/sync/AssistantCommandTest.kt",
+    "core/database/src/main/kotlin/com/trackermaster/core/database/TrackermasterDatabase.kt",
+    "core/database/src/main/kotlin/com/trackermaster/core/database/dao/Daos.kt",
+    "core/database/src/main/kotlin/com/trackermaster/core/database/entity/Entities.kt",
+    "core/domain/src/main/kotlin/com/trackermaster/core/domain/HabitScheduleLogic.kt",
+    "core/domain/src/main/kotlin/com/trackermaster/core/domain/model/Models.kt",
+    "core/ui/src/main/kotlin/com/trackermaster/core/ui/theme/Theme.kt",
+    "core/widgets/build.gradle.kts",
+    "core/widgets/src/main/kotlin/com/trackermaster/core/widgets/TrackermasterWidgets.kt",
+    "core/widgets/src/main/kotlin/com/trackermaster/core/widgets/WidgetEntryPoint.kt",
+    "feature/backup/build.gradle.kts",
+    "feature/backup/src/main/kotlin/com/trackermaster/feature/backup/BackupManager.kt",
+    "feature/expense/build.gradle.kts",
+    "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/ExpenseScreens.kt",
+    "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyViewModel.kt",
+    "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyViewModelTest.kt",
+    "feature/focus/build.gradle.kts",
+    "feature/focus/src/main/kotlin/com/trackermaster/feature/focus/FocusScreens.kt",
+    "feature/habits/build.gradle.kts",
+    "feature/habits/src/main/kotlin/com/trackermaster/feature/habits/HabitsScreens.kt",
+    "feature/habits/src/main/kotlin/com/trackermaster/feature/habits/HabitsViewModel.kt",
+    "feature/settings/build.gradle.kts",
+    "feature/settings/src/main/kotlin/com/trackermaster/feature/settings/SettingsScreens.kt"
+  ],
+  "source_snapshot_matches": true,
+  "validated_source_files": 309,
+  "tests": {
+    "core/domain": [
+      {
+        "name": "com.trackermaster.core.domain.FocusTimingRulesTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.core.domain.HabitProgressRulesTest",
+        "tests": 19
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyCommitmentRulesTest",
+        "tests": 10
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyInvestmentRulesTest",
+        "tests": 12
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyLedgerTest",
+        "tests": 7
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyPlanningRulesTest",
+        "tests": 13
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyReportRulesTest",
+        "tests": 8
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyTest",
+        "tests": 10
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.ReceiptParserTest",
+        "tests": 13
+      },
+      {
+        "name": "com.trackermaster.core.domain.MoneyWidgetProjectionTest",
+        "tests": 4
+      },
+      {
+        "name": "com.trackermaster.core.domain.UnlockLaunchRulesTest",
+        "tests": 6
+      }
+    ],
+    "core/database": [
+      {
+        "name": "com.trackermaster.core.database.AssistantMigrationTest",
+        "tests": 1
+      },
+      {
+        "name": "com.trackermaster.core.database.CloudSyncMigrationTest",
+        "tests": 4
+      },
+      {
+        "name": "com.trackermaster.core.database.CommitmentMigrationTest",
+        "tests": 2
+      },
+      {
+        "name": "com.trackermaster.core.database.InvestmentMigrationTest",
+        "tests": 2
+      },
+      {
+        "name": "com.trackermaster.core.database.MoneyMigrationSixTest",
+        "tests": 3
+      },
+      {
+        "name": "com.trackermaster.core.database.MoneyMigrationTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.core.database.PlanningMigrationTest",
+        "tests": 2
+      },
+      {
+        "name": "com.trackermaster.core.database.ProgressMigrationTest",
+        "tests": 3
+      },
+      {
+        "name": "com.trackermaster.core.database.ReceiptMigrationTest",
+        "tests": 2
+      }
+    ],
+    "core/data": [
+      {
+        "name": "com.trackermaster.core.data.backup.BackupFilesTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.core.data.backup.BackupRestoreTest",
+        "tests": 4
+      },
+      {
+        "name": "com.trackermaster.core.data.backup.BackupValidationTest",
+        "tests": 2
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyCommitmentRepositoryTest",
+        "tests": 21
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyEntryFlowsTest",
+        "tests": 12
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyInvestmentRepositoryTest",
+        "tests": 19
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPlanningPermissionTest",
+        "tests": 4
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPlanningRepositoryTest",
+        "tests": 12
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPreferencesTest",
+        "tests": 1
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyReceiptRepositoryTest",
+        "tests": 9
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyRepositoryTest",
+        "tests": 13
+      },
+      {
+        "name": "com.trackermaster.core.data.money.ReceiptFilesTest",
+        "tests": 6
+      },
+      {
+        "name": "com.trackermaster.core.data.progress.FocusProgressRepositoryTest",
+        "tests": 12
+      },
+      {
+        "name": "com.trackermaster.core.data.sync.AssistantCommandTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.core.data.sync.CloudSyncStoreTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.core.data.unlock.UnlockLaunchStoreTest",
+        "tests": 1
+      }
+    ],
+    "core/ui": [
+      {
+        "name": "com.trackermaster.core.ui.theme.AccentContrastTest",
+        "tests": 3
+      }
+    ],
+    "feature/expense": [
+      {
+        "name": "com.trackermaster.feature.expense.MoneyCommitmentUiTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyCommitmentViewModelTest",
+        "tests": 12
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyInvestmentUiTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyInvestmentViewModelTest",
+        "tests": 11
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPlanningUiTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPlanningViewModelTest",
+        "tests": 15
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPresentationTest",
+        "tests": 9
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyReportExportTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyReportViewModelTest",
+        "tests": 5
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyUiTest",
+        "tests": 9
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyViewModelTest",
+        "tests": 12
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptIntentTest",
+        "tests": 4
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptUiTest",
+        "tests": 6
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptViewModelTest",
+        "tests": 11
+      }
+    ],
+    "feature/habits": [
+      {
+        "name": "com.trackermaster.feature.habits.HabitCalendarAlignmentTest",
+        "tests": 3
+      }
+    ],
+    "app": [
+      {
+        "name": "com.trackermaster.app.ui.Phase8UiTest",
+        "tests": 7
+      },
+      {
+        "name": "com.trackermaster.core.domain.HabitScheduleLogicTest",
+        "tests": 3
+      },
+      {
+        "name": "com.trackermaster.feature.habits.HabitsViewModelTest",
+        "tests": 3
+      }
+    ]
+  },
+  "total_tests": 395,
+  "failed_tests": 0,
+  "lint": {
+    "app": {
+      "errors": 0,
+      "warnings": 56,
+      "issue_ids": [
+        "OldTargetApi",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "UnusedAttribute",
+        "GradleDependency",
+        "GradleDependency",
+        "PluralsCandidate",
+        "PluralsCandidate",
+        "ObsoleteSdkInt",
+        "ObsoleteSdkInt",
+        "ObsoleteSdkInt",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UnusedResources",
+        "UseOfNonLambdaOffsetOverload",
+        "MonochromeLauncherIcon",
+        "MonochromeLauncherIcon"
+      ]
+    },
+    "core/data": {
+      "errors": 0,
+      "warnings": 13,
+      "issue_ids": [
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "NewerVersionAvailable",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead"
+      ]
+    },
+    "core/ui": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    },
+    "feature/expense": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    },
+    "core/widgets": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    },
+    "feature/settings": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    },
+    "feature/backup": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    },
+    "feature/focus": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    }
+  },
+  "compiler_warnings": [
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:292:55 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:295:57 'val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:413:38 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:437:38 'val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook."
+  ],
+  "translations": 116,
+  "schema_version": 13,
+  "tables": 33,
+  "screenshots": [
+    {
+      "path": "docs/money/native/phase8-ui/calendar-DARK-1.5-tab0.png",
+      "width": 320,
+      "height": 900,
+      "sha256": "361114db1b130321e91aabebb47cfa4d72461931b5b0c9729e0b1bf8d9b7c44c"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/calendar-DARK-1.5-tab1.png",
+      "width": 320,
+      "height": 900,
+      "sha256": "e049c65425180dea74917b2faf43f0295ecb377c01e580006b2c6f6f43ed89ec"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/calendar-LIGHT-1.0-tab0.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "e02de8bffa02af6efa41f433c34b204db0c2b1952144440837cbbf6f4dabd8ec"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/calendar-LIGHT-1.0-tab1.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "54f27613f5e95957bd615606c29bf7ba03df956050ee4a7054ddf2e71ec12bf8"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/calendar-OLED-1.0-tab0.png",
+      "width": 600,
+      "height": 1000,
+      "sha256": "aee3dcd3083ef1c661ff533f4ef3fb9fa2c0e4a5c1219ead54e7ed4473388b71"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/calendar-OLED-1.0-tab1.png",
+      "width": 600,
+      "height": 1000,
+      "sha256": "3789d4fdd366c43d4e4b4a6547f80c6c3842b9f410e371ebd001c953aa54fed8"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/finishedSessionShowsTheConfiguredDurationForTheNextSession.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "97da7a455b82875241cecb0e3395144b0d09dc31ef9133e37d6fa36e650b1945"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/focus-en-LIGHT-font150.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "b4ecab2ce160860d2d352f6329fa72a0a5cd2ac76b598a15dd55853b499e639d"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/focus-es-DARK-font150.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "9b98173be3c6569f3b093aac31be8bccea4ec9172a9bda984122252fc7f324d1"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/focus-zh-OLED-font150.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "efcccc8112b6f2fc679b9c507a2a8a5f6a45415c0716e0d301e4bdf2b9cadd64"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/focusCanSelectAHabitAndStartAShorterSession.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "a20db2c8a2b7f0f14f63c7aef6937aa93c0345b8755d36020f80b06382a2b196"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/pausedFocusDisablesConfigurationAndOffersResumeAndStop.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "451ca9014e2b1c7eedb2aa3049a5b4340d897d21cd9530e9231c3d5667b285fc"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/pendingCardFormatsFractionsDistinguishesTodayAndOpensTheHabit.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "801ece376bdf5c99940ab8c8b2e359e1fb379da5340b2b1bd39ae25273c3739c"
+    },
+    {
+      "path": "docs/money/native/phase8-ui/pendingCardProvidesAnEmptyState.png",
+      "width": 393,
+      "height": 900,
+      "sha256": "35c1e8ee2476798e74b220ffb2e59c812f7c42c2cda874318a187951a81cac2e"
+    }
+  ],
+  "apk": {
+    "path": "docs/money/artifacts/trackermaster-money-phase8-debug.apk",
+    "bytes": 72799764,
+    "sha256": "bbd8aaa000b2b67c1619fa903ba8c04a8442362c4ecc8b2ee0c71c4f2155d494",
+    "verified_v2": true,
+    "same_certificate": true,
+    "certificate_sha256": "167b7b7e30866a503616024c6099db344aa5f24e66d5a761f8bb2c5384153c53",
+    "application_id": "com.trackermaster.app"
+  },
+  "native_android": {
+    "synthetic_data": true,
+    "production_data_read": false,
+    "test_apk_sha256": "d131faf47045ca37014dd33544c51fc4aaa944bb84141ac3995ea64b7a478eba",
+    "installation_mode": "adb install --no-streaming; standard Android verification retained",
+    "installation_attempted": true,
+    "sdk": "36",
+    "model": "V2430",
+    "passed": false,
+    "tests_run": 0,
+    "status": "installation_rejected",
+    "installation_error": "Performing Push Install\r\nFailure [INSTALL_FAILED_VERIFICATION_FAILURE: Install not allowed for file:///data/app/vmdl312758995.tmp]\r\nC:\\Users\\usu\\Desktop\\habit tracker app\\.money-phase6-validation\\feature\\expense\\build\\outputs\\apk\\androidTest\\debug\\expense-debug-androidTest.apk: 1 file pushed, 0 skipped. 20.2 MB/s (69482803 bytes in 3.279s)",
+    "test_package_removed": true,
+    "production_package_unchanged": true
+  },
+  "manual_pending": [
+    "Native Android phase-8 instrumentation not completed: installation_rejected",
+    "30-minute physical unlock, screen peeks, actual section rotation and device reboot",
+    "Permission revocation and manufacturer background restrictions",
+    "Launcher widget placement/resizing and TalkBack",
+    "Update over production data; real Nequi receipts and entry below ten seconds"
+  ],
+  "phase7_commit": "c0b7fc9",
+  "phase8_committed": false,
+  "phase8_pushed": false
+}

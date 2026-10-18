@@ -84,6 +84,7 @@ internal fun destinationTitle(destination: MoneyDestination): String = stringRes
 })
 internal fun errorResource(error: MoneyUiError): Int = when (error) {
     MoneyUiError.LOAD -> R.string.m_load_error
+    MoneyUiError.EXPORT -> R.string.x_error
     MoneyUiError.AMOUNT -> R.string.m_amount_error
     MoneyUiError.ACCOUNT -> R.string.m_account_error
     MoneyUiError.CATEGORY -> R.string.m_category_error
@@ -164,6 +165,12 @@ internal fun dayLabel(date: LocalDate): String = when (date) {
 }
 
 // Reuse shared theme roles with readable text even when the selected dark accent is dim.
+@Composable
+internal fun MoneyButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit) {
+    FilledTonalButton(onClick, modifier.heightIn(min = 48.dp), enabled = enabled, content = content)
+}
+
 @Composable
 internal fun MoneyTextButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit) {

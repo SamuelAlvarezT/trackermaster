@@ -26,8 +26,6 @@
     <string name="reminder_body">该完成你的习惯了</string>
     <string name="mark_done">完成</string>
     <string name="snooze">稍后</string>
-    <string name="focus_timer_running">专注进行中</string>
-    <string name="focus_timer_subtitle">保持专注</string>
     <string name="widget_habits">习惯进度</string>
     <string name="widget_streaks">连续记录概览</string>
     <string name="widget_mood">心情记录</string>

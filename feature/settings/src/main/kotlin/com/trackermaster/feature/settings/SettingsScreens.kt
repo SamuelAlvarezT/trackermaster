@@ -24,6 +24,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.trackermaster.core.ui.R as P8R
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -45,24 +47,61 @@ class SettingsViewModel @Inject constructor(
     fun setBackupFrequency(frequency: BackupFrequency) = viewModelScope.launch { repo.setBackupFrequency(frequency) }
     private val _backupMsg = MutableStateFlow<String?>(null)
     val backupMsg: StateFlow<String?> = _backupMsg
+    val restorePreview=backupManager.restorePreview
+    private val _backupBusy=MutableStateFlow(false)
+    val backupBusy=_backupBusy.asStateFlow()
+    init { viewModelScope.launch { _backupMsg.value=backupManager.lastRestoreMessage() } }
     fun exportBackup() = viewModelScope.launch {
-        val result = backupManager.uploadToGoogleDrive("local")
-        _backupMsg.value = result.getOrNull()
+        if(_backupBusy.value) return@launch
+        _backupBusy.value=true
+        try { _backupMsg.value=backupManager.createInternal().getOrElse { backupManager.failureMessage() } }
+        finally { _backupBusy.value=false }
     }
     fun exportBackupTo(uri: Uri) = viewModelScope.launch {
-        val result = backupManager.exportToUri(uri)
-        _backupMsg.value = result.getOrElse { it.message ?: "Export failed" }
+        if(_backupBusy.value) return@launch
+        _backupBusy.value=true
+        try { _backupMsg.value=backupManager.exportToUri(uri).getOrElse { backupManager.failureMessage() } }
+        finally { _backupBusy.value=false }
     }
     fun importBackupFrom(uri: Uri) = viewModelScope.launch {
-        val result = backupManager.importFromUri(uri)
-        _backupMsg.value = result.getOrElse { it.message ?: "Import failed" }
+        if(_backupBusy.value) return@launch
+        _backupBusy.value=true
+        try { _backupMsg.value=backupManager.importFromUri(uri).getOrElse { backupManager.failureMessage() } }
+        finally { _backupBusy.value=false }
+    }
+    fun cancelRestore()=viewModelScope.launch { backupManager.cancelRestore() }
+    fun confirmRestore(onReady: ()->Unit)=viewModelScope.launch {
+        if(_backupBusy.value) return@launch
+        _backupBusy.value=true
+        try {
+            backupManager.confirmRestore().fold(onSuccess={ onReady() },onFailure={ _backupMsg.value=backupManager.failureMessage() })
+        } finally { _backupBusy.value=false }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val s by vm.settings.collectAsStateWithLifecycle()
     val backupMsg by vm.backupMsg.collectAsStateWithLifecycle()
+    val preview by vm.restorePreview.collectAsStateWithLifecycle()
+    val backupBusy by vm.backupBusy.collectAsStateWithLifecycle()
+    preview?.let { restored ->
+        AlertDialog(onDismissRequest={ if(!backupBusy) vm.cancelRestore() },
+            title={ Text(stringResource(P8R.string.p8_backup_review)) },
+            text={ Column {
+                Text(stringResource(P8R.string.p8_backup_details,restored.tables,restored.files))
+                if(restored.legacy) Text(stringResource(P8R.string.p8_backup_legacy))
+            } },
+            confirmButton={ TextButton(enabled=!backupBusy,onClick={ vm.confirmRestore {
+                var current=context
+                while(current is android.content.ContextWrapper && current !is android.app.Activity) current=current.baseContext
+                (current as? android.app.Activity)?.finishAffinity()
+                android.os.Process.killProcess(android.os.Process.myPid())
+            } }) { Text(stringResource(P8R.string.p8_backup_confirm)) } },
+            dismissButton={ TextButton(enabled=!backupBusy,onClick={ vm.cancelRestore() }) { Text(stringResource(P8R.string.p8_cancel)) } })
+    }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) vm.exportBackupTo(uri)
     }
@@ -70,6 +109,8 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
         if (uri != null) vm.importBackupFrom(uri)
     }
     LazyColumn(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { UnlockSettingsSection() }
+        item { MoneyWidgetSettingsSection() }
         item { Text("Appearance", style = MaterialTheme.typography.titleMedium) }
         item {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -121,11 +162,11 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
         }
         item { Text("Pomodoro (minutes)", style = MaterialTheme.typography.titleMedium) }
         item { Text("Work: ${s.pomodoroWorkMinutes} · Break: ${s.pomodoroBreakMinutes}") }
-        item { Text("Backup", style = MaterialTheme.typography.titleMedium) }
+        item { Text(stringResource(P8R.string.p8_backup_title), style = MaterialTheme.typography.titleMedium) }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button({ exportLauncher.launch("trackermaster_backup.zip") }) { Text("Export archive") }
-                OutlinedButton({ importLauncher.launch("application/zip") }) { Text("Import archive") }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(enabled=!backupBusy,onClick={ exportLauncher.launch("trackermaster_backup.zip") }) { Text(stringResource(P8R.string.p8_backup_export)) }
+                OutlinedButton(enabled=!backupBusy,onClick={ importLauncher.launch("application/zip") }) { Text(stringResource(P8R.string.p8_backup_import)) }
             }
         }
         item { Text("Auto backup") }
@@ -140,7 +181,8 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 }
             }
         }
-        item { Button({ vm.exportBackup() }) { Text("Make internal backup") } }
+        item { Button(enabled=!backupBusy,onClick={ vm.exportBackup() }) { Text(stringResource(P8R.string.p8_backup_internal)) } }
+        if(backupBusy) item { LinearProgressIndicator(Modifier.fillMaxWidth());Text(stringResource(P8R.string.p8_backup_working)) }
         if (backupMsg != null) item { Text(backupMsg!!, style = MaterialTheme.typography.bodySmall) }
     }
 }

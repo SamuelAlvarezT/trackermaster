@@ -19,11 +19,13 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:ui"))
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    implementation(libs.androidx.material3)
     implementation(libs.androidx.work)
     implementation(libs.hilt.android)
     implementation(libs.hilt.work)

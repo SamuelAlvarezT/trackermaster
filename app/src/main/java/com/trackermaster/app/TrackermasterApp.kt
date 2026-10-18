@@ -24,11 +24,21 @@ class TrackermasterApp : Application(), Configuration.Provider {
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(base)
+        com.trackermaster.core.data.backup.RestoreBootstrap.applyPending(base)
+    }
+
     override fun onCreate() {
         super.onCreate()
         appScope.launch {
+            com.trackermaster.core.data.backup.RestoreBootstrap.cleanup(this@TrackermasterApp)
             expenseRepository.seedDefaultCategories()
-            moneyPlanningScheduler.ensureScheduled()
+            val refresh=java.io.File(noBackupFilesDir,"restore-refresh-required")
+            if(refresh.exists()) {
+                moneyPlanningScheduler.refresh()
+                runCatching { com.trackermaster.core.widgets.WidgetRefresh.refreshAll(this@TrackermasterApp) }.onSuccess { refresh.delete() }
+            } else moneyPlanningScheduler.ensureScheduled()
         }
     }
 }

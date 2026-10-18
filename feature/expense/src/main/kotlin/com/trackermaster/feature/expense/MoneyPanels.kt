@@ -151,5 +151,5 @@ fun MoneyPocketPanel(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
         dismissButton = { MoneyTextButton(close, enabled = !state.controls.saving) { Text(stringResource(R.string.m_cancel)) } })
 }
 
-private fun utcMillis(day: LocalDate): Long = day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-private fun utcDay(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+internal fun utcMillis(day: LocalDate): Long = day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+internal fun utcDay(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()

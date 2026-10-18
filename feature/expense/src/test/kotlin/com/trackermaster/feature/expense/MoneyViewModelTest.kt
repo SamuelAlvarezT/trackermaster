@@ -33,6 +33,19 @@ class MoneyViewModelTest {
         vm.onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE))
         vm.onEvent(MoneyEvent.Editor(vm.uiState.value.controls.editor!!.copy(amount = amount)))
     }
+    @Test fun widgetRequestsOpenAnEditorOnceAndDoNotOverwriteADraft()=runTest(dispatcher) {
+        val vm=vm(FakeMoneyGateway())
+        assertTrue(vm.openFromWidget("first","INCOME"))
+        assertEquals(MoneyEntryKind.INCOME,vm.uiState.value.controls.editor!!.kind)
+        vm.onEvent(MoneyEvent.Editor(vm.uiState.value.controls.editor!!.copy(amount="100",note="Keep")))
+        assertTrue(vm.openFromWidget("first","INCOME"))
+        assertTrue(vm.openFromWidget("second","EXPENSE"))
+        assertEquals("Keep",vm.uiState.value.controls.editor!!.note)
+        assertEquals(MoneyEntryKind.INCOME,vm.uiState.value.controls.editor!!.kind)
+        vm.onEvent(MoneyEvent.CloseEditor)
+        assertTrue(vm.openFromWidget("second","EXPENSE"));assertNull(vm.uiState.value.controls.editor)
+        assertTrue(vm.openFromWidget("third","EXPENSE"));assertEquals(MoneyEntryKind.EXPENSE,vm.uiState.value.controls.editor!!.kind)
+    }
     @Test fun privacyChangesFromReceiptScreenAreObservedAfterLocalToggle()=runTest(dispatcher) {
         val gateway=FakeMoneyGateway();val vm=vm(gateway)
         vm.onEvent(MoneyEvent.Privacy);advanceUntilIdle();assertTrue(vm.uiState.value.preferences.hideAmounts)

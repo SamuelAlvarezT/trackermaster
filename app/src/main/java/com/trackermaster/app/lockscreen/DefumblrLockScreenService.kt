@@ -23,13 +23,15 @@ import javax.inject.Inject
 class DefumblrLockScreenService : Service() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var unlockStore: com.trackermaster.core.data.unlock.UnlockLaunchStore
 
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_SCREEN_ON || intent.action == Intent.ACTION_SCREEN_OFF) {
+            if (intent.action == Intent.ACTION_SCREEN_ON) {
                 serviceScope.launch {
+                    if(unlockStore.settings.first().enabled) return@launch
                     val settings = settingsRepository.settings.first()
                     if (settings.defumblrEnabled) {
                         val lockIntent = Intent(context, DefumblrLockScreenActivity::class.java).apply {
@@ -50,7 +52,6 @@ class DefumblrLockScreenService : Service() {
         super.onCreate()
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_SCREEN_OFF)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(screenReceiver, filter, RECEIVER_NOT_EXPORTED)

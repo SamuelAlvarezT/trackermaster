@@ -23,7 +23,13 @@ val mockitoAgent = configurations.create("mockitoAgent") {
     isCanBeConsumed = false
 }
 
+// Device validation uses a distinct sandbox; the regular build keeps its existing application ID.
+val validationApplicationId=providers.gradleProperty("validationApplicationId").orNull?.also {
+    require(it.startsWith("com.trackermaster.validation.") && it.matches(Regex("[a-zA-Z0-9_.]+")))
+}
+
 tasks.withType<Test>().configureEach {
+    systemProperty("phase8.screenshots",rootProject.layout.projectDirectory.dir("docs/money/native/phase8-ui").asFile.absolutePath)
     jvmArgumentProviders.add(objects.newInstance(MockitoAgentArguments::class.java).apply {
         agentFiles.from(mockitoAgent)
     })
@@ -34,7 +40,8 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.trackermaster.app"
+        applicationId = validationApplicationId ?: "com.trackermaster.app"
+        manifestPlaceholders["appLabel"]=if(validationApplicationId==null) "@string/app_name" else "Trackermaster · pruebas"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -50,6 +57,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    testOptions { unitTests.isIncludeAndroidResources = true }
 
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
@@ -89,6 +97,10 @@ dependencies {
     ksp(libs.hilt.compiler)
     ksp(libs.hilt.compiler.work)
     debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockito.kotlin)

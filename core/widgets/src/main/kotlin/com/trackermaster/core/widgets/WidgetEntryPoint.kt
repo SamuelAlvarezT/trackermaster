@@ -12,6 +12,7 @@ import dagger.hilt.components.SingletonComponent
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface WidgetHiltEntryPoint {
+    fun moneyRepository(): com.trackermaster.core.data.money.MoneyRepository
     fun habitRepository(): HabitRepository
     fun settingsRepository(): com.trackermaster.core.data.settings.SettingsRepository
     fun moneyPreferencesRepository(): com.trackermaster.core.data.money.MoneyPreferencesRepository

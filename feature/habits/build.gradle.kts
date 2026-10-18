@@ -6,6 +6,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+tasks.withType<Test>().configureEach {
+    systemProperty("phase8.screenshots",rootProject.layout.projectDirectory.dir("docs/money/native/phase8-ui").asFile.absolutePath)
+}
+
 android {
     namespace = "com.trackermaster.feature.habits"
     compileSdk = 35
@@ -16,6 +20,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
 dependencies {
@@ -31,4 +36,13 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    debugImplementation(libs.androidx.ui.test.manifest)
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(project(":core:database"))
+    testImplementation(libs.androidx.room.runtime)
+    testImplementation(libs.androidx.room.ktx)
 }

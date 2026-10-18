@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,7 +48,7 @@ import java.time.LocalDate
 
 @Composable
 @Suppress("UNUSED_VALUE")
-fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel()) {
+fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long? = null) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     var showEditor by remember { mutableStateOf(false) }
@@ -57,6 +59,14 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel()) {
     var calendarHabitData by remember { mutableStateOf<Habit?>(null) }
     var selectedHabitForMenu by remember { mutableStateOf<Habit?>(null) }
 
+    var handledHabitId by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(openHabitId,uiState.activeHabits) {
+        openHabitId?.takeUnless { it==handledHabitId }?.let { id ->
+            uiState.activeHabits.firstOrNull { it.first.id==id }?.first?.let {
+                viewModel.selectTab(0);selectedHabitForMenu=it;handledHabitId=id
+            }
+        }
+    }
     val currentRawList = if (uiState.selectedTab == 0) uiState.activeHabits else uiState.archivedHabits
     
     // We keep local list strictly for drag-drop fluidity but sync it to uiState
@@ -64,9 +74,10 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel()) {
     LaunchedEffect(currentRawList) { localList = currentRawList }
 
     val lazyListState = rememberLazyListState()
-    val today = remember { LocalDate.now() }
+    val today = uiState.today
     val last7Days = remember(today) { (0..6).map { today.minusDays(it.toLong()) }.reversed() }
-    val weekdayHeaders = remember(last7Days) { last7Days.map { it.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()).take(3) } }
+    val locale=LocalConfiguration.current.locales[0]
+    val weekdayHeaders = remember(last7Days,locale) { last7Days.map { it.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).take(3) } }
     val onSwap = { from: Int, to: Int ->
         if (from in localList.indices && to in localList.indices) {
             val newList = localList.toMutableList()
@@ -153,18 +164,10 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel()) {
             if (localList.isEmpty() && !showEditor) {
                 EmptyState(stringResource(R.string.habit_no_habits), Modifier.weight(1f))
             } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Spacer(modifier = Modifier.width(112.dp))
-                    weekdayHeaders.forEachIndexed { index, label ->
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+                HabitWeekGrid(Modifier.padding(horizontal = HabitListHorizontalPadding + HabitCardContentPadding,
+                    vertical = 4.dp)) { index ->
+                    Text(weekdayHeaders[index],modifier=Modifier.testTag("habit_weekday:$index"),style=MaterialTheme.typography.labelSmall,
+                        color=MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 LazyColumn(
                     state = lazyListState,
@@ -185,7 +188,7 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel()) {
                     } else {
                         Modifier.weight(1f)
                     },
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 20.dp),
+                    contentPadding = PaddingValues(start = HabitListHorizontalPadding, end = HabitListHorizontalPadding, top = 4.dp, bottom = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     itemsIndexed(localList, key = { _, pair -> pair.first.id }) { index, (habit, logs) ->
@@ -206,6 +209,7 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel()) {
                             HabitRow(
                                 habit = habit,
                                 logs = logs,
+                                today = today,
                                 isReorderMode = uiState.isReorderMode,
                                 onDayClick = { date -> viewModel.toggleDay(habit, date) },
                                 onMenuClick = { selectedHabitForMenu = habit }
@@ -347,9 +351,9 @@ fun HabitRow(
     logs: List<HabitLog>,
     isReorderMode: Boolean,
     onDayClick: (LocalDate) -> Unit,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    today: LocalDate = LocalDate.now(),
 ) {
-    val today = remember { LocalDate.now() }
     val last7Days = remember(today) { (0..6).map { today.minusDays(it.toLong()) }.reversed() }
 
     Card(
@@ -358,7 +362,7 @@ fun HabitRow(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Column(Modifier.padding(12.dp)) {
+        Column(Modifier.padding(HabitCardContentPadding)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -404,33 +408,34 @@ fun HabitRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    last7Days.forEach { date ->
+                HabitWeekGrid { index ->
+                        val date = last7Days[index]
                         val isToday = date == today
                         val log = logs.find { it.date == date }
                         val isDue = com.trackermaster.core.domain.HabitScheduleLogic.isDueOnDate(habit, date)
 
                         val (backgroundColor, textColor) = when {
                             !isDue -> Color.LightGray.copy(alpha = 0.3f) to MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            log?.completed == true -> Color.Green to Color.Black
+                            log?.let { com.trackermaster.core.domain.HabitScheduleLogic.isLogComplete(it) } == true -> Color.Green to Color.Black
                             log != null && log.value < 0 -> Color.Red to Color.White
+                            log != null && (log.value > 0 || log.durationMs > 0 || log.checklistState.values.any { it }) -> Color(0xFFFF9800) to Color.Black
                             isToday -> Color.Yellow to Color.Black
                             else -> Color.White to Color.Black
                         }
 
                         Column(
+                            verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
                                 .then(if (isDue) Modifier.clickable { onDayClick(date) } else Modifier)
                                 .padding(vertical = 2.dp)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(28.dp)
+                                    .testTag("habit_circle:${habit.id}:$index")
                                     .background(backgroundColor, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -441,7 +446,6 @@ fun HabitRow(
                                 )
                             }
                         }
-                    }
                 }
             }
         }

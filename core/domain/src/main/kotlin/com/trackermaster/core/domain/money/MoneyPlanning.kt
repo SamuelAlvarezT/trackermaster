@@ -31,7 +31,7 @@ object BudgetRules {
         val limit = budget.limit ?: return null // Legacy currency must be explicitly configured.
         validate(budget)
         val (from, through) = dates(budget, day, locale)
-        val spent = movements.asSequence().filter { it.transferId == null && !it.principal && it.direction == MoneyDirection.EXPENSE &&
+        val spent = movements.asSequence().filter { it.transferId == null && !it.principal && !it.investmentCapital && it.direction == MoneyDirection.EXPENSE &&
             it.amount.currencyCode == limit.currencyCode && (budget.spaceId == null || it.spaceId == budget.spaceId) &&
             (budget.categoryId == 0L || it.categoryId == budget.categoryId) && !it.date.isBefore(from) && !it.date.isAfter(through) }
             .fold(Money(0, limit.currencyCode)) { total, row -> total + row.amount }

@@ -30,7 +30,18 @@ object DataModule {
             .addMigrations(com.trackermaster.core.database.CloudSyncSchema.MIGRATION_8_9)
             .addMigrations(com.trackermaster.core.database.AssistantMigration.MIGRATION_9_10)
             .addMigrations(com.trackermaster.core.database.CommitmentMigration.MIGRATION_10_11)
+            .addMigrations(com.trackermaster.core.database.InvestmentMigration.MIGRATION_11_12)
+            .addMigrations(com.trackermaster.core.database.ProgressMigration.MIGRATION_12_13)
+            .addCallback(com.trackermaster.core.database.ProgressHistorySchema.callback)
             .build()
+
+    fun restoreMigrations(): Array<Migration> = arrayOf(MIGRATION_3_4,MoneyMigrations.MIGRATION_4_5,
+        MoneyMigrations.MIGRATION_5_6,ReceiptMigration.MIGRATION_6_7,PlanningMigration.MIGRATION_7_8,
+        com.trackermaster.core.database.CloudSyncSchema.MIGRATION_8_9,
+        com.trackermaster.core.database.AssistantMigration.MIGRATION_9_10,
+        com.trackermaster.core.database.CommitmentMigration.MIGRATION_10_11,
+        com.trackermaster.core.database.InvestmentMigration.MIGRATION_11_12,
+        com.trackermaster.core.database.ProgressMigration.MIGRATION_12_13)
 
     @Provides fun provideHabitDao(db: TrackermasterDatabase): HabitDao = db.habitDao()
     @Provides fun provideHabitLogDao(db: TrackermasterDatabase): HabitLogDao = db.habitLogDao()

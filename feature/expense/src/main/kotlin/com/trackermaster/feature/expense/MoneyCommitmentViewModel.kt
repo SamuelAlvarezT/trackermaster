@@ -44,7 +44,7 @@ class MoneyCommitmentViewModel @Inject constructor(private val gateway: MoneyCom
                     val candidates=if(f?.editor==CommitmentEditor.REPAYMENT && f.linked==null) {
                         val amount=runCatching{ReceiptValidation.amount(f.amount,f.currency)}.getOrNull()
                         val date=runCatching{LocalDate.parse(f.date)}.getOrNull()
-                        w.ledger.movements.filter { m->!m.principal && m.transferId==null && m.accountId==f.account && m.pocketId==f.pocket &&
+                        w.ledger.movements.filter { m->!m.principal && m.investmentId==null && m.transferId==null && m.accountId==f.account && m.pocketId==f.pocket &&
                             m.spaceId==f.space && m.amount==amount && m.direction==CommitmentRules.direction(f.kind,PrincipalEvent.REPAYMENT) &&
                             date!=null && kotlin.math.abs(m.date.toEpochDay()-date.toEpochDay())<=7 &&
                             data.payments.none{it.movementId==m.id} && m.id !in data.plannedMovementIds }.sortedByDescending{it.date}.take(15)

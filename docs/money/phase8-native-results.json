@@ -1,0 +1,15 @@
+{
+  "synthetic_data": true,
+  "production_data_read": false,
+  "test_apk_sha256": "d131faf47045ca37014dd33544c51fc4aaa944bb84141ac3995ea64b7a478eba",
+  "installation_mode": "adb install --no-streaming; standard Android verification retained",
+  "installation_attempted": true,
+  "sdk": "36",
+  "model": "V2430",
+  "passed": false,
+  "tests_run": 0,
+  "status": "installation_rejected",
+  "installation_error": "Performing Push Install\r\nFailure [INSTALL_FAILED_VERIFICATION_FAILURE: Install not allowed for file:///data/app/vmdl312758995.tmp]\r\nC:\\Users\\usu\\Desktop\\habit tracker app\\.money-phase6-validation\\feature\\expense\\build\\outputs\\apk\\androidTest\\debug\\expense-debug-androidTest.apk: 1 file pushed, 0 skipped. 20.2 MB/s (69482803 bytes in 3.279s)",
+  "test_package_removed": true,
+  "production_package_unchanged": true
+}

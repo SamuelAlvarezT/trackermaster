@@ -14,6 +14,7 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 dependencies {
+    implementation(project(":core:ui"))
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
     implementation(project(":core:data"))

@@ -19,13 +19,27 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import com.trackermaster.core.database.TrackermasterDatabase
 import com.trackermaster.core.data.money.MoneyRepository
 import com.trackermaster.core.domain.money.*
+import com.trackermaster.core.domain.habits.*
+import com.trackermaster.core.data.progress.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.flatMapLatest
 
 @Singleton
 class HabitRepository @Inject constructor(
     private val habitDao: HabitDao,
     private val habitLogDao: HabitLogDao,
     private val achievementDao: AchievementDao,
+    private val database: TrackermasterDatabase,
+    private val clock: ProgressClock,
 ) {
+    private val progressDao get() = database.progressDao()
+    fun observeDay() = clock.days()
+    fun observePendingHabits(): Flow<List<PendingHabit>> = combine(habitDao.observeAll(),
+        progressDao.observeAllLogs(),progressDao.observeHistory(),clock.days()) { habits,logs,history,today ->
+        HabitProgressRules.pending(habits.map { it.toDomain() },logs.map { it.toDomain() },history.map { it.toDomain() },today)
+    }.flowOn(Dispatchers.Default)
+    suspend fun getHabit(id: Long): Habit? = habitDao.getById(id)?.toDomain()
     fun observeActiveHabits(): Flow<List<Habit>> =
         habitDao.observeActive().map { list -> list.map { it.toDomain() } }
 
@@ -57,13 +71,15 @@ class HabitRepository @Inject constructor(
 
     suspend fun updateHabitsOrder(habits: List<Habit>) {
         habits.forEachIndexed { index, habit ->
-            habitDao.update(habit.copy(sortOrder = index).toEntity())
+            habitDao.updateSortOrder(habit.id,index)
         }
     }
 
-    suspend fun archiveHabit(habitId: Long, archive: Boolean) {
+    suspend fun archiveHabit(habitId: Long, archive: Boolean) = database.withTransaction {
         habitDao.getById(habitId)?.let { entity ->
-            habitDao.update(entity.copy(archived = archive))
+            val changed=entity.copy(archived=archive)
+            habitDao.update(changed)
+            progressDao.saveHistory(HabitProgressRules.version(changed.toDomain(),clock.today()).toEntity())
         }
     }
 
@@ -81,19 +97,33 @@ class HabitRepository @Inject constructor(
             logs.count { it.completed }
         }
 
-    suspend fun saveHabit(habit: Habit): Long {
-        val id = if (habit.id == 0L) habitDao.insert(habit.toEntity()) else {
-            habitDao.update(habit.toEntity()); habit.id
-        }
-        return id
+    suspend fun saveHabit(habit: Habit): Long = database.withTransaction {
+        val old=habitDao.getById(habit.id)
+        val changed=if (old==null) habit.copy(createdEpochDay=clock.today().toEpochDay(),creationDateKnown=true,
+            sortOrder=habitDao.observeAll().first().size) else habit.copy(createdEpochDay=old.createdEpochDay,
+            creationDateKnown=old.creationDateKnown,sortOrder=old.sortOrder,archived=old.archived)
+        val id=if (old==null) habitDao.insert(changed.toEntity()) else { habitDao.update(changed.toEntity());habit.id }
+        val version=HabitProgressRules.version(changed.copy(id=id),clock.today())
+        val last=progressDao.history(id).lastOrNull()?.toDomain()
+        if (last==null || last.copy(effectiveFrom=version.effectiveFrom)!=version) progressDao.saveHistory(version.toEntity())
+        id
     }
 
     suspend fun logHabit(habit: Habit, log: HabitLog) {
-        val existing = habitLogDao.getForDate(habit.id, log.date.toEpochMilli())
-        if (existing != null) {
-            habitLogDao.update(log.copy(id = existing.id).toEntity())
-        } else {
-            habitLogDao.insert(log.copy(habitId = habit.id).toEntity())
+        database.withTransaction {
+            val existing=habitLogDao.getForDate(habit.id,log.date.toEpochMilli())
+            val current=habitDao.getById(habit.id)?.toDomain() ?: return@withTransaction
+            val history=progressDao.history(habit.id).map { it.toDomain() }
+            val version=HabitProgressRules.versionOn(current,log.date,history)
+            val targetKnown=log.date==clock.today() || history.any { it.effectiveFrom<=log.date }
+            val timed=version.progressType==ProgressType.TIMER || version.progressType==ProgressType.STOPWATCH
+            val stamped=log.copy(habitId=habit.id,
+                targetDurationMsAtLog=existing?.targetDurationMsAtLog ?: log.targetDurationMsAtLog ?: version.targetDurationMs.takeIf { timed && targetKnown },
+                targetCountAtLog=existing?.targetCountAtLog ?: log.targetCountAtLog ?: version.targetCount.takeIf { targetKnown },
+                progressTypeAtLog=existing?.progressTypeAtLog?.let { ProgressType.valueOf(it) } ?: log.progressTypeAtLog ?: version.progressType.takeIf { targetKnown },
+                checklistSizeAtLog=existing?.checklistSizeAtLog ?: log.checklistSizeAtLog ?: version.checklistSize.takeIf { targetKnown },
+                completionSource=if (log.completed && (!timed || log.durationMs<version.targetDurationMs)) "manual" else "measured")
+            if (existing==null) habitLogDao.insert(stamped.toEntity()) else habitLogDao.update(stamped.copy(id=existing.id).toEntity())
         }
         checkAchievements(habit.id)
     }
@@ -313,6 +343,7 @@ class FocusRepository @Inject constructor(
             com.trackermaster.core.database.entity.FocusSessionEntity(
                 category = category.name,
                 plannedMinutes = plannedMinutes,
+                startedAtEpoch = System.currentTimeMillis(),
             )
         )
 
@@ -322,6 +353,7 @@ class FocusRepository @Inject constructor(
         focusDao.update(
             s.copy(
                 actualSeconds = actualSeconds,
+                actualDurationMs = actualSeconds.coerceAtLeast(0)*1000L,
                 completed = true,
                 completedAtEpoch = LocalDateTime.now().toEpochMilli(),
             )
@@ -334,6 +366,7 @@ class FocusRepository @Inject constructor(
         focusDao.update(
             s.copy(
                 actualSeconds = actualSeconds,
+                actualDurationMs = actualSeconds.coerceAtLeast(0)*1000L,
                 completed = completed,
                 completedAtEpoch = LocalDateTime.now().toEpochMilli(),
             )
@@ -343,7 +376,7 @@ class FocusRepository @Inject constructor(
     fun weeklyFocusScore(): Flow<Int> = observeSessions().map { sessions ->
         val weekAgo = LocalDateTime.now().minusDays(7)
         HabitScheduleLogic.calculateFocusScore(
-            sessions.filter { it.completedAt?.isAfter(weekAgo) == true }
+            sessions.filter { (it.completedAt ?: it.startedAt)?.isAfter(weekAgo) == true }
         )
     }
 }
@@ -387,9 +420,9 @@ class DashboardRepository @Inject constructor(
     private val focusRepository: FocusRepository,
     private val journalRepository: JournalRepository,
 ) {
-    fun observeSummary(): Flow<DashboardSummary> {
-        val today = LocalDate.now()
-        return combine(
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun observeSummary(): Flow<DashboardSummary> = habitRepository.observeDay().flatMapLatest { today ->
+        combine(
             habitRepository.observeTodayHabits(today),
             moodRepository.observeEntries(),
             expenseRepository.balancesByCurrency(),

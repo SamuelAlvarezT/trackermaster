@@ -11,6 +11,9 @@ import com.trackermaster.core.database.entity.*
         CloudRecordVersion::class,
         CloudSyncOperation::class,
         CloudSyncState::class,
+        HabitScheduleEntity::class,
+        FocusRuntimeEntity::class,
+        FocusHabitContributionEntity::class,
         HabitEntity::class,
         HabitLogEntity::class,
         MoodEntryEntity::class,
@@ -35,11 +38,14 @@ import com.trackermaster.core.database.entity.*
         MoneyDebtEntity::class,
         DebtPaymentEntity::class,
         SavingsGoalEntity::class,
+        MoneyInvestmentEntity::class,
+        MoneyInvestmentEventEntity::class,
     ],
-    version = 11,
+    version = 13,
     exportSchema = true,
 )
 abstract class TrackermasterDatabase : RoomDatabase() {
+    abstract fun progressDao(): ProgressDao
     abstract fun habitDao(): HabitDao
     abstract fun habitLogDao(): HabitLogDao
     abstract fun moodDao(): MoodDao
@@ -52,4 +58,5 @@ abstract class TrackermasterDatabase : RoomDatabase() {
     abstract fun moneyReceiptDao(): MoneyReceiptDao
     abstract fun moneyPlanningDao(): MoneyPlanningDao
     abstract fun moneyCommitmentDao(): MoneyCommitmentDao
+    abstract fun moneyInvestmentDao(): MoneyInvestmentDao
 }

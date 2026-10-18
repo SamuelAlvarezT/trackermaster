@@ -1,0 +1,222 @@
+[
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyCommitmentRepository.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyMappings.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyPlanningRepository.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyRepository.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/TrackermasterDatabase.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/Entities.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyLedger.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyModels.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyPlanning.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/AndroidManifest.xml",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/ExpenseScreens.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentViewModel.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyComponents.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyGateway.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyHistory.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyOverview.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPanels.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPlanningViewModel.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPresentation.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyReports.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyUiState.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyViewModel.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/res/xml/money_receipt_paths.xml",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyPresentationTest.kt",
+    "change": "modified"
+  },
+  {
+    "path": "gradle/libs.versions.toml",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyInvestmentRepository.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/test/kotlin/com/trackermaster/core/data/money/MoneyInvestmentRepositoryTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/schemas/com.trackermaster.core.database.TrackermasterDatabase/12.json",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/InvestmentMigration.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/dao/MoneyInvestmentDao.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/MoneyInvestmentEntities.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/test/kotlin/com/trackermaster/core/database/InvestmentMigrationTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyInvestments.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyReports.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/money/MoneyInvestmentRulesTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/money/MoneyReportRulesTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/androidTest/AndroidManifest.xml",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/androidTest/kotlin/com/trackermaster/feature/expense/MoneyNativeExportTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/debug/kotlin/com/trackermaster/feature/expense/InvestmentPreviews.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentActivity.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentGateway.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentScreen.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentState.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentViewModel.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyReportExporter.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/res/values-es/money_investments.xml",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/res/values-zh/money_investments.xml",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/main/res/values/money_investments.xml",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/FakeInvestmentGateway.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyInvestmentUiTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyInvestmentViewModelTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyReportExportTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyReportViewModelTest.kt",
+    "change": "added"
+  }
+]

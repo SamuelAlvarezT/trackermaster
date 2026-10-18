@@ -26,8 +26,6 @@
     <string name="reminder_body">Hora de completar tu hábito</string>
     <string name="mark_done">Hecho</string>
     <string name="snooze">Posponer</string>
-    <string name="focus_timer_running">Sesión de enfoque activa</string>
-    <string name="focus_timer_subtitle">Mantén el enfoque</string>
     <string name="widget_habits">Progreso de Hábitos</string>
     <string name="widget_streaks">Resumen de Rachas</string>
     <string name="widget_mood">Registro de Ánimo</string>

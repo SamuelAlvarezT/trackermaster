@@ -52,7 +52,7 @@ class MoneyPlanningViewModel @Inject constructor(private val gateway: MoneyPlann
                         val space=f.space ?: data.ledger.snapshot.pockets.find { it.pocket.id==f.pocket }?.pocket?.spaceId
                             ?: data.ledger.snapshot.accounts.find { it.account.id==f.account }?.account?.spaceId
                         if(amount==null || date==null) emptyList() else data.ledger.movements.filter {
-                        !it.principal && it.transferId==null && it.accountId==f.account && it.pocketId==f.pocket && it.categoryId==f.category &&
+                        !it.principal && it.investmentId==null && it.transferId==null && it.accountId==f.account && it.pocketId==f.pocket && it.categoryId==f.category &&
                         it.spaceId==space && it.direction==f.direction && it.amount==amount &&
                         occurrences.none { old -> old.movementId==it.id } &&
                         kotlin.math.abs(it.date.toEpochDay()-date.toEpochDay())<=7

@@ -16,6 +16,7 @@ data class HabitsUiState(
     val activeHabits: List<Pair<Habit, List<HabitLog>>> = emptyList(),
     val archivedHabits: List<Pair<Habit, List<HabitLog>>> = emptyList(),
     val selectedTab: Int = 0,
+    val today: LocalDate = LocalDate.now(),
     val isReorderMode: Boolean = false
 )
 
@@ -28,19 +29,13 @@ class HabitsViewModel @Inject constructor(private val repo: HabitRepository) : V
     private val _selectedTab = MutableStateFlow(0)
     private val _isReorderMode = MutableStateFlow(false)
 
-    val uiState: StateFlow<HabitsUiState> = combine(
-        repo.observeActiveHabitsWithLogs(LocalDate.now().minusDays(6)),
-        repo.observeArchivedHabitsWithLogs(LocalDate.now().minusDays(6)),
-        _selectedTab,
-        _isReorderMode
-    ) { active, archived, tab, reorderMode ->
-        HabitsUiState(
-            activeHabits = active,
-            archivedHabits = archived,
-            selectedTab = tab,
-            isReorderMode = reorderMode
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitsUiState())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<HabitsUiState> = repo.observeDay().flatMapLatest { today ->
+        combine(repo.observeActiveHabitsWithLogs(today.minusDays(6)),
+            repo.observeArchivedHabitsWithLogs(today.minusDays(6)),_selectedTab,_isReorderMode) { active,archived,tab,reorder ->
+            HabitsUiState(activeHabits=active,archivedHabits=archived,selectedTab=tab,isReorderMode=reorder,today=today)
+        }
+    }.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),HabitsUiState())
 
     fun selectTab(tab: Int) {
         _selectedTab.value = tab

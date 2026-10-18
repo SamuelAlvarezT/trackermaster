@@ -1,0 +1,958 @@
+{
+  "preservation_checks": 236,
+  "unchanged_independent_sources": 209,
+  "shared_file_preservation": {
+    "core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt": true,
+    "core/database/src/main/kotlin/com/trackermaster/core/database/entity/Entities.kt": true,
+    "core/database/src/main/kotlin/com/trackermaster/core/database/TrackermasterDatabase.kt": true,
+    "gradle/libs.versions.toml": true
+  },
+  "protected_changes_preserved": true,
+  "source_snapshot_matches": true,
+  "validated_source_files": 264,
+  "translations": 66,
+  "tests": {
+    "core/domain": [
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyCommitmentRulesTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyInvestmentRulesTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyLedgerTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyPlanningRulesTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyReportRulesTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.MoneyTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.domain.money.ReceiptParserTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "core/database": [
+      {
+        "name": "com.trackermaster.core.database.AssistantMigrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.CloudSyncMigrationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.CommitmentMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.InvestmentMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.MoneyMigrationSixTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.MoneyMigrationTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.PlanningMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.database.ReceiptMigrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "core/data": [
+      {
+        "name": "com.trackermaster.core.data.money.MoneyCommitmentRepositoryTest",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyEntryFlowsTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyInvestmentRepositoryTest",
+        "tests": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPlanningPermissionTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPlanningRepositoryTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyPreferencesTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyReceiptRepositoryTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.MoneyRepositoryTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.money.ReceiptFilesTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.sync.AssistantCommandTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.core.data.sync.CloudSyncStoreTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "core/ui": [
+      {
+        "name": "com.trackermaster.core.ui.theme.AccentContrastTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "feature/expense": [
+      {
+        "name": "com.trackermaster.feature.expense.MoneyCommitmentUiTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyCommitmentViewModelTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyInvestmentUiTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyInvestmentViewModelTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPlanningUiTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPlanningViewModelTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyPresentationTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyReportExportTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyReportViewModelTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyUiTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.MoneyViewModelTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptIntentTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptUiTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.expense.ReceiptViewModelTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "app": [
+      {
+        "name": "com.trackermaster.core.domain.HabitScheduleLogicTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.trackermaster.feature.habits.HabitsViewModelTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "total_tests": 323,
+  "failed_tests": 0,
+  "lint": {
+    "core/data": {
+      "errors": 0,
+      "warnings": 13,
+      "issue_ids": [
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "GradleDependency",
+        "NewerVersionAvailable",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead",
+        "UseTomlInstead"
+      ]
+    },
+    "feature/expense": {
+      "errors": 0,
+      "warnings": 1,
+      "issue_ids": [
+        "GradleDependency"
+      ]
+    }
+  },
+  "compiler_warnings": [
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:292:55 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:295:57 'val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:413:38 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.",
+    "w: file:///C:/Users/usu/Desktop/habit%20tracker%20app/.money-phase6-validation/app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenActivity.kt:437:38 'val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook."
+  ],
+  "schema_version": 12,
+  "changed_files": [
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyCommitmentRepository.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyMappings.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyPlanningRepository.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyRepository.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/TrackermasterDatabase.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/Entities.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyLedger.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyModels.kt",
+      "change": "modified"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyPlanning.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/build.gradle.kts",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/AndroidManifest.xml",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/ExpenseScreens.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyCommitmentViewModel.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyComponents.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyGateway.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyHistory.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyOverview.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPanels.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPlanningViewModel.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyPresentation.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyReports.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyUiState.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyViewModel.kt",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/main/res/xml/money_receipt_paths.xml",
+      "change": "modified"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyPresentationTest.kt",
+      "change": "modified"
+    },
+    {
+      "path": "gradle/libs.versions.toml",
+      "change": "modified"
+    },
+    {
+      "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyInvestmentRepository.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/data/src/test/kotlin/com/trackermaster/core/data/money/MoneyInvestmentRepositoryTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/schemas/com.trackermaster.core.database.TrackermasterDatabase/12.json",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/InvestmentMigration.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/dao/MoneyInvestmentDao.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/MoneyInvestmentEntities.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/database/src/test/kotlin/com/trackermaster/core/database/InvestmentMigrationTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyInvestments.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyReports.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/money/MoneyInvestmentRulesTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/money/MoneyReportRulesTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/androidTest/AndroidManifest.xml",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/androidTest/kotlin/com/trackermaster/feature/expense/MoneyNativeExportTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/debug/kotlin/com/trackermaster/feature/expense/InvestmentPreviews.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentActivity.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentGateway.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentScreen.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentState.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyInvestmentViewModel.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyReportExporter.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/res/values-es/money_investments.xml",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/res/values-zh/money_investments.xml",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/main/res/values/money_investments.xml",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/FakeInvestmentGateway.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyInvestmentUiTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyInvestmentViewModelTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyReportExportTest.kt",
+      "change": "added"
+    },
+    {
+      "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyReportViewModelTest.kt",
+      "change": "added"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "docs/money/native/investments/editor-dividend-font150-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "80bf1ee9dcf155f1ba4dc0102b613314ef1ffa0ec5ca1564069df51c5635a4f3"
+    },
+    {
+      "path": "docs/money/native/investments/editor-dividend-font150-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "f9d2840441f92357d894d0d4263dca5bddcd691f654aedc2d3ea512567d41215"
+    },
+    {
+      "path": "docs/money/native/investments/editor-dividend-font150-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "ea9841c6f5011b4c6dc09a2ba4344d1827a5af07f49247c0d366c28e458e33cd"
+    },
+    {
+      "path": "docs/money/native/investments/editor-valuation-font150-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "8c793af3efd121c7d6207dd248f7ec6efbee9ca20a17fbb2376b3c98d2b6c014"
+    },
+    {
+      "path": "docs/money/native/investments/editor-valuation-font150-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "36c46fa34764fa7b17bed987b25a284d5e4c8beba384cc08a26ea90586772cf6"
+    },
+    {
+      "path": "docs/money/native/investments/editor-valuation-font150-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "816031fb469a76d668816c48f59a757a51f0747e4017951a9bd5659001cab632"
+    },
+    {
+      "path": "docs/money/native/investments/investment-card-font150-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "3748d69fe8e47d465e7527c519f38365ad55d1f476b9e5b310b7ed9c7ff3b106"
+    },
+    {
+      "path": "docs/money/native/investments/investment-card-font150-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "79319b7f8d0185faad0b87ffbee7ebd48f69b48e139b7c3217863faf3fba65db"
+    },
+    {
+      "path": "docs/money/native/investments/investment-card-font150-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "12315436e23c560079ae2a204b3039cfe4ef63a2270d601aa9f88a9ec86fac4b"
+    },
+    {
+      "path": "docs/money/native/investments/investment-editor.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "5546fdc71a4e20f888b37b9944c9b82221649a51143254488829fe472f719015"
+    },
+    {
+      "path": "docs/money/native/investments/investments-dark-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "25af245f170af37ff0a7396c22f04be2eb8e1065fe90d1022d49b090a4101041"
+    },
+    {
+      "path": "docs/money/native/investments/investments-dark-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "9df972a70b2b79c240c530485f9b75bc118c91d34fceab977f7284d0d7885f2e"
+    },
+    {
+      "path": "docs/money/native/investments/investments-dark-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "cc7aa55cc3020c193daa3f173ed6b45a40b204ae34bb2c1604f55e68d4692fad"
+    },
+    {
+      "path": "docs/money/native/investments/investments-font150-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "a92ac013597ac6e2d18e4dd9906e046d3d1cf8afefcbd0c6a88caca7ad2c3337"
+    },
+    {
+      "path": "docs/money/native/investments/investments-font150-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "5a296617fb35f38488536885609a49a2ef63bcd418de85c13092e5dd25b19411"
+    },
+    {
+      "path": "docs/money/native/investments/investments-font150-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "9f24d79dcc79ac6ed3589b0398bc0eab218eea613c8941821ba6b9f4cd7c2528"
+    },
+    {
+      "path": "docs/money/native/investments/investments-light-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "3c3d20f939dd05d7de3ceddd7e22e1377b08c013798f59b91006c5ef2b86ac04"
+    },
+    {
+      "path": "docs/money/native/investments/investments-light-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "210f650f66ba76252296c35035ab6687dc44dc420dd8d5807252af50e36a496d"
+    },
+    {
+      "path": "docs/money/native/investments/investments-light-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "874138954c569c91881e3cf17588c1348a6aebdd6e381bb5b6caf61015724e4e"
+    },
+    {
+      "path": "docs/money/native/investments/investments-oled-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "0189ad92916a0868e08ebd850341f02aee9076cd72f7b9e33dbafee4c61795bf"
+    },
+    {
+      "path": "docs/money/native/investments/investments-oled-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "5baa500f7420a8d0c1c3e4174ea8ef6847a010eba36028efd0d527e3d30ef5c5"
+    },
+    {
+      "path": "docs/money/native/investments/investments-oled-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "6f03d32717f5146600ab3a988f3b7916b9f20626fcebe4552c97df5b4f7d743c"
+    },
+    {
+      "path": "docs/money/native/investments/investments-private.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "260f29fc53371278e264153698545b4290a3b84603520abc82049fcd4af78df9"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-001.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "82516cfd748244963e37d23fa1673b5ed1b038725f81f3c36d38eabeb957a8b0"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-002.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "1b2474749b5326489437ba72c894c5f9032b78751b2d54f63a2e6ac4d93a495c"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-003.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "491336f5d0002cd2b2173027e166e37bc6a2a24a08edea670d24a6ce61a5f134"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-004.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "a3be8a3d99ce0c32d5ab9c4437de308bfee4c4e9dae7f4ab3aad867621e00f56"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-005.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "84f88cdec397a7f3bf494f49b7a149802bc7b1be52daa4bbfd141adb4a79b92f"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-006.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "bb575317253d46d515b362de88f9789d66661fba54b9272faef93772ceedee76"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-007.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "d0bad2af7461f8c60e173023d70479d050202fe617eebc8b46a2434467aa0134"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-008.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "85011261177c2601dd580fd008eb1f397cead94f6f5ecf983e0038b252d8cde0"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-en-009.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "896f356210de1ac75691a61594dc0e7a0e1017d52ccef2000fdaab7d4e8e4bc4"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-001.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "99396501881d568772a625d0cf46d88716eec664b3d7a3331ddbebe2581260e1"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-002.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "8c0abcda2071c0ca442619324a4ef4567493ed98d69c96fc4db230437a34e1a7"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-003.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "03809f38274d88d9dcd7bd256187a68fd05cb9b193e8ccdbdcf280f36744c548"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-004.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "706d33a4dc14cddd8637888168630fb540bd9e5d3b66dd6997231a4806198559"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-005.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "437c76a9ce7a98a6ba83f7ed2406940453c5e9a6c5e054c9d6993d9745bc47d6"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-006.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "3e81dde756ce5ffe12b4c2da2fa035b139b781856506bf5f03d17e212838a9f4"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-007.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "2fe883acec426fad60b1b1f06f26ca997e7f95564c7a7b72c012df7680fe0eed"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-008.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "6b19a2f7692b677df0e44d5b191120edc4bea9e97eebb901a1335b0f442a2fd4"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-es-009.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "f55eea7106dff3330c7f3d1558b29320a63a70ea9473899d81879efcd0c35a85"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-001.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "ccb411d9ddcb8b9a237ef1395fd18947ae4e6c37893635012646494908721ed3"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-002.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "3b483de38b270a9314be382de5f720704dbaced2c625780d92129cca43196abb"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-003.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "ecd2aecfc4d865cd7f82e53c040022a68bee1711f154adb6dd21f3ae937de076"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-004.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "bdc987f635f007d3fa83c896d5dd1d019b95a194af18bdd36e23b395a637756d"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-005.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "bc978b01c3a2a3eb936333105717fb17eaa221b48f8d0eed15ee0402c8cfacdd"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-006.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "a4e7bee61fbec86954557ee93d56a7708899297271cd5896be12229385d02a11"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-007.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "727ab4a9b578c20695a2860116ed852af87d0bc855e3086e156ff7ae9b56148a"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-008.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "a3e80ed4268a5e9a0da79bdb81d69cbdfa5993ef14053cdbd4d3385df88848c6"
+    },
+    {
+      "path": "docs/money/native/investments/report-layout-zh-009.png",
+      "width": 595,
+      "height": 842,
+      "sha256": "76a67b38a3ddc27ca974d3db0bc6d988ddd94b09a642eb220afe013a47f8f4ba"
+    },
+    {
+      "path": "docs/money/native/investments/reports-en.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "a2a5635d291837f7c906b5111bedd0d6c18c05d3ce9849c6d0ccc022290638a9"
+    },
+    {
+      "path": "docs/money/native/investments/reports-es.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "e1781206a3202987d6106a25fcb5125e6d23bc38c4fac82182c5a83a004a2992"
+    },
+    {
+      "path": "docs/money/native/investments/reports-zh.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "8333e69450b0c183a851b5aa11162c9acee2849a8f751f57ea66bbe9563a7938"
+    }
+  ],
+  "apk": {
+    "path": "docs/money/artifacts/trackermaster-money-phase7-debug.apk",
+    "bytes": 71087522,
+    "sha256": "27370a7e2eeb617c65bfc99f2c4d0934c53b5361ec427c3d9e48bd01f84f2012",
+    "verified_v2": true,
+    "same_certificate": true
+  },
+  "native_android": {
+    "sdk": 34,
+    "package": "com.trackermaster.money.validation.phase7",
+    "synthetic_data": true,
+    "production_database_accessed": false,
+    "pdf": [
+      {
+        "language": "en",
+        "pages": 9,
+        "provider_read": true
+      },
+      {
+        "language": "es",
+        "pages": 9,
+        "provider_read": true
+      },
+      {
+        "language": "zh",
+        "pages": 9,
+        "provider_read": true
+      }
+    ],
+    "csv_provider_read": true,
+    "receipt_provider_read": true,
+    "outside_cache_rejected": true,
+    "test_apk_sha256": "3678acbff0c9020e5d352e178c7cf8abbf122bad4af2dc81c8f99afe00cbf1f0",
+    "native_tests": 1,
+    "failed_tests": 0,
+    "test_package_removed": true,
+    "production_package_unchanged": true
+  },
+  "manual_pending": [
+    "Share sheet with a receiving application",
+    "Real Nequi receipts",
+    "Biometrics and TalkBack",
+    "Update retaining real data",
+    "Entry time below ten seconds"
+  ],
+  "published_commits": [
+    "970573b",
+    "5636684"
+  ],
+  "phase7_committed": false
+}

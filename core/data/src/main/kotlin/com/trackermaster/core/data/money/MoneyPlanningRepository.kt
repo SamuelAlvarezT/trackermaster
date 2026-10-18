@@ -75,7 +75,7 @@ class MoneyPlanningRepository @Inject constructor(private val db: TrackermasterD
     }
     /** Stable occurrence key, ledger entry and schedule advancement are committed atomically. */
     suspend fun confirm(id: String, due: LocalDate, version: Long, movement: MoneyMovement, linkedId: Long? = null): Long = db.withTransaction {
-        require(movement.id == 0L && movement.transferId == null && !movement.principal && movement.amount.minorUnits > 0)
+        require(movement.id == 0L && movement.transferId == null && !movement.principal && movement.investmentId == null && movement.amount.minorUnits > 0)
         val fingerprint = listOf(movement.accountId, movement.pocketId, movement.categoryId, movement.amount.minorUnits,
             movement.amount.currencyCode, movement.direction, movement.date, movement.note, linkedId).joinToString("\u001f")
         dao.occurrence(id, due.toEpochDay())?.let { old ->
@@ -94,7 +94,7 @@ class MoneyPlanningRepository @Inject constructor(private val db: TrackermasterD
         val ledgerId = if (linkedId != null) {
             if (dao.linkedMovement(linkedId) != null) throw PlanningException(PlanningFailure.ALREADY_LINKED)
             val row = requireNotNull(db.moneyDao().movement(linkedId))
-            require(!row.principal && row.transferId == null && row.accountId == movement.accountId && row.pocketId == movement.pocketId &&
+            require(!row.principal && row.investmentId == null && row.transferId == null && row.accountId == movement.accountId && row.pocketId == movement.pocketId &&
                 row.categoryId == movement.categoryId && row.type == movement.direction.name && row.amountMinor == movement.amount.minorUnits &&
                 row.dateEpochDay == movement.date.toEpochDay())
             linkedId

@@ -32,7 +32,7 @@ fun TrackermasterTheme(
     )
 }
 
-internal fun trackermasterColors(themeMode: ThemeMode, accentIndex: Int): ColorScheme {
+fun trackermasterColors(themeMode: ThemeMode, accentIndex: Int): ColorScheme {
     val base = if (themeMode == ThemeMode.LIGHT) lightColorScheme() else darkColorScheme(
         background = if (themeMode == ThemeMode.OLED) Color.Black else Color(0xFF121212),
         surface = if (themeMode == ThemeMode.OLED) Color.Black else Color(0xFF1E1E1E),

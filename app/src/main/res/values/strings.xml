@@ -26,8 +26,6 @@
     <string name="reminder_body">Time to complete your habit</string>
     <string name="mark_done">Mark Done</string>
     <string name="snooze">Snooze</string>
-    <string name="focus_timer_running">Focus session active</string>
-    <string name="focus_timer_subtitle">Stay focused — timer running</string>
     <string name="widget_habits">Habit Progress</string>
     <string name="widget_streaks">Streak Overview</string>
     <string name="widget_mood">Mood Log</string>

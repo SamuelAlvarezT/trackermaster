@@ -1,0 +1,350 @@
+[
+  {
+    "path": "app/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/AndroidManifest.xml",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/MainActivity.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/TrackermasterApp.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/focus/FocusTimerService.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/lockscreen/BootReceiver.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/lockscreen/DefumblrLockScreenService.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/security/BiometricGate.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/ui/DashboardScreen.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/res/values-es/strings.xml",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/res/values-zh/strings.xml",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/res/values/strings.xml",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/res/xml/widget_balance.xml",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/test/java/com/trackermaster/feature/habits/HabitsViewModelTest.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/di/DataModule.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/mapper/Mappers.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/money/MoneyPreferencesRepository.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/repository/Repositories.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/settings/SettingsRepository.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/data/src/test/kotlin/com/trackermaster/core/data/sync/AssistantCommandTest.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/TrackermasterDatabase.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/dao/Daos.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/Entities.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/HabitScheduleLogic.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/model/Models.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/ui/src/main/kotlin/com/trackermaster/core/ui/theme/Theme.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/widgets/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "core/widgets/src/main/kotlin/com/trackermaster/core/widgets/TrackermasterWidgets.kt",
+    "change": "modified"
+  },
+  {
+    "path": "core/widgets/src/main/kotlin/com/trackermaster/core/widgets/WidgetEntryPoint.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/backup/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "feature/backup/src/main/kotlin/com/trackermaster/feature/backup/BackupManager.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/ExpenseScreens.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/main/kotlin/com/trackermaster/feature/expense/MoneyViewModel.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/expense/src/test/kotlin/com/trackermaster/feature/expense/MoneyViewModelTest.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/focus/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "feature/focus/src/main/kotlin/com/trackermaster/feature/focus/FocusScreens.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/habits/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "feature/habits/src/main/kotlin/com/trackermaster/feature/habits/HabitsScreens.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/habits/src/main/kotlin/com/trackermaster/feature/habits/HabitsViewModel.kt",
+    "change": "modified"
+  },
+  {
+    "path": "feature/settings/build.gradle.kts",
+    "change": "modified"
+  },
+  {
+    "path": "feature/settings/src/main/kotlin/com/trackermaster/feature/settings/SettingsScreens.kt",
+    "change": "modified"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/ui/PendingHabitsCard.kt",
+    "change": "added"
+  },
+  {
+    "path": "app/src/main/java/com/trackermaster/app/unlock/UnlockMonitorService.kt",
+    "change": "added"
+  },
+  {
+    "path": "app/src/test/java/com/trackermaster/app/ui/Phase8UiTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/backup/BackupAttachments.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/backup/BackupCoordinator.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/backup/BackupFiles.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/backup/BackupValidation.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/backup/RestoreBootstrap.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/backup/SqliteSnapshot.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/progress/FocusProgressRepository.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/progress/FocusTimerController.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/progress/ProgressClock.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/progress/ProgressMappings.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/unlock/UnlockCapabilities.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/main/kotlin/com/trackermaster/core/data/unlock/UnlockLaunchStore.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/test/kotlin/com/trackermaster/core/data/backup/BackupFilesTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/test/kotlin/com/trackermaster/core/data/backup/BackupRestoreTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/test/kotlin/com/trackermaster/core/data/backup/BackupValidationTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/test/kotlin/com/trackermaster/core/data/progress/FocusProgressRepositoryTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/data/src/test/kotlin/com/trackermaster/core/data/unlock/UnlockLaunchStoreTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/schemas/com.trackermaster.core.database.TrackermasterDatabase/13.json",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/ProgressHistorySchema.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/ProgressMigration.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/dao/ProgressDao.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/main/kotlin/com/trackermaster/core/database/entity/ProgressEntities.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/database/src/test/kotlin/com/trackermaster/core/database/ProgressMigrationTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/focus/FocusTiming.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/habits/HabitProgress.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/money/MoneyWidgetProjection.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/main/kotlin/com/trackermaster/core/domain/unlock/UnlockLaunchRules.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/FocusTimingRulesTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/HabitProgressRulesTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/MoneyWidgetProjectionTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/domain/src/test/kotlin/com/trackermaster/core/domain/UnlockLaunchRulesTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/ui/src/main/kotlin/com/trackermaster/core/ui/LocalizedAppContent.kt",
+    "change": "added"
+  },
+  {
+    "path": "core/ui/src/main/res/values-es/phase8.xml",
+    "change": "added"
+  },
+  {
+    "path": "core/ui/src/main/res/values-zh/phase8.xml",
+    "change": "added"
+  },
+  {
+    "path": "core/ui/src/main/res/values/phase8.xml",
+    "change": "added"
+  },
+  {
+    "path": "core/widgets/src/main/kotlin/com/trackermaster/core/widgets/MoneyWidget.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/expense/src/androidTest/kotlin/com/trackermaster/feature/expense/Phase8NativeDataTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/focus/src/main/kotlin/com/trackermaster/feature/focus/FocusViewModel.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/habits/src/main/kotlin/com/trackermaster/feature/habits/HabitWeekGrid.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/habits/src/test/kotlin/com/trackermaster/feature/habits/HabitCalendarAlignmentTest.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/settings/src/main/kotlin/com/trackermaster/feature/settings/MoneyWidgetSettings.kt",
+    "change": "added"
+  },
+  {
+    "path": "feature/settings/src/main/kotlin/com/trackermaster/feature/settings/UnlockSettings.kt",
+    "change": "added"
+  }
+]

@@ -110,18 +110,23 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
     }
 
     suspend fun record(movement: MoneyMovement): Long {
-        require(!movement.principal)
+        require(!movement.principal && movement.investmentId == null && !movement.investmentCapital)
         return recordInternal(movement)
     }
 
     internal suspend fun recordPrincipal(movement: MoneyMovement): Long {
-        require(movement.principal && movement.id == 0L && movement.categoryId == null)
+        require(movement.principal && movement.id == 0L && movement.categoryId == null && movement.investmentId == null && !movement.investmentCapital)
+        return recordInternal(movement)
+    }
+
+    internal suspend fun recordInvestment(movement: MoneyMovement): Long {
+        require(movement.investmentId != null && !movement.principal && movement.id == 0L)
         return recordInternal(movement)
     }
 
     private suspend fun recordInternal(movement: MoneyMovement): Long = database.withTransaction {
         require(movement.transferId == null) { "Transfers must be saved as a pair" }
-        if (movement.id != 0L && dao.movement(movement.id)?.principal == true)
+        if (movement.id != 0L && dao.movement(movement.id)?.let { it.principal || it.investmentId != null } == true)
             throw MoneyWriteException(MoneyWriteFailure.REQUEST_CONFLICT)
         validateMovement(movement)
         movement.entryRequestId?.let { request ->
@@ -211,7 +216,7 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
 
     suspend fun deleteEntry(id: Long): MoneyUndoToken = database.withTransaction {
         val movement = dao.movement(id) ?: throw MoneyWriteException(MoneyWriteFailure.STALE_ENTRY)
-        if (movement.principal || database.moneyCommitmentDao().linked(id) != null)
+        if (movement.principal || movement.investmentId != null || database.moneyCommitmentDao().linked(id) != null)
             throw MoneyWriteException(MoneyWriteFailure.REQUEST_CONFLICT)
         val transfer = movement.transferId?.let { requireNotNull(dao.transfer(it)) }
         val rows = if (transfer == null) listOf(movement) else dao.transferMovements(transfer.id)
@@ -254,7 +259,7 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
         require(!account.archived)
         require(account.currencyCode.equals(movement.amount.currencyCode, ignoreCase = true))
         require(movement.spaceId == fundingSpace(account, movement.pocketId))
-        if (!movement.principal) {
+        if (!movement.principal && !movement.investmentCapital) {
             val category = requireNotNull(movement.categoryId?.let { dao.category(it) })
             require(category.isIncome == (movement.direction == MoneyDirection.INCOME))
         }
@@ -272,7 +277,8 @@ class MoneyRepository @Inject constructor(private val database: TrackermasterDat
         id = id, accountId = accountId, amount = amount.decimal.toDouble(), type = direction.name,
         categoryId = categoryId ?: 0, dateEpoch = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
         note = note, imageUri = attachmentPath, amountMinor = amount.minorUnits, dateEpochDay = date.toEpochDay(),
-        spaceId = spaceId, pocketId = pocketId, transferId = transferId, entryRequestId = entryRequestId, principal = principal)
+        spaceId = spaceId, pocketId = pocketId, transferId = transferId, entryRequestId = entryRequestId, principal = principal,
+        investmentId = investmentId, investmentCapital = investmentCapital)
 }
 
 interface MoneyUndoToken

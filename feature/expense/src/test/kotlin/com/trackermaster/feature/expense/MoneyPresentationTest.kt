@@ -68,13 +68,14 @@ class MoneyPresentationTest {
         assertEquals(MoneyUiError.ACCOUNT, MoneyPresentation.editorError(transfer, data.ledger, data.categories))
         assertNull(MoneyPresentation.editorError(transfer.copy(targetPocketId = 1), data.ledger, data.categories))
     }
-    @Test fun typingAndFilteringReuseReportProjectionButScopeChangeRefreshesIt() {
+    @Test fun typingReusesReportsWhileFiltersAndScopeRefreshTheirTotals() {
         val presenter = MoneyPresenter()
         val initial = presenter.build(data, controls())
         val typed = presenter.build(data, controls().copy(editor = MoneyEditorUiState(amount = "10", accountId = 1, categoryId = 1)))
         assertSame(initial.reports, typed.reports)
         val filtered = presenter.build(data, controls().copy(filters = MoneyFilters("none")))
-        assertSame(initial.reports, filtered.reports)
+        assertNotSame(initial.reports, filtered.reports)
+        assertEquals(0L,filtered.reports.totals.expenses.minorUnits)
         assertTrue(filtered.history.groups.isEmpty())
         val usd = presenter.build(data, controls().copy(currency = "USD"))
         assertNotSame(initial.reports, usd.reports)

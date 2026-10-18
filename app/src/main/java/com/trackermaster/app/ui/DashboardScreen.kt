@@ -54,7 +54,11 @@ class DashboardViewModel @Inject constructor(
     taskRepo: TaskRepository,
     settingsRepo: SettingsRepository,
     moneyPreferencesRepo: MoneyPreferencesRepository,
+    habitRepository: com.trackermaster.core.data.repository.HabitRepository,
 ) : ViewModel() {
+    val pendingHabits=habitRepository.observePendingHabits().map { PendingHabitsUiState(loading=false,habits=it) }
+        .catch { emit(PendingHabitsUiState(loading=false,error=true)) }
+        .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),PendingHabitsUiState())
     val summary = repo.observeSummary().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardSummary(0, 0, null, 0.0, 0, 0))
     val pendingTasksCount = taskRepo.observeTasks().map { list -> list.count { !it.completed } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val moneyPreferences = moneyPreferencesRepo.preferences.catch { emit(MoneyPreferences(hideAmounts = true)) }
@@ -70,6 +74,7 @@ fun DashboardScreen(
 ) {
     val summary by vm.summary.collectAsStateWithLifecycle()
     val pendingTasks by vm.pendingTasksCount.collectAsStateWithLifecycle()
+    val pendingHabits by vm.pendingHabits.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val moneyPreferences by vm.moneyPreferences.collectAsStateWithLifecycle()
     val moneyLocale = remember(settings.localeTag) { java.util.Locale.forLanguageTag(settings.localeTag) }
@@ -99,6 +104,7 @@ fun DashboardScreen(
             ModernDashboardContent(
                 summary = summary,
                 pendingTasks = pendingTasks,
+                pendingHabits = pendingHabits,
                 moneyBalance = moneyBalance,
                 onNavigate = onNavigate,
                 modifier = Modifier.padding(pad),
@@ -107,6 +113,8 @@ fun DashboardScreen(
         }
         LazyColumn(Modifier.padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge) }
+            item { Text(stringResource(com.trackermaster.core.ui.R.string.p8_today),style=MaterialTheme.typography.titleMedium) }
+            item { PendingHabitsCard(pendingHabits,{ id -> onNavigate("${Routes.Habits.route}?habitId=$id") }) }
             item {
                 TrackerCard(
                     title = stringResource(R.string.tracker_tasks),
@@ -160,6 +168,7 @@ fun DashboardScreen(
 private fun ModernDashboardContent(
     summary: DashboardSummary,
     pendingTasks: Int,
+    pendingHabits: PendingHabitsUiState,
     moneyBalance: String,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -209,7 +218,8 @@ private fun ModernDashboardContent(
                 CompactStatCard("Journal", stringResource(R.string.journal_streak, summary.journalStreak), Modifier.weight(1f))
             }
         }
-        item { Text("Today", style = MaterialTheme.typography.titleMedium) }
+        item { Text(stringResource(com.trackermaster.core.ui.R.string.p8_today), style = MaterialTheme.typography.titleMedium) }
+        item { PendingHabitsCard(pendingHabits,{ id -> onNavigate("${Routes.Habits.route}?habitId=$id") }) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 ModernNavCard(Icons.Default.TaskAlt, stringResource(R.string.tracker_tasks), "$pendingTasks pending tasks", MaterialTheme.colorScheme.primary) {

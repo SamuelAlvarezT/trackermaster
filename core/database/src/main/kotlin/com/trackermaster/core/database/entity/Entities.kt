@@ -22,6 +22,8 @@ data class HabitEntity(
     val archived: Boolean = false,
     val description: String = "",
     val sortOrder: Int = 0,
+    @ColumnInfo(defaultValue = "0") val createdEpochDay: Long = 0,
+    @ColumnInfo(defaultValue = "0") val creationDateKnown: Boolean = false,
 )
 
 @Entity(tableName = "habit_logs", indices = [Index("habitId"), Index("dateEpoch")])
@@ -35,6 +37,9 @@ data class HabitLogEntity(
     val completed: Boolean = false,
     val targetDurationMsAtLog: Long? = null,
     val completionSource: String? = null,
+    val progressTypeAtLog: String? = null,
+    val targetCountAtLog: Int? = null,
+    val checklistSizeAtLog: Int? = null,
 )
 
 @Entity(tableName = "mood_entries", indices = [Index("timestampEpoch")])
@@ -96,6 +101,8 @@ data class TransactionEntity(
     val transferId: String? = null,
     val entryRequestId: String? = null,
     @ColumnInfo(defaultValue = "0") val principal: Boolean = false,
+    val investmentId: String? = null,
+    @ColumnInfo(defaultValue = "0") val investmentCapital: Boolean = false,
 )
 
 @Entity(tableName = "budgets")
@@ -129,6 +136,9 @@ data class FocusSessionEntity(
     val completedAtEpoch: Long? = null,
     val completed: Boolean = false,
     val startedAtEpoch: Long? = null,
+    val habitId: Long? = null,
+    val habitName: String? = null,
+    @ColumnInfo(defaultValue = "0") val actualDurationMs: Long = 0,
 )
 
 @Entity(tableName = "journal_entries", indices = [Index("createdAtEpoch")])

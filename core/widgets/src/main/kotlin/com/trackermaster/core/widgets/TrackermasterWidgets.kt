@@ -71,25 +71,6 @@ class MoodLogWidget : GlanceAppWidget() {
     }
 }
 
-class ExpenseBalanceWidget : GlanceAppWidget() {
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val entry = WidgetHiltEntryPoint.get(context)
-        val balances = entry.expenseRepository().balancesByCurrency().flowOn(Dispatchers.Default)
-        val initialBalances = balances.first()
-        val privacyFlow = entry.moneyPreferencesRepository().preferences.catch { emit(MoneyPreferences(hideAmounts = true)) }
-        val action = actionStartActivity(ComponentName(context.packageName, "com.trackermaster.app.MainActivity"))
-        provideContent {
-            val privacy by privacyFlow.collectAsState(MoneyPreferences(hideAmounts = true))
-            val moneyContext = moneyWidgetContext(entry, context)
-            val currentBalances by balances.collectAsState(initialBalances)
-            WidgetBox(moneyContext.getString(R.string.money_balance_title),
-                if (privacy.hideAmounts) moneyContext.getString(R.string.money_balance_hidden)
-                else currentBalances.formatBalances(moneyContext.resources.configuration.locales[0]), action,
-                textColor = ColorProvider(Color.White))
-        }
-    }
-}
-
 class FocusQuickStartWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val action = actionStartActivity(ComponentName(context.packageName, "com.trackermaster.app.MainActivity"))
@@ -129,7 +110,7 @@ class DashboardComboWidget : GlanceAppWidget() {
 
 @Composable
 private fun WidgetBox(title: String, subtitle: String, action: Action,
-    textColor: ColorProvider = ColorProvider(Color.Black)) {
+    textColor: ColorProvider = ColorProvider(Color.White)) {
     Column(
         modifier = GlanceModifier.fillMaxSize().background(ColorProvider(Color(0xFF1E1E1E))).padding(12.dp).clickable(action),
     ) {

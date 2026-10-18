@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-24",
+  "tests": {
+    "core/domain": 107,
+    "core/database": 24,
+    "core/data": 121,
+    "core/ui": 3,
+    "feature/expense": 114,
+    "feature/habits": 3,
+    "app": 13
+  },
+  "total_tests": 385,
+  "failures": 0,
+  "assemble_debug": "passed",
+  "isolated_publication_sources": 301,
+  "working_files_preserved": 398,
+  "excluded": [
+    "cloud synchronization runtime and credentials",
+    "independent tasks, habits, settings and legacy lock screen changes",
+    "APKs, caches and logs"
+  ],
+  "manual_pending": [
+    "physical unlock intervals/reboot/permissions",
+    "launcher widget and TalkBack",
+    "restore/update with real data"
+  ],
+  "phase7_original_local_commit": "c0b7fc9",
+  "publication": "phases 7 and 8 combined into one commit on origin/master without force push"
+}

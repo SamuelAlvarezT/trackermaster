@@ -10,7 +10,7 @@ enum class MoneyDestination { SUMMARY, MOVEMENTS, BUDGETS, REPORTS, ACCOUNTS }
 enum class MoneyLoadState { LOADING, CONTENT, ERROR }
 enum class MoneyPeriodKind { WEEK, MONTH, YEAR, RANGE }
 enum class MoneyEntryKind { EXPENSE, INCOME, TRANSFER }
-enum class MoneyUiError { LOAD, SAVE, AMOUNT, CATEGORY, ACCOUNT, DATE, FUNDS, CURRENCY, CONFLICT, NAME }
+enum class MoneyUiError { LOAD, SAVE, AMOUNT, CATEGORY, ACCOUNT, DATE, FUNDS, CURRENCY, CONFLICT, NAME, EXPORT }
 enum class MoneyNoticeKind { SAVED, DELETED, RESTORED, PREFERENCES_FAILED }
 data class MoneyNotice(val id: Long, val kind: MoneyNoticeKind)
 
@@ -53,7 +53,8 @@ data class MoneyMonthTotal(val day: LocalDate, val income: Money, val expense: M
     val net: Money get() = income - expense
 }
 data class MoneyReportsUiState(val categories: List<MoneyCategoryTotal> = emptyList(),
-    val months: List<MoneyMonthTotal> = emptyList(), val totals: MoneyPeriodTotals = MoneyPeriodTotals(Money(0, "COP"), Money(0, "COP")))
+    val months: List<MoneyMonthTotal> = emptyList(), val totals: MoneyPeriodTotals = MoneyPeriodTotals(Money(0, "COP"), Money(0, "COP")),
+    val document: MoneyReport? = null, val investmentValue: Money? = null, val cashAndInvestments: Money? = null)
 
 data class MoneyEditorUiState(
     val id: Long = 0,
@@ -95,6 +96,7 @@ data class MoneyControls(
     val spaceEditor: Boolean = false, val customName: String = "", val customError: MoneyUiError? = null,
     val saving: Boolean = false, val notice: MoneyNotice? = null, val error: MoneyUiError? = null,
     val privacyOverride: Boolean? = null,
+    val exporting: Boolean = false,
 )
 data class MoneyHomeUiState(
     val load: MoneyLoadState = MoneyLoadState.LOADING,
@@ -111,6 +113,9 @@ data class MoneyHomeUiState(
 )
 
 sealed interface MoneyEvent {
+    data class Export(val pdf: Boolean) : MoneyEvent
+    data object ExportFailed : MoneyEvent
+    data object Investments : MoneyEvent
     data class Commitments(val tab: String = "debts") : MoneyEvent
     data class Planning(val tab: String = "budgets", val budgetId: Long? = null) : MoneyEvent
     data object ImportReceipt : MoneyEvent
@@ -150,6 +155,8 @@ sealed interface MoneyEvent {
 }
 
 sealed interface MoneyEffect {
+    data class ShareReport(val filename: String, val pdf: Boolean) : MoneyEffect
+    data class Investments(val currency: String, val space: Long?) : MoneyEffect
     data class Commitments(val tab: String, val currency: String, val space: Long?) : MoneyEffect
     data class Planning(val tab: String, val budgetId: Long?, val currency: String, val space: Long?) : MoneyEffect
     data object ImportReceipt : MoneyEffect
