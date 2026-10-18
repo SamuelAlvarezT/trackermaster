@@ -1,6 +1,6 @@
 # Money: mejora en curso
 
-**El rediseño completo de Money todavía no está terminado.** Estado al 15 de octubre de 2026:
+**El rediseño completo de Money todavía no está terminado.** Estado al 18 de octubre de 2026:
 
 - Fase 1: auditoría, diseño y prototipo realizados.
 - Fase 2: base monetaria, espacios, cuentas, bolsillos y migraciones implementados.
@@ -17,6 +17,6 @@ Money conserva las migraciones 4→5→6→7→8 y añade 10→11. Los cambios i
 
 Antes de distribuir queda verificar en un teléfono comprobantes reales de Nequi, OCR/PDF, compartir y abrir adjuntos, biometría, TalkBack, teclado, notificaciones con Doze/reinicio, actualización con datos existentes y el objetivo de registrar en menos de diez segundos. No hay dispositivo ni emulador conectado; las pruebas de interfaz con Robolectric no sustituyen esas comprobaciones. El fallo previo de biometría en MainActivity continúa documentado en PHASE4.md.
 
-Las fases 5 y 6 permanecen como cambios locales después del commit y push anteriores de las fases 1–4 (c89f4fc). Esta fase no crea commit ni push. El APK, las cachés y los registros de ejecución siguen siendo archivos locales.
+Las fases 5 y 6 se publicaron en origin/master mediante el commit 970573b. La fase 7 se desarrolla localmente a continuación; la mejora completa sigue pendiente. El APK, las cachés y los registros de ejecución permanecen locales. Véase PUBLICATION.md para el alcance exacto del commit y la separación de cambios independientes.
 
 Detalles: [diseño y fases](DESIGN.md), [fase 2](PHASE2.md), [fase 3](PHASE3.md), [fase 4](PHASE4.md), [fase 5](PHASE5.md), [fase 6](PHASE6.md) y [resultados finales](phase6-test-results.json).
