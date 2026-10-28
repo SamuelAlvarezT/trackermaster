@@ -32,7 +32,10 @@ object DataModule {
             .addMigrations(com.trackermaster.core.database.CommitmentMigration.MIGRATION_10_11)
             .addMigrations(com.trackermaster.core.database.InvestmentMigration.MIGRATION_11_12)
             .addMigrations(com.trackermaster.core.database.ProgressMigration.MIGRATION_12_13)
+            .addMigrations(com.trackermaster.core.database.LifeMigration.MIGRATION_13_14)
             .addCallback(com.trackermaster.core.database.ProgressHistorySchema.callback)
+            .addCallback(com.trackermaster.core.database.CloudSyncSchema.callback)
+            .addCallback(object : RoomDatabaseRestoreCallback(context) {})
             .build()
 
     fun restoreMigrations(): Array<Migration> = arrayOf(MIGRATION_3_4,MoneyMigrations.MIGRATION_4_5,
@@ -41,7 +44,8 @@ object DataModule {
         com.trackermaster.core.database.AssistantMigration.MIGRATION_9_10,
         com.trackermaster.core.database.CommitmentMigration.MIGRATION_10_11,
         com.trackermaster.core.database.InvestmentMigration.MIGRATION_11_12,
-        com.trackermaster.core.database.ProgressMigration.MIGRATION_12_13)
+        com.trackermaster.core.database.ProgressMigration.MIGRATION_12_13,
+        com.trackermaster.core.database.LifeMigration.MIGRATION_13_14)
 
     @Provides fun provideHabitDao(db: TrackermasterDatabase): HabitDao = db.habitDao()
     @Provides fun provideHabitLogDao(db: TrackermasterDatabase): HabitLogDao = db.habitLogDao()
@@ -75,5 +79,21 @@ object DataModule {
                 )
             """.trimIndent())
         }
+    }
+}
+
+/** A restored snapshot gets a new cloud dataset, so absent rows do not survive on the web. */
+open class RoomDatabaseRestoreCallback(private val context: Context) : androidx.room.RoomDatabase.Callback() {
+    override fun onOpen(db: SupportSQLiteDatabase) {
+        val marker = java.io.File(context.noBackupFilesDir, "cloud-sync-restored")
+        if (!marker.exists()) return
+        db.beginTransaction()
+        try {
+            db.execSQL("UPDATE cloud_sync_state SET datasetId=?,lastCompletedAt=0 WHERE id=1", arrayOf(java.util.UUID.randomUUID().toString()))
+            db.execSQL("DELETE FROM cloud_sync_outbox")
+            com.trackermaster.core.database.CloudSyncSchema.enqueueSnapshot(db)
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+        marker.delete()
     }
 }

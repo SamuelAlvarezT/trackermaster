@@ -60,7 +60,7 @@ class BackupRestoreTest {
                 }
                 copied.execSQL("INSERT INTO snapshot_precision(amount) VALUES(2)")
                 copied.rawQuery("SELECT MAX(id) FROM snapshot_precision",null).use { it.moveToFirst();assertEquals(101L,it.getLong(0)) }
-                assertEquals(13,copied.version)
+                assertEquals(14,copied.version)
             }
         } finally { db.close();folder.deleteRecursively() }
     }
@@ -72,6 +72,12 @@ class BackupRestoreTest {
         val sql=db.openHelper.writableDatabase
         sql.execSQL("INSERT INTO accounts(id,name,type,currencyCode,initialBalance,initialBalanceMinor,spaceId,archived) VALUES(1,'Nequi','CHECKING','COP',100,10000,2,0)")
         sql.execSQL("INSERT INTO transactions(id,accountId,amount,type,categoryId,dateEpoch,note,imageUri,amountMinor,dateEpochDay,spaceId,principal,investmentCapital) VALUES(1,1,10,'EXPENSE',0,0,'Synthetic',?,1000,0,2,0,0)",arrayOf(receipt.path))
+        val journal=com.trackermaster.core.data.repository.JournalRepository(db.journalDao(),db,com.trackermaster.core.data.progress.ProgressClock(context))
+        val now=java.time.LocalDateTime.now()
+        val entry=com.trackermaster.core.domain.model.JournalEntry(title="Version image",richTextHtml="Before",createdAt=now,updatedAt=now,
+            attachments=listOf(com.trackermaster.core.domain.model.Attachment(path=receipt.path,mimeType="image/png")))
+        val entryId=journal.save(entry)
+        journal.save(entry.copy(id=entryId,richTextHtml="After",attachments=emptyList()))
         val coordinator=BackupCoordinator(context,db,settings,preferences)
         val archive=coordinator.export()
         sql.execSQL("UPDATE accounts SET name='Current data' WHERE id=1")
@@ -85,6 +91,12 @@ class BackupRestoreTest {
             SQLiteDatabase.openDatabase(context.getDatabasePath("trackermaster.db").path,null,SQLiteDatabase.OPEN_READONLY).use { restored ->
                 restored.rawQuery("SELECT name,initialBalanceMinor FROM accounts WHERE id=1",null).use { it.moveToFirst();assertEquals("Nequi",it.getString(0));assertEquals(10000L,it.getLong(1)) }
                 restored.rawQuery("SELECT imageUri,amountMinor FROM transactions WHERE id=1",null).use { it.moveToFirst();assertEquals(receipt.path,it.getString(0));assertEquals(1000L,it.getLong(1)) }
+                restored.rawQuery("SELECT payload FROM journal_versions ORDER BY id LIMIT 1",null).use {
+                    assertTrue(it.moveToFirst())
+                    val version=com.trackermaster.core.data.insights.LifeJson.journal(it.getString(0))
+                    assertEquals(receipt.path,version.attachments.first().path)
+                    assertEquals("Before",version.richTextHtml)
+                }
             }
             assertArrayEquals(byteArrayOf(1,2,3),receipt.readBytes())
             assertTrue(File(context.filesDir,"datastore/trackermaster_settings.preferences_pb").isFile)

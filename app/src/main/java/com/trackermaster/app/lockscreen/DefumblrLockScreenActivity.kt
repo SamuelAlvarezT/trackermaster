@@ -3,6 +3,9 @@ package com.trackermaster.app.lockscreen
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -10,10 +13,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -54,6 +60,13 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class DefumblrLockScreenActivity : ComponentActivity() {
 
+    private var pendingTab: String? = null
+    private val unlockReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            openPendingTabIfUnlocked()
+        }
+    }
+
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var taskRepository: TaskRepository
     @Inject lateinit var habitRepository: HabitRepository
@@ -63,6 +76,9 @@ class DefumblrLockScreenActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingTab = savedInstanceState?.getString("pending_tab")
+        ContextCompat.registerReceiver(this, unlockReceiver,
+            IntentFilter(Intent.ACTION_USER_PRESENT), ContextCompat.RECEIVER_NOT_EXPORTED)
         
         // Show when locked
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -105,27 +121,43 @@ class DefumblrLockScreenActivity : ComponentActivity() {
     }
 
     private fun launchAppTab(tab: String) {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            putExtra("tab", tab)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        
+        pendingTab = tab
         val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (!keyguardManager.isKeyguardLocked) {
+            openPendingTabIfUnlocked()
+        } else {
             keyguardManager.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
                 override fun onDismissSucceeded() {
-                    startActivity(intent)
-                    finish()
-                }
-                override fun onDismissCancelled() {
-                    startActivity(intent)
-                    finish()
+                    openPendingTabIfUnlocked()
                 }
             })
-        } else {
-            startActivity(intent)
-            finish()
         }
+    }
+
+    private fun openPendingTabIfUnlocked() {
+        val tab = pendingTab ?: return
+        if ((getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked) return
+        pendingTab = null
+        startActivity(Intent(this, MainActivity::class.java).apply {
+            putExtra("tab", tab)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        })
+        finish()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        openPendingTabIfUnlocked()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("pending_tab", pendingTab)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(unlockReceiver)
+        super.onDestroy()
     }
 }
 
@@ -140,6 +172,7 @@ fun LockScreenContent(
     onDismiss: () -> Unit,
     onBubbleClicked: (String) -> Unit
 ) {
+    var summaryTab by remember { mutableStateOf<String?>(null) }
     // Clock states
     var timeText by remember { mutableStateOf("") }
     var dateText by remember { mutableStateOf("") }
@@ -256,11 +289,11 @@ fun LockScreenContent(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BubbleItem("Tasks", Icons.Default.List, Color(0xFFE57373)) { onBubbleClicked("tasks") }
-                    BubbleItem("Habits", Icons.Default.CheckCircle, Color(0xFF81C784)) { onBubbleClicked("habits") }
-                    BubbleItem("Money", Icons.Default.AccountBalance, Color(0xFF64B5F6)) { onBubbleClicked("expense") }
-                    BubbleItem("Journal", Icons.Default.MenuBook, Color(0xFFFFB74D)) { onBubbleClicked("journal") }
-                    BubbleItem("Focus", Icons.Default.Timer, Color(0xFF4DB6AC)) { onBubbleClicked("focus") }
+                    BubbleItem("Tasks", Icons.Default.List, Color(0xFFE57373), { onBubbleClicked("tasks") }, { summaryTab = "tasks" })
+                    BubbleItem("Habits", Icons.Default.CheckCircle, Color(0xFF81C784), { onBubbleClicked("habits") }, { summaryTab = "habits" })
+                    BubbleItem("Money", Icons.Default.AccountBalance, Color(0xFF64B5F6), { onBubbleClicked("expense") }, { summaryTab = "expense" })
+                    BubbleItem("Journal", Icons.Default.MenuBook, Color(0xFFFFB74D), { onBubbleClicked("journal") }, { summaryTab = "journal" })
+                    BubbleItem("Focus", Icons.Default.Timer, Color(0xFF4DB6AC), { onBubbleClicked("focus") }, { summaryTab = "focus" })
                 }
 
                 // Swipe indicator
@@ -273,6 +306,16 @@ fun LockScreenContent(
             }
         }
     }
+    summaryTab?.let { tab ->
+        val summary = when (tab) {
+            "tasks" -> "${taskRepository.observeTasks().collectAsStateWithLifecycle(emptyList()).value.count { !it.completed }} pending tasks"
+            "habits" -> "${habitRepository.observeTodayHabits(LocalDate.now()).collectAsStateWithLifecycle(emptyList()).value.size} habits today"
+            "expense" -> "Balance: $${"%.2f".format(expenseRepository.totalBalance().collectAsStateWithLifecycle(0.0).value)}"
+            "journal" -> "${journalRepository.writingStreak().collectAsStateWithLifecycle(0).value} day writing streak"
+            else -> "${focusRepository.observeSessions().collectAsStateWithLifecycle(emptyList()).value.size} focus sessions"
+        }
+        AlertDialog(onDismissRequest = { summaryTab = null }, title = { Text(tab.replaceFirstChar { it.uppercase() }) }, text = { Text(summary) }, confirmButton = { TextButton({ summaryTab = null }) { Text("Close") } })
+    }
 }
 
 @Composable
@@ -280,12 +323,33 @@ fun BubbleItem(
     label: String,
     icon: ImageVector,
     color: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
+    val currentClick by rememberUpdatedState(onClick)
+    val currentLongPress by rememberUpdatedState(onLongPress)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown().consume()
+                // Use AwaitPointerEventScope's timeout, not kotlinx.coroutines' timeout.
+                var timedOut = true
+                val up = withTimeoutOrNull(2_000L) {
+                    val result = waitForUpOrCancellation()
+                    timedOut = false
+                    result
+                }
+                if (timedOut) {
+                    currentLongPress()
+                    waitForUpOrCancellation()?.consume()
+                } else if (up != null) {
+                    up.consume()
+                    currentClick()
+                }
+            }
+        }
     ) {
         Box(
             modifier = Modifier

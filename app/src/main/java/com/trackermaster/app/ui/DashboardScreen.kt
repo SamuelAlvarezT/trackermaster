@@ -3,10 +3,12 @@ package com.trackermaster.app.ui
 
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
@@ -19,6 +21,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.lazy.items
+import java.time.LocalDate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,7 +61,9 @@ class DashboardViewModel @Inject constructor(
     settingsRepo: SettingsRepository,
     moneyPreferencesRepo: MoneyPreferencesRepository,
     habitRepository: com.trackermaster.core.data.repository.HabitRepository,
+    private val lifeRepository: com.trackermaster.core.data.insights.LifeRepository,
 ) : ViewModel() {
+    fun daySummary(day: LocalDate)=lifeRepository.daySummary(day)
     val pendingHabits=habitRepository.observePendingHabits().map { PendingHabitsUiState(loading=false,habits=it) }
         .catch { emit(PendingHabitsUiState(loading=false,error=true)) }
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),PendingHabitsUiState())
@@ -85,16 +93,24 @@ fun DashboardScreen(
     }
     val moneyBalance = if (moneyPreferences.hideAmounts) moneyContext.getString(R.string.money_balance_hidden)
         else summary.balancesByCurrency.formatBalances(moneyLocale)
+    var dateSelector by remember { mutableStateOf(false) }
+    var dateText by remember { mutableStateOf(LocalDate.now().toString()) }
+    var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
     Scaffold(
+        contentWindowInsets = WindowInsets(0,0,0,0),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = { Column(Modifier.heightIn(min=48.dp).clickable {dateSelector=true},verticalArrangement=Arrangement.Center) {
+                    Text(stringResource(R.string.app_name),maxLines=1,style=MaterialTheme.typography.titleMedium)
+                    Text("${LocalDate.now()} ▾",style=MaterialTheme.typography.labelMedium)
+                } },
                 actions = {
+                    IconButton({ onNavigate("goals") }) { Icon(Icons.Default.Flag, "Objetivos y planes") }
                     IconButton({ onNavigate(Routes.Insights.route) }) {
-                        Icon(Icons.Default.Analytics, contentDescription = null)
+                        Icon(Icons.Default.Analytics, contentDescription = "Estadísticas")
                     }
                     IconButton({ onNavigate(Routes.Settings.route) }) {
-                        Icon(Icons.Default.Settings, contentDescription = null)
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
                     }
                 },
             )
@@ -161,6 +177,15 @@ fun DashboardScreen(
                 )
             }
         }
+    }
+    if(dateSelector) AlertDialog(onDismissRequest={dateSelector=false},title={Text("Consultar un día")},text={OutlinedTextField(dateText,{dateText=it},label={Text("AAAA-MM-DD")})},
+        confirmButton={TextButton({selectedDay=LocalDate.parse(dateText);dateSelector=false},enabled=runCatching {LocalDate.parse(dateText)<=LocalDate.now()}.getOrDefault(false)) {Text("Consultar")}},dismissButton={TextButton({dateSelector=false}) {Text("Cancelar")}})
+    selectedDay?.let { day ->
+        val daily by remember(day) {vm.daySummary(day)}.collectAsStateWithLifecycle(initialValue=emptyList())
+        AlertDialog(onDismissRequest={selectedDay=null},title={Text("Resumen · $day")},text={LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            items(daily.filter { !moneyPreferences.hideAmounts || !it.title.startsWith("Money") }) {metric ->Text("${metric.title}: ${"%.2f".format(metric.value)} ${metric.unit}\n${metric.detail}")}
+            if(moneyPreferences.hideAmounts) item {Text(moneyContext.getString(R.string.money_balance_hidden))}
+        }},confirmButton={TextButton({selectedDay=null}) {Text("Cerrar")}})
     }
 }
 
@@ -254,9 +279,9 @@ private fun MetricText(label: String, value: String) {
 }
 
 @Composable
-private fun CompactStatCard(title: String, value: String, modifier: Modifier = Modifier) {
+internal fun CompactStatCard(title: String, value: String, modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.height(88.dp),
+        modifier = modifier.heightIn(min = 88.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = MaterialTheme.shapes.medium,

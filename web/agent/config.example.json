@@ -1,0 +1,7 @@
+{
+  "firebase": { "apiKey": "PUBLIC_FIREBASE_API_KEY", "authDomain": "PROJECT.firebaseapp.com", "projectId": "PROJECT", "appId": "PUBLIC_APP_ID" },
+  "ownerUid": "OWNER_UID",
+  "agentUid": "SEPARATE_AGENT_UID",
+  "secretFile": "C:/Users/YOUR_USER/.trackmaster-agent/secrets.dpapi",
+  "model": "gemini-2.5-flash-lite"
+}

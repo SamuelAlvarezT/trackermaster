@@ -212,6 +212,7 @@ fun CalendarMonthGrid(
                             !isDue -> Color.LightGray.copy(alpha = 0.3f) to MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             log?.completed == true -> Color.Green to Color.Black
                             log != null && log.value < 0 -> Color.Red to Color.White
+                            log != null && (log.value > 0 || log.durationMs > 0 || log.checklistState.values.any { it }) -> Color(0xFFFF9800) to Color.Black
                             isToday -> Color.Yellow to Color.Black
                             else -> Color.White to Color.Black
                         }
@@ -355,7 +356,7 @@ fun HabitEditorDialog(
             TextButton(onClick = {
                 if (name.isNotBlank()) {
                     val count = targetCountStr.toIntOrNull() ?: 1
-                    val mins = targetDurationMinutesStr.toLongOrNull() ?: 10L
+                    val mins = (targetDurationMinutesStr.toLongOrNull() ?: 10L).coerceIn(5L, 60L)
                     onSave(
                         initialHabit?.copy(
                             name = name,

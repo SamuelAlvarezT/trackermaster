@@ -46,121 +46,98 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
+import java.time.LocalDate
 import java.time.LocalDateTime
+import com.trackermaster.core.data.repository.HabitRepository
+import com.trackermaster.core.domain.model.Habit
+import com.trackermaster.core.domain.model.ProgressType
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.MoreVert
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
-class JournalViewModel @Inject constructor(
-    private val repo: JournalRepository,
-    private val moodRepo: MoodRepository,
-) : ViewModel() {
-    val entries = repo.observeEntries().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+class JournalViewModel @Inject constructor(private val repo: JournalRepository,private val moodRepo: MoodRepository,habits: HabitRepository) : ViewModel() {
+    val all = repo.observeAllEntries().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val moods = moodRepo.observeEntries().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val habits = habits.observeActiveHabits().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val levels = HabitScheduleLogic.defaultMoodLevels()
-    val streak = repo.writingStreak().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
-    fun save(title: String, body: String, moodLevel: Int?, attachments: List<Attachment>) = viewModelScope.launch {
-        val now = LocalDateTime.now()
-        repo.save(
-            JournalEntry(
-                title = title,
-                richTextHtml = body,
-                createdAt = now,
-                updatedAt = now,
-                moodLevel = moodLevel,
-                attachments = attachments,
-            )
-        )
+    val error=MutableStateFlow<String?>(null)
+    val busy=MutableStateFlow(false)
+    fun versions(id: Long)=repo.versions(id)
+    fun save(entry: JournalEntry,onSaved: ()->Unit)=viewModelScope.launch {
+        if(busy.value) return@launch
+        busy.value=true
+        try {repo.save(entry);onSaved()} catch(e: Exception) {error.value=e.message ?: "No se pudo guardar"} finally {busy.value=false}
     }
-
-    fun logMood(level: Int, note: String) = viewModelScope.launch {
-        moodRepo.logMood(level = level, note = note.trim())
-    }
+    fun trash(id: Long)=viewModelScope.launch {runCatching {repo.trash(id)}.onFailure {error.value="No se pudo mover a la papelera"}}
+    fun recover(id: Long)=viewModelScope.launch {runCatching {repo.recover(id)}.onFailure {error.value=it.message ?: "No se pudo recuperar"}}
+    fun purge(id: Long)=viewModelScope.launch {runCatching {repo.permanentlyDelete(id)}.onFailure {error.value="No se pudo eliminar"}}
+    fun restore(id: Long,revision: Long)=viewModelScope.launch {runCatching {repo.restore(id,revision)}.onFailure {error.value=it.message ?: "No se pudo restaurar"}}
+    fun logMood(level: Int,note: String)=viewModelScope.launch {moodRepo.logMood(level,note.trim())}
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalScreen(vm: JournalViewModel = hiltViewModel()) {
-    val entries by vm.entries.collectAsStateWithLifecycle()
-    val moods by vm.moods.collectAsStateWithLifecycle()
-    val streak by vm.streak.collectAsStateWithLifecycle()
-    var showEditor by remember { mutableStateOf(false) }
-    var tab by remember { mutableIntStateOf(0) }
-
-    Scaffold(floatingActionButton = { FloatingActionButton({ showEditor = true }) { Icon(Icons.Default.Add, null) } }) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Journal", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                Text("Daily reflection, mood history, and writing pattern in one place.", style = MaterialTheme.typography.bodyMedium)
-            }
-            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatChip("Writing streak", "$streak days")
-                StatChip("Entries", "${entries.size}")
-                StatChip("Mood logs", "${moods.size}")
-            }
-            TabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 12.dp)) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Overview") }, icon = { Icon(Icons.Default.EditNote, null) })
-                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Entries") })
-                Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("Mood") }, icon = { Icon(Icons.Default.Mood, null) })
-            }
-            when (tab) {
-                0 -> JournalOverview(entries, moods, vm.levels)
-                1 -> JournalEntries(entries)
-                else -> MoodJournalPanel(moods, vm.levels, onLogMood = vm::logMood)
+    val all by vm.all.collectAsStateWithLifecycle();val habits by vm.habits.collectAsStateWithLifecycle()
+    val moods by vm.moods.collectAsStateWithLifecycle();val error by vm.error.collectAsStateWithLifecycle();val busy by vm.busy.collectAsStateWithLifecycle()
+    var tab by remember {mutableIntStateOf(0)};var query by remember {mutableStateOf("")};var searching by remember {mutableStateOf(false)}
+    var menu by remember {mutableStateOf(false)};var trash by remember {mutableStateOf(false)};var lucidOnly by remember {mutableStateOf(false)}
+    var moodOnly by remember {mutableStateOf(false)};var moodPanel by remember {mutableStateOf(false)}
+    var editor by remember {mutableStateOf<JournalEntry?>(null)};var selectedId by remember {mutableStateOf<Long?>(null)}
+    var deleting by remember {mutableStateOf<JournalEntry?>(null)};var history by remember {mutableStateOf<Long?>(null)}
+    val kind=if(tab==0) "PERSONAL" else "DREAM"
+    val entries=all.filter { (it.deletedAt!=null)==trash && it.kind==kind && (!lucidOnly || it.lucid) && (!moodOnly || it.moodLevel!=null) &&
+        listOf(it.title,stripHtml(it.richTextHtml),it.tags,it.emotions,it.contentDate.toString()).any {v ->v.contains(query,true)} }.sortedByDescending {it.contentDate}
+    Scaffold(contentWindowInsets=WindowInsets(0,0,0,0),topBar={TopAppBar(title={Text(if(trash) "Journal · Papelera" else "Journal")},actions={
+        IconButton({searching=!searching}) {Icon(Icons.Default.Search,"Buscar entradas")}
+        Box {IconButton({menu=true}) {Icon(Icons.Default.FilterList,"Filtros y acciones")};DropdownMenu(menu,{menu=false}) {
+            DropdownMenuItem(text={Text(if(trash) "Ver entradas" else "Papelera")},onClick={trash=!trash;menu=false})
+            DropdownMenuItem(text={Text(if(lucidOnly) "Todos los sueños" else "Solo sueños lúcidos")},onClick={lucidOnly=!lucidOnly;moodOnly=false;menu=false})
+            DropdownMenuItem(text={Text(if(moodOnly) "Todos los estados de ánimo" else "Con estado de ánimo")},onClick={moodOnly=!moodOnly;lucidOnly=false;menu=false})
+            DropdownMenuItem(text={Text("Estado de ánimo e historial")},onClick={moodPanel=true;menu=false})
+        }}
+    })},floatingActionButton={if(!trash) FloatingActionButton({val now=LocalDateTime.now();editor=JournalEntry(richTextHtml="",createdAt=now,updatedAt=now,kind=kind)}) {Icon(Icons.Default.Add,"Crear entrada")}}) {pad ->
+        Column(Modifier.padding(pad)) {
+            TabRow(tab) {Tab(tab==0,{tab=0;lucidOnly=false},text={Text("Diario personal")});Tab(tab==1,{tab=1;moodOnly=false},text={Text("Diario de sueños")})}
+            if(searching) OutlinedTextField(query,{query=it},label={Text("Texto, etiqueta, emoción o fecha")},modifier=Modifier.fillMaxWidth().padding(horizontal=16.dp))
+            if(entries.isEmpty()) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center) {Text(if(trash) "La papelera está vacía" else "Sin entradas para estos filtros")}
+            else LazyColumn(contentPadding=PaddingValues(start=16.dp,end=16.dp,top=12.dp,bottom=88.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                items(entries,key={it.id}) {entry ->JournalEntryCard(entry,onClick={selectedId=entry.id})}
             }
         }
     }
-    if (showEditor) {
-        JournalEditor(
-            levels = vm.levels,
-            onDismiss = { showEditor = false },
-            onSave = { title, body, moodLevel, attachments ->
-                vm.save(title, "<p>${body.replace("\n", "<br>")}</p>", moodLevel, attachments)
-                showEditor = false
-            },
-        )
+    editor?.let {entry ->JournalEditor(entry,habits,vm.levels,busy,onDismiss={editor=null},onSave={saved ->vm.save(saved) {editor=null;selectedId=null;tab=if(saved.kind=="DREAM") 1 else 0}})}
+    all.firstOrNull {it.id==selectedId}?.let {entry ->
+        AlertDialog(onDismissRequest={selectedId=null},title={Text(entry.title.ifBlank {"Sin título"})},text={LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            item {Text("Fecha del contenido: ${entry.contentDate}\nCreada: ${entry.createdAt}\nEditada: ${entry.updatedAt}",style=MaterialTheme.typography.labelSmall)}
+            item {Text(stripHtml(entry.richTextHtml));Text("${entry.tags} ${entry.emotions}");if(entry.lucid) Text("Sueño lúcido")}
+            items(entry.attachments) {AttachmentPreview(it)}
+            item {TextButton({history=entry.id;selectedId=null}) {Text("Historial de versiones")}}
+            if(entry.deletedAt==null) item {TextButton({editor=entry;selectedId=null}) {Text("Editar")}}
+            else item {TextButton({vm.recover(entry.id);selectedId=null}) {Text("Recuperar de la papelera")}}
+            item {TextButton({deleting=entry;selectedId=null}) {Text(if(entry.deletedAt==null) "Mover a papelera" else "Eliminar definitivamente")}}
+        }},confirmButton={TextButton({selectedId=null}) {Text("Cerrar")}})
     }
-}
-
-@Composable
-private fun JournalOverview(entries: List<JournalEntry>, moods: List<MoodEntry>, levels: List<MoodLevel>) {
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Today", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("Capture entry, log mood, review recent context before day ends.")
-                }
-            }
-        }
-        item { Text("Recent entries", style = MaterialTheme.typography.titleMedium) }
-        if (entries.isEmpty()) {
-            item { EmptyState("Start your journal") }
-        } else {
-            items(entries.take(3)) { entry -> JournalEntryCard(entry) }
-        }
-        item { Text("Recent moods", style = MaterialTheme.typography.titleMedium) }
-        if (moods.isEmpty()) {
-            item { Text("No mood logs yet", style = MaterialTheme.typography.bodyMedium) }
-        } else {
-            items(moods.take(5)) { mood -> MoodRow(mood, levels) }
-        }
+    deleting?.let {entry ->AlertDialog(onDismissRequest={deleting=null},title={Text(if(entry.deletedAt==null) "¿Mover a la papelera?" else "¿Eliminar definitivamente?")},text={Text(if(entry.deletedAt==null) "Podrás recuperar la entrada, imágenes e historial. Se retirará solo su contribución al hábito." else "Se eliminarán el registro y su historial de esta app. Esta acción no se puede deshacer.")},confirmButton={TextButton({if(entry.deletedAt==null) vm.trash(entry.id) else vm.purge(entry.id);deleting=null}) {Text("Confirmar")}},dismissButton={TextButton({deleting=null}) {Text("Cancelar")}})}
+    history?.let {id ->
+        val revisions by remember(id) {vm.versions(id)}.collectAsStateWithLifecycle(initialValue=emptyList())
+        var preview by remember {mutableStateOf<com.trackermaster.core.data.repository.JournalRevision?>(null)}
+        AlertDialog(onDismissRequest={history=null},title={Text("Historial completo")},text={LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            if(revisions.isEmpty()) item {Text("La versión original se conservará al realizar la primera edición.")}
+            items(revisions,key={it.id}) {r ->OutlinedCard(onClick={preview=r}) {Column(Modifier.padding(10.dp)) {Text("Revisión #${r.id} · ${java.time.Instant.ofEpochMilli(r.savedAt).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()}");Text(r.entry.title);Text(r.entry.contentDate.toString())}}}
+        }},confirmButton={TextButton({history=null}) {Text("Cerrar")}})
+        preview?.let {r ->AlertDialog(onDismissRequest={preview=null},title={Text(r.entry.title.ifBlank {"Versión anterior"})},text={LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            item {Text("${r.entry.contentDate} · ${r.entry.kind}\nÁnimo: ${r.entry.moodLevel ?: "—"} · Emociones: ${r.entry.emotions}\nEtiquetas: ${r.entry.tags} · Lúcido: ${r.entry.lucid}\nHábito: ${r.entry.habitId ?: "Ninguno"} · Aporte: ${r.entry.contribution}")}
+            item {Text(stripHtml(r.entry.richTextHtml))};items(r.entry.attachments) {AttachmentPreview(it)}
+        }},confirmButton={TextButton({vm.restore(id,r.id);preview=null;history=null}) {Text("Restaurar como nueva revisión")}},dismissButton={TextButton({preview=null}) {Text("Volver")}})}
     }
-}
-
-@Composable
-private fun JournalEntries(entries: List<JournalEntry>) {
-    var selected by remember { mutableStateOf<JournalEntry?>(null) }
-    if (entries.isEmpty()) {
-        EmptyState("Start your journal")
-    } else {
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(entries) { entry -> JournalEntryCard(entry, onClick = { selected = entry }) }
-        }
-    }
-    selected?.let { entry ->
-        JournalEntryDetailDialog(entry = entry, onDismiss = { selected = null })
-    }
+    if(moodPanel) AlertDialog(onDismissRequest={moodPanel=false},title={Text("Estado de ánimo")},text={MoodJournalPanel(moods,vm.levels,vm::logMood)},confirmButton={TextButton({moodPanel=false}) {Text("Cerrar")}})
+    error?.let {AlertDialog(onDismissRequest={vm.error.value=null},title={Text("Aviso")},text={Text(it)},confirmButton={TextButton({vm.error.value=null}) {Text("Cerrar")}})}
 }
 
 @Composable
@@ -217,7 +194,7 @@ private fun JournalEntryCard(entry: JournalEntry, onClick: () -> Unit = {}) {
     Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(entry.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.titleMedium)
-            Text(entry.updatedAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")), style = MaterialTheme.typography.labelSmall)
+            Text(entry.contentDate.toString(), style = MaterialTheme.typography.labelSmall)
             entry.moodLevel?.let { Text("Mood $it/5", style = MaterialTheme.typography.labelSmall) }
             Text(stripHtml(entry.richTextHtml).take(180), style = MaterialTheme.typography.bodySmall, maxLines = 4)
             if (entry.attachments.isNotEmpty()) {
@@ -248,60 +225,44 @@ private fun MoodRow(entry: MoodEntry, levels: List<MoodLevel>) {
 }
 
 @Composable
-private fun JournalEditor(
-    levels: List<MoodLevel>,
-    onDismiss: () -> Unit,
-    onSave: (String, String, Int?, List<Attachment>) -> Unit,
-) {
-    val context = LocalContext.current
-    var title by remember { mutableStateOf("") }
-    var body by remember { mutableStateOf("") }
-    var moodLevel by remember { mutableStateOf<Int?>(null) }
-    var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { attachments = attachments + copyAttachment(context, it, "image/*") }
-    }
-    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { attachments = attachments + copyAttachment(context, it, "audio/*") }
-    }
-    val pdfPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { attachments = attachments + copyAttachment(context, it, "application/pdf") }
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New journal entry") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(body, { body = it }, label = { Text("Reflection") }, minLines = 6, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    levels.forEach { level ->
-                        FilterChip(
-                            selected = moodLevel == level.level,
-                            onClick = { moodLevel = if (moodLevel == level.level) null else level.level },
-                            label = { Text(level.emoji) },
-                        )
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(
-                        onClick = { imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        label = { Text("Image") },
-                        leadingIcon = { Icon(Icons.Default.Image, null) },
-                    )
-                    AssistChip(onClick = { audioPicker.launch("audio/*") }, label = { Text("Audio") }, leadingIcon = { Icon(Icons.Default.AudioFile, null) })
-                    AssistChip(onClick = { pdfPicker.launch("application/pdf") }, label = { Text("PDF") }, leadingIcon = { Icon(Icons.Default.PictureAsPdf, null) })
-                }
-                if (attachments.isNotEmpty()) Text("${attachments.size} files attached", style = MaterialTheme.typography.labelSmall)
+private fun JournalEditor(initial: JournalEntry,habits: List<Habit>,levels: List<MoodLevel>,busy: Boolean,onDismiss: ()->Unit,onSave: (JournalEntry)->Unit) {
+    val context=LocalContext.current
+    var entry by remember {mutableStateOf(initial)};var body by remember {mutableStateOf(initial.richTextHtml)}
+    var date by remember {mutableStateOf(initial.contentDate.toString())};var contribution by remember {mutableStateOf(initial.contribution.toString())}
+    var habitsMenu by remember {mutableStateOf(false)};var removeImage by remember {mutableStateOf<Attachment?>(null)}
+    val imagePicker=rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {uri ->uri?.let {entry=entry.copy(attachments=entry.attachments+copyAttachment(context,it,"image/*"))}}
+    val audioPicker=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri ->uri?.let {entry=entry.copy(attachments=entry.attachments+copyAttachment(context,it,"audio/*"))}}
+    val pdfPicker=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri ->uri?.let {entry=entry.copy(attachments=entry.attachments+copyAttachment(context,it,"application/pdf"))}}
+    AlertDialog(onDismissRequest={if(!busy) onDismiss()},title={Text(if(initial.id==0L) "Nueva entrada" else "Editar entrada")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(entry.title,{entry=entry.copy(title=it)},label={Text("Título")})
+        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            FilterChip(entry.kind=="PERSONAL",{entry=entry.copy(kind="PERSONAL")},label={Text("Personal")})
+            FilterChip(entry.kind=="DREAM",{entry=entry.copy(kind="DREAM")},label={Text("Sueños")})
+        }
+        OutlinedTextField(date,{date=it},label={Text("Fecha del contenido AAAA-MM-DD")},isError=runCatching {LocalDate.parse(date)}.isFailure)
+        OutlinedTextField(body,{body=it},label={Text(if(entry.kind=="DREAM") "Relato del sueño" else "Texto (admite HTML existente)")},minLines=5)
+        Row {levels.forEach {level ->FilterChip(entry.moodLevel==level.level,{entry=entry.copy(moodLevel=if(entry.moodLevel==level.level) null else level.level)},label={Text(level.emoji)})}}
+        OutlinedTextField(entry.tags,{entry=entry.copy(tags=it)},label={Text("Etiquetas separadas por comas")})
+        if(entry.kind=="DREAM") {
+            OutlinedTextField(entry.emotions,{entry=entry.copy(emotions=it)},label={Text("Emociones")})
+            Row {Checkbox(entry.lucid,{entry=entry.copy(lucid=it)});Text("Sueño lúcido",Modifier.padding(top=12.dp))}
+        }
+        Box {OutlinedButton({habitsMenu=true}) {Text("Hábito: ${habits.firstOrNull {it.id==entry.habitId}?.name ?: if(entry.habitId==null) "Ninguno" else "Archivado / no disponible"}")}
+            DropdownMenu(habitsMenu,{habitsMenu=false}) {
+                DropdownMenuItem(text={Text("Sin vínculo")},onClick={entry=entry.copy(habitId=null);habitsMenu=false})
+                habits.filter {it.progressType!=ProgressType.CHECKLIST}.forEach {h ->DropdownMenuItem(text={Text(h.name)},onClick={entry=entry.copy(habitId=h.id);habitsMenu=false})}
             }
-        },
-        confirmButton = {
-            TextButton({ onSave(title, body, moodLevel, attachments) }) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onDismiss) { Text("Cancel") }
-        },
-    )
+        }
+        if(entry.habitId!=null) {
+            val timed=habits.firstOrNull {it.id==entry.habitId}?.progressType in listOf(ProgressType.TIMER,ProgressType.STOPWATCH)
+            OutlinedTextField(contribution,{contribution=it},label={Text(if(timed) "Aporte en minutos" else "Aporte en unidades")})
+            Text("Se aplica a la fecha del contenido solo si el hábito estaba programado. Las listas de verificación se marcan desde Habits.",style=MaterialTheme.typography.bodySmall)
+        }
+        Row {TextButton({imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))}) {Text("Imagen")};TextButton({audioPicker.launch("audio/*")}) {Text("Audio")};TextButton({pdfPicker.launch("application/pdf")}) {Text("PDF")}}
+        entry.attachments.forEach {attachment ->AttachmentPreview(attachment);TextButton({removeImage=attachment}) {Text("Quitar adjunto")}}
+        if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+    }},confirmButton={TextButton({onSave(entry.copy(richTextHtml=body,contentDate=LocalDate.parse(date),contribution=contribution.toInt()))},enabled=!busy && runCatching {LocalDate.parse(date)<=LocalDate.now()}.getOrDefault(false) && contribution.toIntOrNull() in 1..1440 && (body.isNotBlank() || entry.attachments.isNotEmpty())) {Text("Guardar")}},dismissButton={TextButton(onDismiss,enabled=!busy) {Text("Cancelar")}})
+    removeImage?.let {attachment ->AlertDialog(onDismissRequest={removeImage=null},title={Text("¿Quitar el adjunto de esta versión?")},text={Text("Seguirá disponible en las versiones anteriores guardadas.")},confirmButton={TextButton({entry=entry.copy(attachments=entry.attachments.filterNot {it.path==attachment.path});removeImage=null}) {Text("Quitar")}},dismissButton={TextButton({removeImage=null}) {Text("Cancelar")}})}
 }
 
 private fun stripHtml(html: String): String {
@@ -309,27 +270,6 @@ private fun stripHtml(html: String): String {
         .replace("<br>", "\n")
         .replace(Regex("<[^>]+>"), "")
         .trim()
-}
-
-@Composable
-private fun JournalEntryDetailDialog(entry: JournalEntry, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(entry.title.ifBlank { "Untitled" }) },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item {
-                    Text(entry.updatedAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")), style = MaterialTheme.typography.labelSmall)
-                }
-                entry.moodLevel?.let { level ->
-                    item { Text("Mood $level/5", style = MaterialTheme.typography.labelLarge) }
-                }
-                item { Text(stripHtml(entry.richTextHtml), style = MaterialTheme.typography.bodyMedium) }
-                items(entry.attachments) { attachment -> AttachmentPreview(attachment) }
-            }
-        },
-        confirmButton = { TextButton(onDismiss) { Text("Close") } },
-    )
 }
 
 @Composable
@@ -391,7 +331,7 @@ private fun copyAttachment(context: Context, uri: Uri, fallbackMime: String): At
         else -> ".bin"
     }
     val dir = File(context.filesDir, "journal_attachments").apply { mkdirs() }
-    val target = File(dir, "journal_${System.currentTimeMillis()}$ext")
+    val target = File(dir, "journal_${java.util.UUID.randomUUID()}$ext")
     resolver.openInputStream(uri)?.use { input ->
         target.outputStream().use { output -> input.copyTo(output) }
     }

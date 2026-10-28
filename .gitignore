@@ -11,3 +11,19 @@ captures/
 *.apk
 *.aab
 *.hprof
+node_modules/
+web/dist/
+web/.env.local
+sync.local.properties
+writer-key.local.txt
+firebase-admin-key*.json
+firebase-debug.log
+firestore-debug.log
+web/*.tsbuildinfo
+web/agent/config.json
+web/agent-state/
+*.dpapi
+
+# Private device backups and review captures
+docs/life-upgrade/private/
+docs/life-upgrade/screenshots/

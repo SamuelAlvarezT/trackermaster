@@ -149,6 +149,14 @@ data class JournalEntryEntity(
     val createdAtEpoch: Long,
     val updatedAtEpoch: Long,
     val moodLevel: Int? = null,
+    @ColumnInfo(defaultValue = "'PERSONAL'") val kind: String = "PERSONAL",
+    val contentEpochDay: Long? = null,
+    @ColumnInfo(defaultValue = "''") val tags: String = "",
+    @ColumnInfo(defaultValue = "''") val emotions: String = "",
+    @ColumnInfo(defaultValue = "0") val lucid: Boolean = false,
+    val habitId: Long? = null,
+    @ColumnInfo(defaultValue = "1") val contribution: Int = 1,
+    val deletedAt: Long? = null,
 )
 
 @Entity(tableName = "attachments")

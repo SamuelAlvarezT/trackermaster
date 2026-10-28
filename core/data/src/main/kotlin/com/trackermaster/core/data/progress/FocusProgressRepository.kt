@@ -105,7 +105,7 @@ class FocusProgressRepository @Inject constructor(private val db: TrackermasterD
                 val autoComplete=(timed && HabitProgressRules.progress(changed.copy(completed=false),version)>=1.0) ||
                     (type==ProgressType.CHECKBOX && next==FocusRunStatus.COMPLETED && day==clock.today())
                 val log=changed.copy(value=changed.value.coerceAtLeast(0),completed=base.completed || autoComplete,
-                    completionSource=if (base.completed) base.completionSource else "focus")
+                    completionSource=if (base.completed && !(base.completionSource=="journal" && autoComplete)) base.completionSource else "focus")
                 if (existing==null) db.habitLogDao().insert(log.toEntity()) else db.habitLogDao().update(log.toEntity())
             }
         }

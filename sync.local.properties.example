@@ -1,0 +1,9 @@
+# Copy to sync.local.properties. This file is only read by Android, NEVER by the web build.
+api_key=
+application_id=
+project_id=
+web_client_id=
+# Firebase Authentication UID of your Google account (not your email).
+owner_uid=
+# Generate 64 random hexadecimal characters. Provision the SAME value in privateCloud/owner.
+writer_key=

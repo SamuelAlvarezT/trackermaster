@@ -61,6 +61,29 @@ object BackupAttachments {
                         }
                     }
                 }
+                // Complete journal revisions also own attachments, including images removed from
+                // the current entry. Normalize those paths so restoring onto another install works.
+                val hasVersions=db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='journal_versions'",null).use { it.moveToFirst() }
+                if(hasVersions) db.rawQuery("SELECT id,payload FROM journal_versions",null).use { rows ->
+                    while(rows.moveToNext()) {
+                        val json=org.json.JSONObject(rows.getString(1))
+                        val attachments=json.getJSONArray("attachments")
+                        for(index in 0 until attachments.length()) {
+                            val attachment=attachments.getJSONObject(index)
+                            val path=attachment.getString("path").replace('\\','/')
+                            val root=oldRoot?.replace('\\','/')?.trimEnd('/')
+                            val relative=when {
+                                path.startsWith(PREFIX) -> path.removePrefix(PREFIX)
+                                root!=null && path.startsWith("$root/") -> path.removePrefix("$root/")
+                                !exporting && path.contains("/files/") -> path.substringAfterLast("/files/")
+                                else -> error("A version attachment has an unsupported path")
+                            }
+                            require(BackupFiles.target(payload,relative).isFile) { "A version attachment is missing" }
+                            attachment.put("path",if(exporting) PREFIX+relative else BackupFiles.target(context.filesDir,relative).path)
+                        }
+                        db.execSQL("UPDATE journal_versions SET payload=? WHERE id=?",arrayOf(json.toString(),rows.getLong(0)))
+                    }
+                }
                 db.setTransactionSuccessful()
             } finally { db.endTransaction() }
         }

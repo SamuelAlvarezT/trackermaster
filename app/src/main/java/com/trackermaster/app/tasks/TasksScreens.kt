@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
@@ -64,6 +66,11 @@ class TasksViewModel @Inject constructor(
         }
     }
 
+    fun planTask(task: Task, day: String?) {
+        if (day != null && runCatching { java.time.LocalDate.parse(day) }.isFailure) return
+        viewModelScope.launch { repo.updateTask(task.copy(plannedDate = day)) }
+    }
+
     fun toggleSubtask(task: Task, index: Int) {
         viewModelScope.launch {
             repo.updateTask(task.copy(subtasks = task.subtasks.mapIndexed { i, subtask ->
@@ -89,10 +96,29 @@ fun TasksScreen(
     val tasks by vm.tasks.collectAsStateWithLifecycle()
     var newTaskText by remember { mutableStateOf("") }
 
+    var search by remember {mutableStateOf(false)}
+    var query by remember {mutableStateOf("")}
+    var filtering by remember {mutableStateOf(false)}
+    var filter by remember {mutableStateOf("Todas")}
+    var order by remember {mutableStateOf("Recientes")}
+    val visible=tasks.filter { it.title.contains(query,true) && when(filter) {
+        "Pendientes" -> !it.completed;"Completadas" ->it.completed
+        "Vencidas" -> !it.completed && it.plannedDate?.let { d ->runCatching {java.time.LocalDate.parse(d)<java.time.LocalDate.now()}.getOrDefault(false)}==true
+        else ->true
+    }}.let { list ->when(order) {"Título" ->list.sortedBy {it.title.lowercase()};"Vencimiento" ->list.sortedBy {it.plannedDate ?: "9999"};else ->list} }
     Scaffold(
+        contentWindowInsets=WindowInsets(0,0,0,0),
         topBar = {
             TopAppBar(
-                title = { Text("Tasks") }
+                title = { Text("Tasks") },actions={
+                    IconButton({search=!search}) {Icon(Icons.Default.Search,"Buscar tareas")}
+                    Box {IconButton({filtering=true}) {Icon(Icons.Default.FilterList,"Filtrar y ordenar")}
+                        DropdownMenu(filtering,{filtering=false}) {
+                            listOf("Todas","Pendientes","Completadas","Vencidas").forEach {f ->DropdownMenuItem(text={Text(f)},onClick={filter=f;filtering=false})}
+                            listOf("Recientes","Título","Vencimiento").forEach {o ->DropdownMenuItem(text={Text("Ordenar: $o")},onClick={order=o;filtering=false})}
+                        }
+                    }
+                }
             )
         },
         modifier = modifier
@@ -104,6 +130,7 @@ fun TasksScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if(search) OutlinedTextField(query,{query=it},label={Text("Buscar tareas")},modifier=Modifier.fillMaxWidth())
             // Task input row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -135,7 +162,7 @@ fun TasksScreen(
             }
 
             // Task list
-            if (tasks.isEmpty()) {
+            if (visible.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -153,13 +180,14 @@ fun TasksScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(tasks, key = { it.id }) { task ->
+                    items(visible, key = { it.id }) { task ->
                         TaskRow(
                             task = task,
                             onToggle = { vm.toggleTask(task) },
                             onDelete = { vm.deleteTask(task) },
                             onToggleSubtask = { index -> vm.toggleSubtask(task, index) },
                             onAddSubtask = { title -> vm.addSubtask(task, title) },
+                            onPlan = { day -> vm.planTask(task, day) },
                         )
                     }
                 }
@@ -175,9 +203,11 @@ fun TaskRow(
     onDelete: () -> Unit,
     onToggleSubtask: (Int) -> Unit,
     onAddSubtask: (String) -> Unit,
+    onPlan: (String?) -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
     var subtaskText by remember { mutableStateOf("") }
+    var plannedDay by remember(task.plannedDate) { mutableStateOf(task.plannedDate.orEmpty()) }
     val completedSubtasks = task.subtasks.count { it.completed }
     val progress = if (task.subtasks.isEmpty()) 0f else completedSubtasks.toFloat() / task.subtasks.size
     Card(
@@ -193,6 +223,13 @@ fun TaskRow(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            if (expanded) {
+                OutlinedTextField(value = plannedDay, onValueChange = { plannedDay = it },
+                    label = { Text("Fecha objetivo (AAAA-MM-DD)") }, singleLine = true,
+                    isError = plannedDay.isNotBlank() && runCatching { java.time.LocalDate.parse(plannedDay) }.isFailure)
+                TextButton(onClick = { onPlan(plannedDay.takeIf { it.isNotBlank() }) },
+                    enabled = plannedDay.isBlank() || runCatching { java.time.LocalDate.parse(plannedDay) }.isSuccess) { Text("Guardar fecha objetivo") }
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = task.completed,
@@ -207,7 +244,7 @@ fun TaskRow(
                         color = if (task.completed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = pendingLabel(task.createdAt),
+                        text = if (task.completed) "Completed" else pendingLabel(task.createdAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                     )
@@ -267,6 +304,9 @@ fun TaskRow(
 }
 
 private fun pendingLabel(createdAt: LocalDateTime): String {
+    if (createdAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() == 0L) {
+        return "Creation date unavailable"
+    }
     val days = ChronoUnit.DAYS.between(createdAt.toLocalDate(), LocalDateTime.now().toLocalDate())
     return when {
         days <= 0 -> "Pending today"

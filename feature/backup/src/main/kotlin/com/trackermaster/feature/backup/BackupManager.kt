@@ -16,6 +16,7 @@ import javax.inject.Singleton
 class BackupManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val coordinator: BackupCoordinator,
+    private val cloudSync: com.trackermaster.core.data.sync.CloudSyncManager,
     private val settings: com.trackermaster.core.data.settings.SettingsRepository,
 ) {
     suspend fun failureMessage()=message(P8R.string.p8_backup_error)
@@ -43,6 +44,7 @@ class BackupManager @Inject constructor(
         coordinator.prepare(uri);message(P8R.string.p8_backup_validated)
     }
     suspend fun confirmRestore(): Result<Unit> = runCatching {
+        cloudSync.prepareRestore()
         coordinator.confirm()
     }
     suspend fun cancelRestore()=coordinator.cancel()

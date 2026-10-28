@@ -143,7 +143,7 @@ class HabitRepository @Inject constructor(
     suspend fun toggleHabitDayState(habit: Habit, date: LocalDate) {
         val existing = habitLogDao.getForDate(habit.id, date.toEpochMilli())?.toDomain()
         val nextLog = when {
-            existing == null || (!existing.completed && existing.value >= 0) -> {
+            existing == null || (!existing.completed && existing.value == 0) -> {
                 HabitLog(
                     id = existing?.id ?: 0,
                     habitId = habit.id,
@@ -153,6 +153,15 @@ class HabitRepository @Inject constructor(
                 )
             }
             existing.completed -> {
+                HabitLog(
+                    id = existing.id,
+                    habitId = habit.id,
+                    date = date,
+                    completed = false,
+                    value = 1
+                )
+            }
+            existing.value > 0 -> {
                 HabitLog(
                     id = existing.id,
                     habitId = habit.id,
@@ -382,37 +391,6 @@ class FocusRepository @Inject constructor(
 }
 
 @Singleton
-class JournalRepository @Inject constructor(
-    private val journalDao: JournalDao,
-) {
-    fun observeEntries(): Flow<List<JournalEntry>> =
-        combine(journalDao.observeEntries(), journalDao.observeAllAttachments()) { entries, attachments ->
-            entries.map { entry ->
-                entry.toDomain().copy(
-                    attachments = attachments.filter { it.entryId == entry.id }.map { it.toDomain() }
-                )
-            }
-        }
-
-    suspend fun save(entry: JournalEntry): Long {
-        val id = if (entry.id == 0L) journalDao.insert(entry.toEntity())
-        else { journalDao.update(entry.toEntity()); entry.id }
-        entry.attachments.forEach { attachment ->
-            journalDao.insertAttachment(attachment.copy(entryId = id).toEntity())
-        }
-        return id
-    }
-
-    fun writingStreak(): Flow<Int> = observeEntries().map { entries ->
-        HabitScheduleLogic.journalWritingStreak(entries.map { it.createdAt.toLocalDate() })
-    }
-}
-
-private fun JournalEntry.toEntity() = com.trackermaster.core.database.entity.JournalEntryEntity(
-    id, title, richTextHtml, createdAt.toEpochMilli(), updatedAt.toEpochMilli(), moodLevel
-)
-
-@Singleton
 class DashboardRepository @Inject constructor(
     private val habitRepository: HabitRepository,
     private val moodRepository: MoodRepository,
@@ -453,7 +431,8 @@ class TaskRepository @Inject constructor(
         taskDao.insert(task.toEntity())
 
     suspend fun toggleTask(task: Task) =
-        taskDao.update(task.copy(completed = !task.completed).toEntity())
+        taskDao.update(task.copy(completed = !task.completed,
+            completedAtEpoch = if (!task.completed) System.currentTimeMillis() else null).toEntity())
 
     suspend fun updateTask(task: Task) =
         taskDao.update(task.toEntity())

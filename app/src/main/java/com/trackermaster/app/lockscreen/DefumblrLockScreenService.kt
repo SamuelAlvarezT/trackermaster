@@ -33,7 +33,10 @@ class DefumblrLockScreenService : Service() {
                 serviceScope.launch {
                     if(unlockStore.settings.first().enabled) return@launch
                     val settings = settingsRepository.settings.first()
-                    if (settings.defumblrEnabled) {
+                    val showBecauseAppWasOpen = settingsRepository.wasAppOpenBeforeScreenOff()
+                    val shouldShow = settings.defumblrEnabled &&
+                        (showBecauseAppWasOpen || settingsRepository.shouldShowAndRecordDefumblr())
+                    if (shouldShow) {
                         val lockIntent = Intent(context, DefumblrLockScreenActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)

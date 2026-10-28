@@ -50,14 +50,14 @@ object RestoreBootstrap {
         try {
             val folder=checked(context,JSONObject(pending(context).readText()).getString("folder"),"restore-staging")
             val prepared=JSONObject(File(folder,"prepared.json").readText())
-            require(prepared.getInt("schema")==13)
+            require(prepared.getInt("schema") in 13..14)
             val entries=prepared.getJSONObject("entries")
             for(name in entries.keys()) {
                 val file=BackupFiles.target(folder,name);val expected=entries.getJSONObject(name)
                 require(file.isFile && file.length()==expected.getLong("bytes") && BackupFiles.sha(file)==expected.getString("sha256"))
             }
             val image=File(folder,"database/trackermaster.db")
-            SQLiteDatabase.openDatabase(image.path,null,SQLiteDatabase.OPEN_READONLY).use { require(it.version==13);SqliteSnapshot.validate(it) }
+            SQLiteDatabase.openDatabase(image.path,null,SQLiteDatabase.OPEN_READONLY).use { require(it.version==prepared.getInt("schema"));SqliteSnapshot.validate(it) }
             val previous=File(context.noBackupFilesDir,"restore-rollback/${folder.name}").apply { check(mkdirs()) }
             val database=context.getDatabasePath("trackermaster.db")
             val files=context.filesDir

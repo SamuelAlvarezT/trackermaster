@@ -2,6 +2,9 @@ package com.trackermaster.app.ui
 
 import android.app.Application
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -34,6 +37,32 @@ class Phase8UiTest {
         }
     }
     @Before fun setup() { compose.activity.actionBar?.hide() }
+    @Test fun legacyTaskWithoutCreationTimestampNeverShowsAFabricatedAge() {
+        val task=androidx.compose.runtime.mutableStateOf(Task(title="Legacy task",
+            createdAt=java.time.Instant.EPOCH.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()))
+        compose.setContent { TrackermasterTheme(ThemeMode.DARK,0) {
+            com.trackermaster.app.tasks.TaskRow(task.value,onToggle={},onDelete={},onToggleSubtask={},onAddSubtask={})
+        } }
+        compose.onNodeWithText("Creation date unavailable").assertIsDisplayed()
+        compose.runOnIdle {task.value=task.value.copy(completed=true)}
+        compose.onNodeWithText("Completed").assertIsDisplayed()
+        compose.onNodeWithText("Creation date unavailable").assertDoesNotExist()
+    }
+    @Test fun compactHomeCardGrowsToFitLargeTextInsteadOfClippingItsValue() {
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f,1.3f)
+            ) {
+                TrackermasterTheme(ThemeMode.DARK,0) {
+                    CompactStatCard("Available balance by currency","COP 139,845.00 · USD 9.00",
+                        androidx.compose.ui.Modifier.width(160.dp).testTag("large_home_card"))
+                }
+            }
+        }
+        val bounds=compose.onNodeWithTag("large_home_card").fetchSemanticsNode().boundsInRoot
+        assertTrue("The card must grow beyond its old fixed height",bounds.height>88f)
+        compose.onNodeWithText("COP 139,845.00 · USD 9.00").assertIsDisplayed()
+    }
     @After fun capture() {
         if(name.methodName=="missingBiometricHardwareNeverUnlocksTheAppAutomatically" || name.methodName=="focusSupportsThreeLanguagesWithLargeFonts") return
         captureScreen(name.methodName ?: "screen")

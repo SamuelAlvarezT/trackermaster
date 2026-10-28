@@ -15,6 +15,10 @@ enum class ThemeMode { LIGHT, DARK, OLED }
 
 enum class BackupFrequency { APP_START, DAILY, WEEKLY, MONTHLY }
 
+enum class DefumblrInterval(val minutes: Int) {
+    THIRTY_MINUTES(30), ONE_HOUR(60), TWO_HOURS(120), THREE_HOURS(180)
+}
+
 enum class FocusCategoryType {
     WORK, STUDY, CREATIVE, CODING, READING, WRITING, EXERCISE, OTHER
 }
@@ -129,6 +133,14 @@ data class JournalEntry(
     val updatedAt: LocalDateTime,
     val moodLevel: Int? = null,
     val attachments: List<Attachment> = emptyList(),
+    val kind: String = "PERSONAL",
+    val contentDate: LocalDate = createdAt.toLocalDate(),
+    val tags: String = "",
+    val emotions: String = "",
+    val lucid: Boolean = false,
+    val habitId: Long? = null,
+    val contribution: Int = 1,
+    val deletedAt: Long? = null,
 )
 
 data class Attachment(
@@ -156,7 +168,11 @@ data class AppSettings(
     val pomodoroBreakMinutes: Int = 5,
     val pomodoroLongBreakMinutes: Int = 15,
     val defumblrEnabled: Boolean = true,
+    val defumblrInterval: DefumblrInterval = DefumblrInterval.ONE_HOUR,
+    val defumblrLastShownAtMillis: Long = 0L,
+    val defumblrMorningShownDate: String? = null,
     val lockscreenWidgetsEnabled: Boolean = true,
+    val initialSection: String = "home",
     val newInterfaceEnabled: Boolean = false,
     val backupFrequency: BackupFrequency = BackupFrequency.APP_START,
     val lastBackupAtMillis: Long = 0L,
@@ -168,6 +184,9 @@ data class Task(
     val completed: Boolean = false,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val subtasks: List<SubTask> = emptyList(),
+    val plannedDate: String? = null,
+    val completedAtEpoch: Long? = null,
+    val cancelledAtEpoch: Long? = null,
 )
 
 data class SubTask(

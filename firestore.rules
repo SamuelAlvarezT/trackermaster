@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && get(/databases/$(database)/documents/privateCloud/owner).data.uid == uid;
+    }
+    function proofValid(uid, token) {
+      let proof = getAfter(/databases/$(database)/documents/users/$(uid)/writerProof/$(token));
+      return token is string && proof.data.at == request.time
+        && proof.data.key == get(/databases/$(database)/documents/privateCloud/owner).data.writerKey;
+    }
+    function supported(kind) {
+      return kind in ['habits','habit_logs','mood_entries','mood_tags','accounts',
+        'expense_categories','transactions','budgets','exchange_rates','focus_sessions',
+        'journal_entries','attachments','achievements','tasks','money_spaces','money_pockets',
+        'money_transfers','money_receipts','money_plans','money_plan_occurrences','journal_metrics'];
+    }
+    function isAgent(uid) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/privateCloud/agent).data.ownerUid == uid
+        && get(/databases/$(database)/documents/privateCloud/agent).data.uid == request.auth.uid
+        && request.auth.uid != uid;
+    }
+    function agentReadable(kind) {
+      return kind in ['habits','habit_logs','tasks','focus_sessions','transactions','accounts','budgets','journal_metrics'];
+    }
+    match /privateCloud/{document} { allow read, write: if false; }
+    match /users/{uid}/writerProof/{token} {
+      // Create-only proofs: permitting an update would let a reader refresh an old secret.
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['key','at'])
+        && request.resource.data.at == request.time
+        && request.resource.data.key == get(/databases/$(database)/documents/privateCloud/owner).data.writerKey;
+      allow read, update, delete: if false;
+    }
+    match /users/{uid}/meta/sync {
+      allow read: if isOwner(uid) || isAgent(uid);
+      allow create, update: if isOwner(uid) && proofValid(uid, request.resource.data.writeToken)
+        && request.resource.data.keys().hasOnly(['schemaVersion','datasetId','lastCompletedAt','writeToken'])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.datasetId is string
+        && request.resource.data.lastCompletedAt == request.time;
+      allow delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/{kind}/{record} {
+      allow read: if (isOwner(uid) && supported(kind)) || (isAgent(uid) && agentReadable(kind));
+      allow create, update: if isOwner(uid) && supported(kind)
+        && proofValid(uid, request.resource.data.writeToken)
+        && request.resource.data.keys().hasOnly(['schemaVersion','kind','recordKey','revision','deleted','eventDay','data','updatedAt','writeToken'])
+        && request.resource.data.schemaVersion == 1 && request.resource.data.kind == kind
+        && request.resource.data.recordKey is string
+        && request.resource.data.revision is int && request.resource.data.revision > 0
+        && request.resource.data.deleted is bool && request.resource.data.eventDay is int
+        && request.resource.data.data is map
+        && !request.resource.data.data.keys().hasAny(['path','previewPath','imageUri'])
+        && request.resource.data.updatedAt == request.time
+        && (resource == null || request.resource.data.revision >= resource.data.revision);
+      // Deletions are versioned tombstones, preventing delayed retries from resurrecting records.
+      allow delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/habitPolicies/{habit} {
+      allow read: if isOwner(uid) || isAgent(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['enabled','trackedFrom','targetMs','baseRevision'])
+        && request.resource.data.enabled is bool && request.resource.data.trackedFrom is string
+        && request.resource.data.targetMs is int && request.resource.data.targetMs > 0
+        && request.resource.data.baseRevision == getAfter(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/habits/$(habit)).data.revision;
+      allow delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/reports/{report} {
+      allow read: if isOwner(uid) || isAgent(uid);
+      allow create, update: if isAgent(uid) && request.resource.data.id == report
+        && request.resource.data.rulesVersion == 'fixed-step-v1'
+        && request.resource.data.summary is string && request.resource.data.summary.size() <= 2000
+        && request.resource.data.proposalIds is list && request.resource.data.proposalIds.size() <= 200
+        && (resource == null || request.resource.data.proposalIds == resource.data.proposalIds);
+      allow delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/agentState/{state} {
+      allow read: if isOwner(uid) || isAgent(uid);
+      allow create, update: if isAgent(uid) && state == 'current';
+      allow delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/actionChecks/{report} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && request.resource.data.keys().hasOnly(['checked'])
+        && request.resource.data.checked is list && request.resource.data.checked.size() <= 3;
+      allow delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/proposals/{proposal} {
+      allow read: if isOwner(uid) || isAgent(uid);
+      allow create: if isAgent(uid) && request.resource.data.id == proposal
+        && request.resource.data.status == 'pending' && request.resource.data.rulesVersion == 'fixed-step-v1'
+        && request.resource.data.toMinutes is number && request.resource.data.toMinutes >= 5 && request.resource.data.toMinutes <= 60
+        && request.resource.data.baseRevision == get(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/habits/$(request.resource.data.habitId)).data.revision
+        && request.resource.data.expiresAt is timestamp;
+      allow update: if isOwner(uid) && resource.data.status == 'pending'
+        && request.time < resource.data.expiresAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['approved','rejected']
+        && getAfter(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/decisions/$(proposal)).data.decision == request.resource.data.status;
+      allow delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/decisions/{proposal} {
+      allow read: if isOwner(uid) || isAgent(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['proposalId','decision','decidedBy','decidedAt'])
+        && request.resource.data.proposalId == proposal && request.resource.data.decidedBy == uid
+        && request.resource.data.decidedAt == request.time
+        && request.resource.data.decision in ['approved','rejected']
+        && get(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/proposals/$(proposal)).data.status == 'pending'
+        && getAfter(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/proposals/$(proposal)).data.status == request.resource.data.decision;
+      allow update, delete: if false;
+    }
+    match /users/{uid}/datasets/{dataset}/commands/{command} {
+      function validCommand() {
+        let p = getAfter(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/proposals/$(command)).data;
+        let d = getAfter(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/decisions/$(command)).data;
+        let h = get(/databases/$(database)/documents/users/$(uid)/datasets/$(dataset)/habits/$(p.habitId)).data;
+        return p.status == 'approved' && d.decision == 'approved' && !h.deleted
+          && h.revision == p.baseRevision && request.time < p.expiresAt
+          && request.resource.data.proposalId == command
+          && request.resource.data.habitId == p.habitId && request.resource.data.localHabitId == p.localHabitId
+          && request.resource.data.recordKey == p.recordKey
+          && request.resource.data.expectedRevision == p.baseRevision
+          && request.resource.data.expectedTargetMs == p.fromMinutes * 60000
+          && request.resource.data.targetDurationMs == p.toMinutes * 60000
+          && request.resource.data.targetDurationMs is int
+          && request.resource.data.targetDurationMs >= 300000 && request.resource.data.targetDurationMs <= 3600000
+          && request.resource.data.effectiveFrom >= p.effectiveFrom;
+      }
+      allow read: if isOwner(uid) || isAgent(uid);
+      allow create: if isOwner(uid) && validCommand()
+        && request.resource.data.keys().hasOnly(['proposalId','habitId','localHabitId','recordKey','expectedRevision','expectedTargetMs','targetDurationMs','effectiveFrom','status','createdAt'])
+        && request.resource.data.status == 'queued' && request.resource.data.createdAt == request.time;
+      allow update: if isOwner(uid) && resource.data.status == 'queued'
+        && proofValid(uid, request.resource.data.writeToken)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','appliedAt','writeToken'])
+        && request.resource.data.status in ['applied','conflict'] && request.resource.data.appliedAt == request.time;
+      allow delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

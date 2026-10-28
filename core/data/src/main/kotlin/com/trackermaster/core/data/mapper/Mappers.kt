@@ -131,7 +131,9 @@ fun FocusSessionEntity.toDomain(): FocusSession = FocusSession(
 )
 
 fun JournalEntryEntity.toDomain(): JournalEntry = JournalEntry(
-    id, title, richTextHtml, createdAtEpoch.toLocalDateTime(), updatedAtEpoch.toLocalDateTime(), moodLevel
+    id, title, richTextHtml, createdAtEpoch.toLocalDateTime(), updatedAtEpoch.toLocalDateTime(), moodLevel,
+    kind=kind, contentDate=contentEpochDay?.let { LocalDate.ofEpochDay(it) } ?: createdAtEpoch.toLocalDate(),
+    tags=tags, emotions=emotions, lucid=lucid, habitId=habitId, contribution=contribution, deletedAt=deletedAt
 )
 
 fun AttachmentEntity.toDomain(): Attachment = Attachment(id, entryId, path, mimeType)
@@ -148,6 +150,9 @@ fun TaskEntity.toDomain(): Task = Task(
     completed = completed,
     createdAt = createdAtEpoch.toLocalDateTime(),
     subtasks = decodeSubtasks(subtasksJson),
+    plannedDate = plannedDate,
+    completedAtEpoch = completedAtEpoch,
+    cancelledAtEpoch = cancelledAtEpoch,
 )
 
 fun Task.toEntity(): TaskEntity = TaskEntity(
@@ -156,5 +161,8 @@ fun Task.toEntity(): TaskEntity = TaskEntity(
     completed = completed,
     createdAtEpoch = createdAt.toEpochMilli(),
     subtasksJson = encodeSubtasks(subtasks),
+    plannedDate = plannedDate,
+    completedAtEpoch = completedAtEpoch,
+    cancelledAtEpoch = cancelledAtEpoch,
 )
 

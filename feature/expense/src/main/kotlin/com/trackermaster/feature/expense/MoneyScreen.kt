@@ -51,6 +51,7 @@ fun MoneyContent(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
         onEvent(MoneyEvent.Navigate(MoneyDestination.SUMMARY))
     }
     Scaffold(
+        contentWindowInsets=WindowInsets(0,0,0,0),
         topBar = { TopAppBar(title = { Text(if (canGoBack) destinationTitle(controls.destination) else stringResource(R.string.m_title)) },
             navigationIcon = { if (canGoBack) IconButton({ onEvent(MoneyEvent.Navigate(MoneyDestination.SUMMARY)) }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.m_summary)) } },

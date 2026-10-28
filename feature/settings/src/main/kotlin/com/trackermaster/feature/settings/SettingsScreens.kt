@@ -18,6 +18,7 @@ import androidx.lifecycle.viewModelScope
 import com.trackermaster.core.data.settings.SettingsRepository
 import com.trackermaster.feature.backup.BackupManager
 import com.trackermaster.core.domain.model.BackupFrequency
+import com.trackermaster.core.domain.model.DefumblrInterval
 import com.trackermaster.core.domain.model.ThemeMode
 import com.trackermaster.core.ui.theme.AccentColors
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,8 +32,11 @@ import com.trackermaster.core.ui.R as P8R
 class SettingsViewModel @Inject constructor(
     private val repo: SettingsRepository,
     private val backupManager: BackupManager,
+    val cloudSync: com.trackermaster.core.data.sync.CloudSyncManager,
 ) : ViewModel() {
     val settings = repo.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.trackermaster.core.domain.model.AppSettings())
+    fun cloudSignIn(context: android.content.Context) = viewModelScope.launch { cloudSync.signIn(context) }
+    fun cloudSignOut(context: android.content.Context) = viewModelScope.launch { cloudSync.signOut(context) }
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { repo.setTheme(mode) }
     fun setAccent(i: Int) = viewModelScope.launch { repo.setAccent(i) }
@@ -42,6 +46,8 @@ class SettingsViewModel @Inject constructor(
     }
     fun setBiometric(enabled: Boolean) = viewModelScope.launch { repo.setBiometric(enabled) }
     fun setDefumblrEnabled(enabled: Boolean) = viewModelScope.launch { repo.setDefumblrEnabled(enabled) }
+    fun setDefumblrInterval(interval: DefumblrInterval) = viewModelScope.launch { repo.setDefumblrInterval(interval) }
+    fun setInitialSection(section: String) = viewModelScope.launch { repo.setInitialSection(section) }
     fun setLockscreenWidgetsEnabled(enabled: Boolean) = viewModelScope.launch { repo.setLockscreenWidgetsEnabled(enabled) }
     fun setNewInterfaceEnabled(enabled: Boolean) = viewModelScope.launch { repo.setNewInterfaceEnabled(enabled) }
     fun setBackupFrequency(frequency: BackupFrequency) = viewModelScope.launch { repo.setBackupFrequency(frequency) }
@@ -83,6 +89,7 @@ class SettingsViewModel @Inject constructor(
 @Composable
 fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val cloud by vm.cloudSync.status.collectAsStateWithLifecycle()
     val s by vm.settings.collectAsStateWithLifecycle()
     val backupMsg by vm.backupMsg.collectAsStateWithLifecycle()
     val preview by vm.restorePreview.collectAsStateWithLifecycle()
@@ -111,6 +118,27 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     LazyColumn(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { UnlockSettingsSection() }
         item { MoneyWidgetSettingsSection() }
+        item { Text("TrackMaster en PC", style = MaterialTheme.typography.titleMedium) }
+        item {
+            Text(when {
+                !cloud.configured -> "Sincronización sin configurar. Sigue la guía de Firebase del proyecto."
+                cloud.syncing -> "Sincronizando… (${cloud.pending} pendientes)"
+                cloud.error != null -> "Error: ${cloud.error}"
+                !cloud.signedIn -> "Inicia sesión para enviar tus datos a la web."
+                cloud.pending > 0 -> "Pendiente: ${cloud.pending} cambios"
+                else -> "Sincronizado"
+            })
+            if (cloud.lastCompletedAt > 0) Text("Último envío completo: " +
+                java.text.DateFormat.getDateTimeInstance().format(java.util.Date(cloud.lastCompletedAt)))
+            if (cloud.configured) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!cloud.signedIn) Button(onClick = { vm.cloudSignIn(context) }) { Text("Conectar con Google") }
+                else {
+                    OutlinedButton(onClick = { vm.cloudSync.retry() }) { Text("Reintentar") }
+                    TextButton(onClick = { vm.cloudSignOut(context) }) { Text("Desconectar") }
+                }
+            }
+            Text("Fotos y archivos disponibles solo en el móvil.", style = MaterialTheme.typography.bodySmall)
+        }
         item { Text("Appearance", style = MaterialTheme.typography.titleMedium) }
         item {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -154,10 +182,33 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 Switch(s.defumblrEnabled, { vm.setDefumblrEnabled(it) })
             }
         }
+        if (s.defumblrEnabled) {
+            item { Text("Defumblr interval") }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    DefumblrInterval.entries.forEach { interval ->
+                        FilterChip(
+                            selected = s.defumblrInterval == interval,
+                            onClick = { vm.setDefumblrInterval(interval) },
+                            label = { Text(interval.label()) },
+                        )
+                    }
+                }
+            }
+        }
         item {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text("Lockscreen Widgets")
                 Switch(s.lockscreenWidgetsEnabled, { vm.setLockscreenWidgetsEnabled(it) })
+            }
+        }
+        item { Text("Initial section", style = MaterialTheme.typography.titleMedium) }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("home" to "Home", "habits" to "Habits", "tasks" to "Tasks", "expense" to "Money", "journal" to "Journal", "focus" to "Focus")
+                    .forEach { (route, label) ->
+                        FilterChip(s.initialSection == route, { vm.setInitialSection(route) }, { Text(label) })
+                    }
             }
         }
         item { Text("Pomodoro (minutes)", style = MaterialTheme.typography.titleMedium) }
@@ -192,4 +243,11 @@ private fun BackupFrequency.label(): String = when (this) {
     BackupFrequency.DAILY -> "Daily"
     BackupFrequency.WEEKLY -> "Weekly"
     BackupFrequency.MONTHLY -> "Monthly"
+}
+
+private fun DefumblrInterval.label(): String = when (this) {
+    DefumblrInterval.THIRTY_MINUTES -> "30 min"
+    DefumblrInterval.ONE_HOUR -> "1 hour"
+    DefumblrInterval.TWO_HOURS -> "2 hours"
+    DefumblrInterval.THREE_HOURS -> "3 hours"
 }

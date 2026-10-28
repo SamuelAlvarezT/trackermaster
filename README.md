@@ -41,4 +41,10 @@ Open in Android Studio Hedgehog+ with Android SDK 35.
 
 ## Privacy
 
-Data stored locally in SQLite. Biometric lock optional. Backup is opt-in.
+Data stored locally in SQLite. Biometric lock optional. Backup and cloud sync are opt-in.
+
+## PC dashboard and optional cloud sync
+
+Android can publish records to Firebase Spark and a read-only React dashboard without connecting the phone to the PC. Follow [the setup guide](docs/cloud-sync/SETUP.md). Cloud sync is disabled until your Firebase project, owner account and private Android writer key are configured. Photos and file attachments remain local.
+
+Run the dashboard from `web` with `npm ci` and `npm run dev`. Publish its static build with Firebase Hosting after configuring authentication, rules and indexes.

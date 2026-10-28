@@ -71,7 +71,7 @@ class BackupCoordinator @Inject constructor(@ApplicationContext private val cont
             }
             BackupAttachments.prepare(context,image,payload,context.filesDir.canonicalPath,true)
             SQLiteDatabase.openDatabase(image.path,null,SQLiteDatabase.OPEN_READWRITE).use { out -> triggers.forEach { out.execSQL(it) } }
-            val manifest=JSONObject().put("format",2).put("schema",13).put("created_at",System.currentTimeMillis())
+            val manifest=JSONObject().put("format",2).put("schema",14).put("created_at",System.currentTimeMillis())
                 .put("files_root",context.filesDir.canonicalPath).put("tables",JSONObject(counts))
             val entries=JSONObject();var total=0L;var count=0
             ZipOutputStream(temporary.outputStream()).use { zip ->
@@ -109,7 +109,7 @@ class BackupCoordinator @Inject constructor(@ApplicationContext private val cont
                 ?: if(File(folder,"database/trackermaster.db").isFile) null else error("Cannot read backup")
             val image=File(folder,"database/trackermaster.db")
             SQLiteDatabase.openDatabase(image.path,null,SQLiteDatabase.OPEN_READWRITE).use { source ->
-                require(source.version in 3..13) { "Unsupported database version" }
+                require(source.version in 3..14) { "Unsupported database version" }
                 SqliteSnapshot.validate(source)
                 source.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)",null).use { while(it.moveToNext()) Unit }
             }
@@ -126,7 +126,7 @@ class BackupCoordinator @Inject constructor(@ApplicationContext private val cont
             File(image.path+"-wal").delete();File(image.path+"-shm").delete()
             File(payload,"datastore/unlock_launch_runtime.preferences_pb").delete()
             validatePreferences(payload)
-            val manifest=JSONObject().put("format",2).put("schema",13)
+            val manifest=JSONObject().put("format",2).put("schema",14)
             val entries=JSONObject()
             folder.walkTopDown().filter { it.isFile && (it==image || it.path.startsWith(payload.path+File.separator)) }.forEach { file ->
                 val relative=file.relativeTo(folder).invariantSeparatorsPath

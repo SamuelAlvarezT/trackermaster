@@ -2,6 +2,8 @@ package com.trackermaster.feature.focus
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -27,14 +29,14 @@ import java.time.format.FormatStyle
 import androidx.compose.ui.platform.testTag
 
 @Composable
-fun FocusScreen(vm: FocusViewModel = hiltViewModel()) {
+fun FocusScreen(vm: FocusViewModel = hiltViewModel(),onStatistics: ()->Unit={}) {
     val state by vm.uiState.collectAsStateWithLifecycle()
-    FocusContent(state,vm::onAction)
+    FocusContent(state,vm::onAction,onStatistics)
 }
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit) {
+fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit,onStatistics: ()->Unit={}) {
     val locale=LocalConfiguration.current.locales[0]
     val runtime=state.runtime
     val displayMinutes=if(runtime.active)(runtime.plannedMs/60000).toString() else state.minutes
@@ -43,8 +45,12 @@ fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit) {
     var expanded by remember { mutableStateOf(false) }
     val progress=if(runtime.active && runtime.plannedMs>0) (runtime.effectiveMs.toFloat()/runtime.plannedMs).coerceIn(0f,1f) else 0f
     val number=remember(locale) { NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits=2;minimumFractionDigits=0 } }
-    LazyColumn(Modifier.fillMaxSize().imePadding().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-        item { Text(stringResource(P8R.string.p8_focus_title),style=MaterialTheme.typography.headlineMedium) }
+    val listState=rememberLazyListState()
+    val scope=rememberCoroutineScope()
+    LazyColumn(state=listState,modifier=Modifier.fillMaxSize().imePadding().padding(horizontal=24.dp),contentPadding=PaddingValues(top=24.dp,bottom=16.dp),verticalArrangement=Arrangement.spacedBy(16.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+        item { Text(stringResource(P8R.string.p8_focus_title),style=MaterialTheme.typography.headlineMedium)
+            Row { TextButton({scope.launch {listState.animateScrollToItem((listState.layoutInfo.totalItemsCount-state.sessions.count {it.actualDurationMs>0 && it.completedAt!=null}-1).coerceAtLeast(0))}}) {Text("Historial")};TextButton(onStatistics) {Text("Estadísticas")}}
+        }
         if(state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         item { FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             Surface(shape=MaterialTheme.shapes.small,color=MaterialTheme.colorScheme.surfaceVariant) {

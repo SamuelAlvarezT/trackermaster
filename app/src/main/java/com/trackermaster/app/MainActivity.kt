@@ -65,9 +65,13 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var focusProgress: FocusProgressRepository
     @Inject lateinit var focusController: FocusTimerController
     @Inject lateinit var backupManager: BackupManager
+    @Inject lateinit var lifeReviews: com.trackermaster.core.data.insights.LifeReviews
+    @Inject lateinit var cloudSync: com.trackermaster.core.data.sync.CloudSyncManager
 
     override fun onStart() {
         super.onStart()
+        cloudSync.foreground(true)
+        lifecycleScope.launch { runCatching { lifeReviews.catchUp() } }
         lifecycleScope.launch {
             if(unlockStore.settings.first().enabled && !UnlockMonitorSignals.running.value) unlockController.start()
             val focus=focusProgress.checkpoint()
@@ -76,6 +80,10 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onStop() {
+        cloudSync.foreground(false)
+        super.onStop()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,7 +124,7 @@ class MainActivity : FragmentActivity() {
                     else if(!loaded.onboardingComplete) OnboardingScreen(onComplete={
                         lifecycleScope.launch { settingsRepository.setOnboardingComplete() }
                     })
-                    else rootState.SaveableStateProvider("authenticated-root") { TrackermasterRoot(startTab=requestedTab,navigationRequest=navigationRequest,
+                    else rootState.SaveableStateProvider("authenticated-root") { TrackermasterRoot(startTab=requestedTab ?: loaded.initialSection,navigationRequest=navigationRequest,
                         quickEntry=quickEntry,quickToken=quickToken,onQuickConsumed={quickEntry=null;intent?.removeExtra("money_quick_entry")},
                         canAcknowledge=activityResumed && windowFocused,onDestinationReady={ route -> acknowledgeAutomaticOpening(route) })
                     }
@@ -163,6 +171,7 @@ class MainActivity : FragmentActivity() {
         autoToken?.let { token -> lifecycleScope.launch {
             if(!getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked) unlockStore.visible(token)
         } }
+        lifecycleScope.launch { settingsRepository.setAppWasOpenBeforeScreenOff(true) }
     }
 
     override fun onPause() { activityResumed=false;super.onPause() }
@@ -172,6 +181,10 @@ class MainActivity : FragmentActivity() {
     }
     override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus);windowFocused=hasFocus }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        lifecycleScope.launch { settingsRepository.setAppWasOpenBeforeScreenOff(false) }
+    }
 
     private fun handleShareIntent(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
@@ -240,7 +253,7 @@ fun TrackermasterRoot(startTab: String? = null, navigationRequest: Int = 0, canA
                             selected = currentRoute == route.route,
                             onClick = { navController.navigate(route.route) { launchSingleTop = true } },
                             icon = { Icon(icon, contentDescription = route.label) },
-                            label = { Text(route.label) },
+                            label = { Text(route.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         )
                     }
                 }
@@ -250,7 +263,7 @@ fun TrackermasterRoot(startTab: String? = null, navigationRequest: Int = 0, canA
         NavHost(
             navController,
             startDestination = Routes.Home.route,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
             composable(Routes.Home.route) { DashboardScreen(onNavigate = { navController.navigate(it) }) }
             composable(Routes.Habits.route+"?habitId={habitId}",arguments=listOf(androidx.navigation.navArgument("habitId") {
@@ -259,9 +272,11 @@ fun TrackermasterRoot(startTab: String? = null, navigationRequest: Int = 0, canA
             composable(Routes.Tasks.route) { TasksScreen() }
             composable(Routes.Mood.route) { JournalScreen() }
             composable(Routes.Expense.route) { ExpenseScreen(quickEntry=quickEntry,quickToken=quickToken,onQuickConsumed=onQuickConsumed) }
-            composable(Routes.Focus.route) { FocusScreen() }
+            composable(Routes.Focus.route) { FocusScreen(onStatistics={navController.navigate("focus_insights")}) }
             composable(Routes.Journal.route) { JournalScreen() }
-            composable(Routes.Insights.route) { InsightsScreen() }
+            composable(Routes.Insights.route) { InsightsScreen(onBack={navController.popBackStack()}) }
+            composable("goals") { InsightsScreen(initialTab=1,onBack={navController.popBackStack()}) }
+            composable("focus_insights") { InsightsScreen(initialFilter="Focus",onBack={navController.popBackStack()}) }
             composable(Routes.Settings.route) { SettingsScreen() }
             composable(Routes.MoodCalendar.route) { MoodCalendarScreen() }
             composable(Routes.Achievements.route) { AchievementsScreen() }

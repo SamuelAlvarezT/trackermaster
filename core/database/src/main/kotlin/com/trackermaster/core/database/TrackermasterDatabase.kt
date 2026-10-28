@@ -7,6 +7,7 @@ import com.trackermaster.core.database.entity.*
 
 @Database(
     entities = [
+        LifeGoalEntity::class, LifeGoalVersionEntity::class, LifeReviewEntity::class, JournalVersionEntity::class, JournalContributionEntity::class,
         AssistantCommandReceipt::class,
         CloudRecordVersion::class,
         CloudSyncOperation::class,
@@ -41,10 +42,11 @@ import com.trackermaster.core.database.entity.*
         MoneyInvestmentEntity::class,
         MoneyInvestmentEventEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class TrackermasterDatabase : RoomDatabase() {
+    abstract fun lifeDao(): LifeDao
     abstract fun progressDao(): ProgressDao
     abstract fun habitDao(): HabitDao
     abstract fun habitLogDao(): HabitLogDao
