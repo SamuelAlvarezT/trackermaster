@@ -33,6 +33,7 @@ import com.trackermaster.core.database.entity.*
         MoneyPocketEntity::class,
         MoneyTransferEntity::class,
         MoneyReceiptEntity::class,
+        MoneyGroupEntity::class, MoneyGroupMemberEntity::class,
         MoneyPlanEntity::class,
         MoneyPlanOccurrenceEntity::class,
         MoneyPlanningAlertEntity::class,
@@ -42,7 +43,7 @@ import com.trackermaster.core.database.entity.*
         MoneyInvestmentEntity::class,
         MoneyInvestmentEventEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 abstract class TrackermasterDatabase : RoomDatabase() {
@@ -58,6 +59,7 @@ abstract class TrackermasterDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun moneyDao(): MoneyDao
     abstract fun moneyReceiptDao(): MoneyReceiptDao
+    abstract fun moneyGroupDao(): MoneyGroupDao
     abstract fun moneyPlanningDao(): MoneyPlanningDao
     abstract fun moneyCommitmentDao(): MoneyCommitmentDao
     abstract fun moneyInvestmentDao(): MoneyInvestmentDao

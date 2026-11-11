@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="group_same_date">Require the same date in new groups</string>
+  <string name="group_same_account">Require the same account in new groups</string>
+  <string name="group_rules_existing">Existing groups are not changed.</string>
+  <string name="group_create">Create group</string>
+  <string name="group_name">Group name</string>
+  <string name="group_selected">%1$d selected</string>
+  <string name="group_confirm">Confirm selected</string>
+  <string name="group_first">Create a group first, then review every draft.</string>
+  <string name="group_confirm_detail">Confirm %1$d reviewed drafts? The whole batch is cancelled if any item fails.</string>
+  <string name="group_create_error">Could not create the group. Check its name, membership and date/account rules.</string>
+  <string name="group_batch_error">No transactions were confirmed. Review the selected drafts.</string>
+  <string name="group_batch_item_error">No transactions were confirmed. Review: %1$s</string>
+  <string name="group_draft_in">Draft · %1$s</string>
+  <string name="group_add_existing">Add to existing group</string>
+  <string name="group_history_title">Groups · all dates and accounts</string>
+  <string name="group_count">%1$d confirmed · %2$d drafts</string>
+  <string name="group_net">Net</string>
+  <string name="group_expand">Expand group</string>
+  <string name="group_remove">Remove group</string>
+  <string name="group_remove_detail">Removing the group keeps its transactions and drafts.</string>
+  <string name="group_view_detail">View details</string>
+  <string name="group_batch_duplicates">Some selected drafts may describe the same transaction.</string>
+  <string name="group_batch_distinct">I reviewed them and confirm they are different transactions.</string>
+</resources>

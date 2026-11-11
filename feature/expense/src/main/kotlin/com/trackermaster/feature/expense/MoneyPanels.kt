@@ -78,6 +78,15 @@ fun MoneySettingsPanel(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
                 Switch(state.preferences.hideAmounts, { onEvent(MoneyEvent.Privacy) }, enabled = !state.controls.saving)
             }
             Text(stringResource(R.string.m_privacy_detail), style = MaterialTheme.typography.bodySmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.group_same_date), Modifier.weight(1f))
+                Switch(state.preferences.groupSameDate, { onEvent(MoneyEvent.GroupRules(sameDate = it)) }, enabled = !state.controls.saving)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.group_same_account), Modifier.weight(1f))
+                Switch(state.preferences.groupSameAccount, { onEvent(MoneyEvent.GroupRules(sameAccount = it)) }, enabled = !state.controls.saving)
+            }
+            Text(stringResource(R.string.group_rules_existing), style = MaterialTheme.typography.bodySmall)
         } }, confirmButton = { MoneyTextButton(close) { Text(stringResource(R.string.m_apply)) } })
 }
 

@@ -60,7 +60,7 @@ class BackupRestoreTest {
                 }
                 copied.execSQL("INSERT INTO snapshot_precision(amount) VALUES(2)")
                 copied.rawQuery("SELECT MAX(id) FROM snapshot_precision",null).use { it.moveToFirst();assertEquals(101L,it.getLong(0)) }
-                assertEquals(14,copied.version)
+                assertEquals(15,copied.version)
             }
         } finally { db.close();folder.deleteRecursively() }
     }

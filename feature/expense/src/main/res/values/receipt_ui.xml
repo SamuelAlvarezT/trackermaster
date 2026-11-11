@@ -5,6 +5,7 @@
   <string name="r_auth_unavailable">Authentication was not completed. Retry, or check biometric setup in device settings.</string>
   <string name="r_title">Review receipt</string>
   <string name="r_share_label">Trackermaster · Money receipt</string>
+  <string name="r_import_waiting">Import receipt / %1$d waiting</string>
   <string name="r_import">Import receipt</string>
   <string name="r_intro">Share a receipt from your wallet app or choose a file. Review the data before saving.</string>
   <string name="r_choose">Choose image or PDF</string>
@@ -19,6 +20,7 @@
   <string name="r_confirm">I confirm that this transaction took place</string>
   <string name="r_bank_blocked">This receipt indicates a pending or failed operation. It cannot be saved as a confirmed movement.</string>
   <string name="r_unreadable_review">No readable text was found. You can complete the transaction manually and keep the original receipt.</string>
+  <string name="r_time">Time (HH:mm, optional)</string>
   <string name="r_reference">Reference</string>
   <string name="r_sender">Sender: %1$s</string>
   <string name="r_recipient">Recipient: %1$s</string>
@@ -29,6 +31,7 @@
   <string name="r_private">Reveal amounts to view the receipt and extracted data.</string>
   <string name="r_no_viewer">No app is available to open this file.</string>
   <string name="r_date_missing">Select transaction date</string>
+  <string name="r_duplicate_exact">Exact receipt file already recorded</string>
   <string name="r_duplicate">Possible existing transaction</string>
   <string name="r_duplicate_file">This same file is attached to an existing transaction.</string>
   <string name="r_duplicate_reference">This reference appears in an existing transaction.</string>
@@ -38,6 +41,7 @@
   <string name="r_saved_detail">The receipt is attached and the account balance has been updated.</string>
   <string name="r_done">Done</string>
   <string name="r_another">Import another receipt</string>
+  <string name="r_save_draft">Save draft</string>
   <string name="r_save">Confirm and save</string>
   <string name="r_save_error">Could not save. Your draft is preserved; check the account, pocket and amounts, then try again.</string>
   <string name="r_error_unsupported">Choose a supported image, PDF or text receipt.</string>
@@ -55,4 +59,9 @@
   <string name="r_status_pending">Receipt status: pending</string>
   <string name="r_status_failed">Receipt status: failed</string>
   <string name="r_status_unknown">Receipt status: not determined</string>
+  <string name="r_detected">Detected · review</string>
+  <string name="r_missing_or_ambiguous">Missing or ambiguous · choose manually</string>
+  <string name="r_currency_review">Currency not detected · choose it before confirming</string>
+  <string name="r_time_unspecified">Time not specified</string>
+  <string name="r_existing_detail">Existing transaction</string>
 </resources>

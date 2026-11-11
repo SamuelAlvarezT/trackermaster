@@ -35,6 +35,7 @@ class HabitRepository @Inject constructor(
 ) {
     private val progressDao get() = database.progressDao()
     fun observeDay() = clock.days()
+    fun observeScheduleHistory() = progressDao.observeHistory().map { rows -> rows.map { it.toDomain() } }
     fun observePendingHabits(): Flow<List<PendingHabit>> = combine(habitDao.observeAll(),
         progressDao.observeAllLogs(),progressDao.observeHistory(),clock.days()) { habits,logs,history,today ->
         HabitProgressRules.pending(habits.map { it.toDomain() },logs.map { it.toDomain() },history.map { it.toDomain() },today)
@@ -142,44 +143,14 @@ class HabitRepository @Inject constructor(
 
     suspend fun toggleHabitDayState(habit: Habit, date: LocalDate) {
         val existing = habitLogDao.getForDate(habit.id, date.toEpochMilli())?.toDomain()
+        val base = existing ?: HabitLog(habitId = habit.id, date = date)
         val nextLog = when {
-            existing == null || (!existing.completed && existing.value == 0) -> {
-                HabitLog(
-                    id = existing?.id ?: 0,
-                    habitId = habit.id,
-                    date = date,
-                    completed = true,
-                    value = 1
-                )
-            }
-            existing.completed -> {
-                HabitLog(
-                    id = existing.id,
-                    habitId = habit.id,
-                    date = date,
-                    completed = false,
-                    value = 1
-                )
-            }
-            existing.value > 0 -> {
-                HabitLog(
-                    id = existing.id,
-                    habitId = habit.id,
-                    date = date,
-                    completed = false,
-                    value = -1
-                )
-            }
-            else -> {
-                HabitLog(
-                    id = existing.id,
-                    habitId = habit.id,
-                    date = date,
-                    completed = false,
-                    value = 0
-                )
-            }
+            existing == null || (!existing.completed && existing.value == 0) -> base.copy(completed = true, value = 1)
+            existing.completed -> base.copy(completed = false, value = 1)
+            existing.value > 0 -> base.copy(completed = false, value = -1)
+            else -> base.copy(completed = false, value = 0)
         }
+        // Preserve measured Focus / timer progress while changing the manual status.
         logHabit(habit, nextLog)
     }
 
@@ -408,6 +379,7 @@ class DashboardRepository @Inject constructor(
             journalRepository.writingStreak(),
         ) { todayHabits, moods, balance, focusScore, journalStreak ->
             DashboardSummary(
+                habitTime = com.trackermaster.core.domain.habits.habitTimeSummary(todayHabits),
                 habitsDueToday = todayHabits.size,
                 habitsCompletedToday = todayHabits.count { (_, log) -> log != null && HabitScheduleLogic.isLogComplete(log) },
                 latestMoodLevel = moods.firstOrNull()?.level,

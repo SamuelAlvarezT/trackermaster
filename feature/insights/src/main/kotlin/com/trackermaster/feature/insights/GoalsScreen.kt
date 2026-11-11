@@ -29,7 +29,11 @@ internal fun GoalsPanel(vm: InsightsViewModel) {
                 Text("${g.source.label} · ${g.status}${if(g.status!="COMPLETED" && g.end<LocalDate.now()) " · Vencido" else ""}")
                 val progress=value ?: if(g.source==GoalSource.MANUAL) g.manualProgress else null
                 if(hideMoney && g.source==GoalSource.SAVINGS) Text("Importes ocultos. Cambia la visibilidad desde Money.")
-                else if(progress!=null) { LinearProgressIndicator(progress={GoalRules.ratio(progress,g.target).toFloat()},modifier=Modifier.fillMaxWidth());Text("${"%.2f".format(progress)} / ${g.target} ${g.unit}") }
+                else if(progress!=null) {
+                    LinearProgressIndicator(progress={GoalRules.ratio(progress,g.target).toFloat()},modifier=Modifier.fillMaxWidth())
+                    Text("${metricValue(progress,g.unit)} / meta ${metricValue(g.target,g.unit)}")
+                    if (progress > g.target) Text("Exceso sobre la meta: ${metricValue(progress-g.target,g.unit)}")
+                }
                 else Text("Selecciona en Resultados un periodo que incluya este objetivo para ver su progreso calculado.")
                 Text("Criterio: ${g.criterion.ifBlank { "Alcanzar la meta medible" }}")
                 g.parentId?.let { parent -> Text("Superior: ${goals.firstOrNull {it.id==parent}?.title ?: "No disponible"}") }

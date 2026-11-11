@@ -92,6 +92,7 @@ internal fun errorResource(error: MoneyUiError): Int = when (error) {
     MoneyUiError.CONFLICT -> R.string.m_conflict_error
     MoneyUiError.CURRENCY -> R.string.m_currency_error
     MoneyUiError.NAME -> R.string.m_name_error
+    MoneyUiError.GROUP -> R.string.group_create_error
     else -> R.string.m_save_error
 }
 @Composable

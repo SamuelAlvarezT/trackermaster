@@ -5,6 +5,7 @@
   <string name="r_auth_unavailable">身份验证未完成。请重试或检查设备的生物识别设置。</string>
   <string name="r_title">核对凭证</string>
   <string name="r_share_label">Trackermaster · 财务凭证</string>
+  <string name="r_import_waiting">导入凭证 / %1$d 个待处理</string>
   <string name="r_import">导入凭证</string>
   <string name="r_intro">从钱包应用分享凭证或选择文件。保存前请核对数据。</string>
   <string name="r_choose">选择图片或 PDF</string>
@@ -19,6 +20,7 @@
   <string name="r_confirm">我确认此交易已经发生</string>
   <string name="r_bank_blocked">此凭证显示交易待处理或失败，无法保存为已确认交易。</string>
   <string name="r_unreadable_review">未找到可读文本。您可以手动填写交易并保留原凭证。</string>
+  <string name="r_time">时间（HH:mm，可选）</string>
   <string name="r_reference">参考编号</string>
   <string name="r_sender">付款方：%1$s</string>
   <string name="r_recipient">收款方：%1$s</string>
@@ -29,6 +31,7 @@
   <string name="r_private">请显示金额以查看凭证及识别数据。</string>
   <string name="r_no_viewer">没有可打开此文件的应用。</string>
   <string name="r_date_missing">选择交易日期</string>
+  <string name="r_duplicate_exact">该凭证文件已记录</string>
   <string name="r_duplicate">可能已记录的交易</string>
   <string name="r_duplicate_file">同一文件已附在现有交易中。</string>
   <string name="r_duplicate_reference">此参考编号已出现在现有交易中。</string>
@@ -38,6 +41,7 @@
   <string name="r_saved_detail">凭证已附上，账户余额已更新。</string>
   <string name="r_done">完成</string>
   <string name="r_another">导入另一份凭证</string>
+  <string name="r_save_draft">保存草稿</string>
   <string name="r_save">确认并保存</string>
   <string name="r_save_error">无法保存。草稿已保留；请检查账户、资金分区和金额后重试。</string>
   <string name="r_error_unsupported">请选择支持的图片、PDF 或文本凭证。</string>
@@ -55,4 +59,9 @@
   <string name="r_status_pending">凭证状态：待处理</string>
   <string name="r_status_failed">凭证状态：失败</string>
   <string name="r_status_unknown">凭证状态：未确定</string>
+  <string name="r_detected">已识别 · 请核对</string>
+  <string name="r_missing_or_ambiguous">缺失或不明确 · 请手动选择</string>
+  <string name="r_currency_review">未识别币种 · 确认前请选择</string>
+  <string name="r_time_unspecified">未指定时间</string>
+  <string name="r_existing_detail">现有交易</string>
 </resources>

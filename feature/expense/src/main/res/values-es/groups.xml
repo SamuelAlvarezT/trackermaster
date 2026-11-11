@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="group_same_date">Exigir la misma fecha en grupos nuevos</string>
+  <string name="group_same_account">Exigir la misma cuenta en grupos nuevos</string>
+  <string name="group_rules_existing">Los grupos existentes no cambian.</string>
+  <string name="group_create">Crear grupo</string>
+  <string name="group_name">Nombre del grupo</string>
+  <string name="group_selected">%1$d seleccionados</string>
+  <string name="group_confirm">Confirmar seleccionados</string>
+  <string name="group_first">Crea primero un grupo y revisa cada borrador.</string>
+  <string name="group_confirm_detail">¿Confirmar %1$d borradores revisados? Si uno falla, se cancela todo el lote.</string>
+  <string name="group_create_error">No se pudo crear el grupo. Revisa el nombre, los miembros y las reglas de fecha y cuenta.</string>
+  <string name="group_batch_error">No se confirmó ninguna transacción. Revisa los borradores seleccionados.</string>
+  <string name="group_batch_item_error">No se confirmó ninguna transacción. Revisa: %1$s</string>
+  <string name="group_draft_in">Borrador · %1$s</string>
+  <string name="group_add_existing">Añadir a un grupo existente</string>
+  <string name="group_history_title">Grupos · todas las fechas y cuentas</string>
+  <string name="group_count">%1$d confirmadas · %2$d borradores</string>
+  <string name="group_net">Neto</string>
+  <string name="group_expand">Desplegar grupo</string>
+  <string name="group_remove">Eliminar grupo</string>
+  <string name="group_remove_detail">Al eliminar el grupo se conservan sus transacciones y borradores.</string>
+  <string name="group_view_detail">Ver detalle</string>
+  <string name="group_batch_duplicates">Algunos borradores seleccionados podrían ser la misma transacción.</string>
+  <string name="group_batch_distinct">Los revisé y confirmo que son transacciones diferentes.</string>
+</resources>

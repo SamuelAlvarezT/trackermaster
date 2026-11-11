@@ -13,7 +13,11 @@ import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 data class ReceiptUiState(val workspace: MoneyWorkspaceData? = null, val drafts: List<MoneyReceipt> = emptyList(),
+    val groups: List<MoneyGroup> = emptyList(), val selectedDrafts: Set<String> = emptySet(),
+    val groupRules: MoneyGroupRules = MoneyGroupRules(),
+    val groupError: Boolean = false, val batchErrorId: String? = null, val batchError: Boolean = false,
     val receipt: MoneyReceipt? = null, val form: ReceiptDraft = ReceiptDraft(), val analysis: ReceiptAnalysis = ReceiptAnalysis(),
+    val detectedAccountId: Long? = null,
     val settings: AppSettings = AppSettings(), val hidden: Boolean = true, val loading: Boolean = true,
     val reading: Boolean = false, val saving: Boolean = false, val saved: Boolean = false,
     val checking: Boolean = false, val duplicates: List<ReceiptDuplicate> = emptyList(),
@@ -22,8 +26,13 @@ sealed interface ReceiptEvent {
     data class Update(val form: ReceiptDraft) : ReceiptEvent
     data class Select(val id: String) : ReceiptEvent
     data class Discard(val id: String) : ReceiptEvent
+    data class ToggleDraft(val id: String) : ReceiptEvent
+    data class CreateGroup(val name: String) : ReceiptEvent
+    data class AddToGroup(val id: String) : ReceiptEvent
+    data class ConfirmBatch(val distinctBatchConfirmed: Boolean = false) : ReceiptEvent
     data class Failure(val reason: ReceiptFailure) : ReceiptEvent
     data object Acknowledge : ReceiptEvent
+    data object SaveDraft : ReceiptEvent
     data object Save : ReceiptEvent
     data object Back : ReceiptEvent
     data object Retry : ReceiptEvent
@@ -46,7 +55,7 @@ class ReceiptViewModel @Inject constructor(private val gateway: ReceiptGateway, 
     private fun validate(s: ReceiptUiState): ReceiptUiState {
         val data = s.workspace
         val valid = data != null && s.receipt != null && s.error == null && !s.loading && !s.reading && !s.saving && !s.saved && !s.checking && s.form.confirmed &&
-            s.analysis.status !in listOf(ReceiptBankStatus.PENDING,ReceiptBankStatus.FAILED) && runCatching {
+            s.form.currencyVerified && s.analysis.status !in listOf(ReceiptBankStatus.PENDING,ReceiptBankStatus.FAILED) && runCatching {
                 val movement = ReceiptValidation.movement(s.form,data,s.receipt.id,s.receipt.path)
                 if (s.form.kind == ReceiptEntryKind.TRANSFER) {
                     val target = data.ledger.snapshot.accounts.single { it.account.id == s.form.targetAccountId }.account
@@ -64,9 +73,11 @@ class ReceiptViewModel @Inject constructor(private val gateway: ReceiptGateway, 
         observation = viewModelScope.launch(dispatcher) {
             try {
                 gateway.initialize()
-                combine(gateway.workspace,gateway.drafts,gateway.preferences,gateway.settings) { data,drafts,prefs,settings ->
+                combine(gateway.workspace,gateway.drafts,gateway.preferences,gateway.settings,gateway.groups) { data,drafts,prefs,settings,groups ->
                     if(privateOverride==prefs.hideAmounts) privateOverride=null
-                    change { it.copy(workspace=data,drafts=drafts,settings=settings,hidden=privateOverride ?: prefs.hideAmounts,loading=false) }
+                    change { it.copy(workspace=data,drafts=drafts,groups=groups,groupRules=MoneyGroupRules(prefs.groupSameDate,prefs.groupSameAccount),
+                        selectedDrafts=it.selectedDrafts.intersect(drafts.map { row -> row.id }.toSet()),
+                        settings=settings,hidden=privateOverride ?: prefs.hideAmounts,loading=false) }
                 }.collect { if (state.value.receipt != null && !state.value.reading && !state.value.saving && !state.value.saved) check() }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { change { it.copy(workspace=null,loading=false,error=ReceiptFailure.UNREADABLE,hidden=true) } }
@@ -80,7 +91,9 @@ class ReceiptViewModel @Inject constructor(private val gateway: ReceiptGateway, 
             try {
                 val receipt = gateway.import(source); handle["receipt_id"] = receipt.id; handle["receipt_form"] = null
                 change { it.copy(receipt=receipt) }
-                loaded(gateway.read(receipt.id))
+                val row = gateway.read(receipt.id)
+                val data = state.value.workspace ?: gateway.workspace.first()
+                loaded(row, data)
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { change { it.copy(reading=false,error=(e as? ReceiptException)?.reason ?: ReceiptFailure.UNREADABLE) } }
         }
@@ -97,25 +110,35 @@ class ReceiptViewModel @Inject constructor(private val gateway: ReceiptGateway, 
             catch (_: Exception) { change { it.copy(reading=false,error=ReceiptFailure.UNREADABLE) } }
         }
     }
-    private fun loaded(row: MoneyReceipt) {
-        val form = handle.get<String>("receipt_form")?.let(ReceiptDraftCodec::decode)
-            ?: ReceiptDraftCodec.decode(row.draftJson) ?: ReceiptDraft.from(ReceiptParser.parse(row.text))
-        change { it.copy(receipt=row,form=form,analysis=ReceiptParser.parse(row.text),reading=false,
+    private fun loaded(row: MoneyReceipt, newImportWorkspace: MoneyWorkspaceData? = null) {
+        val analysis = ReceiptParser.parse(row.text)
+        val original = handle.get<String>("receipt_form")?.let(ReceiptDraftCodec::decode)
+            ?: ReceiptDraftCodec.decode(row.draftJson) ?: ReceiptDraft.from(analysis)
+        val suggested = newImportWorkspace?.let { ReceiptSuggestions.account(analysis, row.text, it, original) }
+        val form = if (suggested != null) original.copy(accountId=suggested) else original
+        change { it.copy(receipt=row,form=form,analysis=analysis,detectedAccountId=suggested,reading=false,
             saved=row.stage == "CONFIRMED",error=null,duplicates=emptyList()) }
         check()
     }
-    private fun fingerprint(d: ReceiptDraft) = listOf(d.kind,d.amount,d.currency,d.date,d.accountId,d.pocketId,d.targetAccountId,d.targetPocketId,d.receivedAmount,d.reference)
+    private fun fingerprint(d: ReceiptDraft) = listOf(d.kind,d.amount,d.currency,d.currencyVerified,d.date,d.time,d.accountId,d.pocketId,d.targetAccountId,d.targetPocketId,d.receivedAmount,d.reference)
     fun onEvent(event: ReceiptEvent) {
         when(event) {
             is ReceiptEvent.Update -> if (!state.value.saving && !state.value.reading && !state.value.saved) {
                 val old=state.value.form
                 val form=event.form.copy(duplicateAcknowledgement=if(fingerprint(old)==fingerprint(event.form)) old.duplicateAcknowledgement else null)
-                change { it.copy(form=form,error=null,saveError=false) }; handle["receipt_form"]=ReceiptDraftCodec.encode(form); check()
+                change { it.copy(form=form,detectedAccountId=it.detectedAccountId?.takeIf { id -> id == form.accountId },error=null,saveError=false) }; handle["receipt_form"]=ReceiptDraftCodec.encode(form); check()
             }
             is ReceiptEvent.Select -> { handle["receipt_form"]=null; select(event.id) }
+            is ReceiptEvent.ToggleDraft -> if (!state.value.saving) change {
+                it.copy(selectedDrafts = if (event.id in it.selectedDrafts) it.selectedDrafts - event.id else it.selectedDrafts + event.id,
+                    groupError=false,batchError=false,batchErrorId=null)
+            }
+            is ReceiptEvent.CreateGroup -> createGroup(event.name)
+            is ReceiptEvent.AddToGroup -> addToGroup(event.id)
+            is ReceiptEvent.ConfirmBatch -> confirmBatch(event.distinctBatchConfirmed)
             is ReceiptEvent.Failure -> change { it.copy(error=event.reason) }
             is ReceiptEvent.Discard -> if(!state.value.saving) viewModelScope.launch(dispatcher) {
-                try { gateway.discard(event.id); if(state.value.receipt?.id==event.id) onEvent(ReceiptEvent.Back) }
+                try { gateway.discard(event.id); if(state.value.receipt?.id==event.id) clearReview() }
                 catch(e:CancellationException){throw e} catch(_:Exception){change{it.copy(error=ReceiptFailure.UNREADABLE)}}
             }
             ReceiptEvent.Acknowledge -> {
@@ -124,9 +147,9 @@ class ReceiptViewModel @Inject constructor(private val gateway: ReceiptGateway, 
                 check()
             }
             ReceiptEvent.Save -> save()
-            ReceiptEvent.Back -> if(!state.value.saving) {
-                scanning?.cancel(); checking?.cancel(); handle["receipt_id"]=null; handle["receipt_form"]=null
-                change { it.copy(receipt=null,form=ReceiptDraft(),reading=false,saved=false,error=null,saveError=false,duplicates=emptyList(),checking=false) }
+            ReceiptEvent.SaveDraft -> saveDraft()
+            ReceiptEvent.Back -> if (!state.value.saving) {
+                if (state.value.receipt != null && !state.value.saved && !state.value.reading) saveDraft() else clearReview()
             }
             ReceiptEvent.Retry -> if(state.value.workspace==null) observe() else state.value.receipt?.id?.let { select(it) }
             ReceiptEvent.Privacy -> {
@@ -134,6 +157,73 @@ class ReceiptViewModel @Inject constructor(private val gateway: ReceiptGateway, 
                 viewModelScope.launch(dispatcher) { try { gateway.privacy(requireNotNull(privateOverride)) }
                     catch(e:CancellationException){throw e} catch(_:Exception){change{it.copy(saveError=true)}} }
             }
+        }
+    }
+    private fun createGroup(name: String) {
+        val current = state.value
+        if (current.saving || current.selectedDrafts.isEmpty()) return
+        change { it.copy(saving=true,groupError=false) }
+        viewModelScope.launch(dispatcher) {
+            try {
+                gateway.createGroup(name, current.selectedDrafts.map { "receipt:$it" },
+                    current.groupRules)
+                change { it.copy(saving=false,selectedDrafts=emptySet()) }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { change { it.copy(saving=false,groupError=true) } }
+        }
+    }
+    private fun addToGroup(id: String) {
+        val current = state.value
+        if (current.saving || current.selectedDrafts.isEmpty()) return
+        change { it.copy(saving=true,groupError=false) }
+        viewModelScope.launch(dispatcher) {
+            try {
+                gateway.addToGroup(id, current.selectedDrafts.map { "receipt:$it" }, current.groupRules)
+                change { it.copy(saving=false,selectedDrafts=emptySet()) }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { change { it.copy(saving=false,groupError=true) } }
+        }
+    }
+    private fun confirmBatch(distinctBatchConfirmed: Boolean) {
+        val current = state.value
+        if (current.saving || current.selectedDrafts.isEmpty()) return
+        val keys = current.selectedDrafts.map { "receipt:$it" }.toSet()
+        if (current.groups.none { it.memberKeys.containsAll(keys) }) { change { it.copy(batchError=true) }; return }
+        change { it.copy(saving=true,batchError=false,batchErrorId=null) }
+        viewModelScope.launch(dispatcher) {
+            try {
+                val drafts = current.selectedDrafts.map { id ->
+                    val row = gateway.get(id)
+                    val snapshot = current.drafts.firstOrNull { it.id == id }
+                    if (snapshot == null || row.draftJson != snapshot.draftJson || row.stage != snapshot.stage)
+                        throw com.trackermaster.core.data.money.ReceiptBatchException(id, IllegalArgumentException("Draft changed"))
+                    val draft = ReceiptDraftCodec.decode(row.draftJson) ?: throw com.trackermaster.core.data.money.ReceiptBatchException(id, IllegalArgumentException("Invalid draft"))
+                    id to draft
+                }
+                gateway.confirmBatch(drafts, distinctBatchConfirmed)
+                change { it.copy(saving=false,selectedDrafts=emptySet()) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { change { it.copy(saving=false,batchError=true,batchErrorId=(e as? com.trackermaster.core.data.money.ReceiptBatchException)?.receiptId) } }
+        }
+    }
+    private fun clearReview() {
+        scanning?.cancel(); checking?.cancel(); handle["receipt_id"] = null; handle["receipt_form"] = null
+        change { it.copy(receipt=null, form=ReceiptDraft(), detectedAccountId=null, reading=false, saved=false, error=null,
+            saveError=false, duplicates=emptyList(), checking=false) }
+    }
+    private fun saveDraft() {
+        val current = state.value
+        val receipt = current.receipt ?: return
+        if (current.saving || current.reading) return
+        checking?.cancel()
+        change { it.copy(saving=true, saveError=false, checking=false) }
+        viewModelScope.launch(dispatcher) {
+            try {
+                gateway.persist(receipt.id, current.form)
+                change { it.copy(saving=false) }
+                clearReview()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { change { it.copy(saving=false, saveError=true) } }
         }
     }
     private fun check() {

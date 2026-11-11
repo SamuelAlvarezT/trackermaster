@@ -39,7 +39,7 @@ internal fun MoneyOverviewBody(state: MoneyHomeUiState, onEvent: (MoneyEvent) ->
     val hidden = state.preferences.hideAmounts
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         MoneyOutlinedButton({onEvent(MoneyEvent.ImportReceipt)},Modifier.fillMaxWidth().testTag("money_import_receipt")) {
-            Icon(Icons.AutoMirrored.Filled.ReceiptLong,null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.r_import))
+            Icon(Icons.AutoMirrored.Filled.ReceiptLong,null); Spacer(Modifier.width(8.dp)); Text(if (state.receiptDraftCount == 0) stringResource(R.string.r_import) else stringResource(R.string.r_import_waiting, state.receiptDraftCount))
         }
         MoneyTextButton({onEvent(MoneyEvent.Planning("plans"))},Modifier.fillMaxWidth()) {
             Icon(Icons.Default.EventRepeat,null);Spacer(Modifier.width(8.dp));Text(stringResource(R.string.p_plans))

@@ -9,10 +9,13 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+class ReceiptBatchException(val receiptId: String, cause: Exception) : IllegalArgumentException(cause.message, cause)
+
 @Singleton
 class MoneyReceiptRepository @Inject constructor(private val db: TrackermasterDatabase, private val money: MoneyRepository) {
     private val dao get() = db.moneyReceiptDao()
     val drafts = dao.observeDrafts().map { rows -> rows.map { it.model() } }
+    val all = dao.observeAll().map { rows -> rows.map { it.model() } }
     suspend fun get(id: String): MoneyReceipt = requireNotNull(dao.get(id)).model()
     suspend fun create(file: ReceiptFile): MoneyReceipt {
         val row = MoneyReceiptEntity(UUID.randomUUID().toString(), file.path, file.mime, file.sha256, file.name, createdAt = System.currentTimeMillis())
@@ -30,7 +33,13 @@ class MoneyReceiptRepository @Inject constructor(private val db: TrackermasterDa
         val json = ReceiptDraftCodec.encode(draft)
         if (row.stage != "CONFIRMED" && row.draftJson != json) dao.update(row.copy(draftJson = json))
     }
-    suspend fun discard(id: String) = dao.discard(id)
+    suspend fun discard(id: String) = db.withTransaction {
+        val row = dao.get(id)
+        if (row != null && row.stage != "CONFIRMED") {
+            db.moneyGroupDao().removeMember("receipt:$id")
+            dao.discard(id)
+        }
+    }
     private suspend fun workspace(): MoneyWorkspaceData {
         val rows = db.moneyDao().readLedger()
         return MoneyWorkspaceData(MoneyLedgerData(rows.moneySnapshot(), rows.moneyMovements()),
@@ -59,18 +68,26 @@ class MoneyReceiptRepository @Inject constructor(private val db: TrackermasterDa
     }
     /** Receipt link and ledger entry commit together. Recheck duplicates inside the same SQLite transaction. */
     suspend fun confirm(id: String, draft: ReceiptDraft): Long = db.withTransaction {
+        confirmWithin(id, draft, emptySet())
+    }
+    private suspend fun confirmWithin(id: String, draft: ReceiptDraft, acceptedBatchIds: Set<String>): Long {
         val row = requireNotNull(dao.get(id))
         val json = ReceiptDraftCodec.encode(draft)
         if (row.stage == "CONFIRMED") {
-            if (row.draftJson != json) throw MoneyWriteException(MoneyWriteFailure.REQUEST_CONFLICT)
-            return@withTransaction db.moneyDao().requestedMovement(id)?.id ?: db.moneyDao().transferMovements(id).firstOrNull()?.id
+            if (ReceiptDraftCodec.decode(row.draftJson) != draft) throw MoneyWriteException(MoneyWriteFailure.REQUEST_CONFLICT)
+            return db.moneyDao().requestedMovement(id)?.id ?: db.moneyDao().transferMovements(id).firstOrNull()?.id
                 ?: throw MoneyWriteException(MoneyWriteFailure.STALE_ENTRY)
         }
         val status = ReceiptParser.parse(row.text).status
+        if (!draft.currencyVerified) throw ReceiptException(ReceiptFailure.INVALID_DRAFT)
         if (!draft.confirmed || status == ReceiptBankStatus.PENDING || status == ReceiptBankStatus.FAILED)
             throw ReceiptException(ReceiptFailure.BANK_NOT_CONFIRMED)
         val data = workspace()
-        val duplicates = matches(row, draft, data)
+        val duplicates = matches(row, draft, data).filterNot { match ->
+            data.ledger.movements.firstOrNull { it.id == match.movementId }?.let { movement ->
+                movement.entryRequestId in acceptedBatchIds || movement.transferId in acceptedBatchIds
+            } == true
+        }
         if (duplicates.isNotEmpty() && draft.duplicateAcknowledgement != duplicates.fingerprint())
             throw ReceiptException(ReceiptFailure.DUPLICATE_CHANGED)
         val movement = ReceiptValidation.movement(draft, data, id, row.path)
@@ -83,7 +100,21 @@ class MoneyReceiptRepository @Inject constructor(private val db: TrackermasterDa
             db.moneyDao().transferMovements(id).first().id
         } else money.record(movement)
         dao.update(row.copy(stage = "CONFIRMED", draftJson = json))
-        movementId
+        return movementId
+    }
+    /** Every receipt is committed in one database transaction; any failure rolls back the whole batch. */
+    suspend fun confirmBatch(drafts: List<Pair<String, ReceiptDraft>>, distinctBatchConfirmed: Boolean = false): List<Long> = db.withTransaction {
+        require(drafts.isNotEmpty() && drafts.map { it.first }.distinct().size == drafts.size)
+        val prior = mutableSetOf<String>()
+        drafts.map { (id, draft) ->
+            try {
+                val current = requireNotNull(dao.get(id))
+                val alreadyConfirmed = current.stage == "CONFIRMED"
+                if (!alreadyConfirmed && ReceiptDraftCodec.decode(current.draftJson) != draft) throw ReceiptException(ReceiptFailure.INVALID_DRAFT)
+                confirmWithin(id, draft, if (distinctBatchConfirmed) prior else emptySet()).also { if (!alreadyConfirmed) prior += id }
+            } catch (failure: kotlinx.coroutines.CancellationException) { throw failure }
+            catch (failure: Exception) { throw ReceiptBatchException(id, failure) }
+        }
     }
     private fun MoneyReceiptEntity.model() = MoneyReceipt(id,path,mimeType,sha256,name,text,previewPath,stage,draftJson,createdAt)
 }

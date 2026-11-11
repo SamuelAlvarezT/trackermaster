@@ -5,6 +5,18 @@ import org.junit.Test
 import java.util.Locale
 
 class MoneyTest {
+    @org.junit.Test fun widgetCompactRetainsSignAndCurrency() {
+        org.junit.Assert.assertEquals("1.2 M COP", Money.fromDecimal("1200000", "COP").formatCompact(java.util.Locale.US))
+        org.junit.Assert.assertEquals("-1.2 M COP", Money.fromDecimal("-1200000", "COP").formatCompact(java.util.Locale.US))
+        org.junit.Assert.assertEquals("COP 139,845.50", Money.fromDecimal("139845.50", "COP").formatCompact(java.util.Locale.US))
+    }
+    @Test fun formattingUsesConsistentSeparatorsAndShowsCentsOnlyWhenNeeded() {
+        val locale = java.util.Locale.forLanguageTag("es-CO")
+        assertEquals("USD 139,845", Money.fromDecimal("139845.00", "USD").format(locale))
+        assertEquals("USD 139,845.01", Money.fromDecimal("139845.01", "USD").format(locale))
+        assertEquals("USD 139,845.50", Money.fromDecimal("139845.50", "USD").format(locale))
+        assertEquals("USD -139,845", Money.fromDecimal("-139845.00", "USD").format(locale))
+    }
     @Test fun decimalArithmeticIsExact() {
         assertEquals(Money(30, "USD"), Money.fromDecimal("0.10", "USD") + Money.fromDecimal("0.20", "USD"))
     }

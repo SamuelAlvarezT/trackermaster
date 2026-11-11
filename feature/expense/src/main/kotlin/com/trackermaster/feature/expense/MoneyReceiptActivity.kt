@@ -43,14 +43,17 @@ class MoneyReceiptActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         actionBar?.hide()
         if(savedInstanceState==null) {
-            try { receiptSource(intent)?.let(receipts::receive) }
+            try {
+                val id = if (intent.action == null) intent.getStringExtra("receipt_id") else null
+                if (id != null) receipts.onEvent(ReceiptEvent.Select(id)) else receiptSource(intent)?.let(receipts::receive)
+            }
             catch(e:ReceiptException) {receipts.onEvent(ReceiptEvent.Failure(e.reason))}
         }
         setContent {
             val state by receipts.state.collectAsStateWithLifecycle()
             val accounts by money.uiState.collectAsStateWithLifecycle()
             var authenticated by remember {mutableStateOf(false)}
-            MoneyLocale(state.settings.localeTag) { TrackermasterTheme(state.settings.themeMode,state.settings.accentIndex) {
+            MoneyLocale(state.settings.localeTag) { TrackermasterTheme(state.settings.themeMode,state.settings.accentIndex,state.settings.turquoiseEnabled) {
                 BackHandler { if(!state.saving) {
                     if(state.settings.biometricEnabled && !authenticated) finish()
                     else if(state.receipt!=null || state.reading) receipts.onEvent(ReceiptEvent.Back) else finish()
@@ -64,7 +67,7 @@ class MoneyReceiptActivity : FragmentActivity() {
                 }) {
                     ReceiptScreen(state,receipts::onEvent,{picker.launch(arrayOf("image/*","application/pdf","text/plain"))},{finish()},
                         onNewAccount={money.onEvent(MoneyEvent.Currency(state.form.currency));money.onEvent(MoneyEvent.OpenAccount())},
-                        onView={ReceiptViewer.open(this,it.path,state.settings.localeTag)},
+                        onView={ReceiptViewer.open(this,it,state.settings.localeTag)},
                         preview=state.receipt?.previewPath?.let {runCatching{files.resolve(it)}.getOrNull()})
                     MoneyPanels(accounts,money::onEvent)
                 }

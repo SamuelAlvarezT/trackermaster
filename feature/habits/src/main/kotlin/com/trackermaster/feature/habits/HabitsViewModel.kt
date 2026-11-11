@@ -6,6 +6,7 @@ import com.trackermaster.core.data.repository.HabitRepository
 import com.trackermaster.core.domain.model.Habit
 import com.trackermaster.core.domain.model.HabitLog
 import com.trackermaster.core.domain.model.StreakInfo
+import com.trackermaster.core.domain.habits.HabitScheduleVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,6 +18,8 @@ data class HabitsUiState(
     val archivedHabits: List<Pair<Habit, List<HabitLog>>> = emptyList(),
     val selectedTab: Int = 0,
     val today: LocalDate = LocalDate.now(),
+    val actualToday: LocalDate = LocalDate.now(),
+    val history: List<HabitScheduleVersion> = emptyList(),
     val isReorderMode: Boolean = false
 )
 
@@ -28,14 +31,22 @@ class HabitsViewModel @Inject constructor(private val repo: HabitRepository) : V
 
     private val _selectedTab = MutableStateFlow(0)
     private val _isReorderMode = MutableStateFlow(false)
+    private val _selectedDate = MutableStateFlow<LocalDate?>(null)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<HabitsUiState> = repo.observeDay().flatMapLatest { today ->
-        combine(repo.observeActiveHabitsWithLogs(today.minusDays(6)),
-            repo.observeArchivedHabitsWithLogs(today.minusDays(6)),_selectedTab,_isReorderMode) { active,archived,tab,reorder ->
-            HabitsUiState(activeHabits=active,archivedHabits=archived,selectedTab=tab,isReorderMode=reorder,today=today)
+    val uiState: StateFlow<HabitsUiState> = combine(repo.observeDay(), _selectedDate) { today, selected ->
+        today to (selected ?: today)
+    }.flatMapLatest { (actualToday, selected) ->
+        combine(repo.observeActiveHabitsWithLogs(selected.minusDays(6)),
+            repo.observeArchivedHabitsWithLogs(selected.minusDays(6)), repo.observeScheduleHistory(),
+            _selectedTab, _isReorderMode) { active, archived, history, tab, reorder ->
+            HabitsUiState(activeHabits=active, archivedHabits=archived, selectedTab=tab,
+                isReorderMode=reorder, today=selected, actualToday=actualToday, history=history)
         }
     }.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),HabitsUiState())
+
+    fun selectDate(date: LocalDate) { _selectedDate.value = date }
+    fun resetDate() { _selectedDate.value = null; _selectedTab.value = 0; _isReorderMode.value = false }
 
     fun selectTab(tab: Int) {
         _selectedTab.value = tab

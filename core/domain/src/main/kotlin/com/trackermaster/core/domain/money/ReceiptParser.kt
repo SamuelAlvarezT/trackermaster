@@ -12,7 +12,12 @@ object ReceiptParser {
     fun parse(input: String): ReceiptAnalysis {
         val lines = input.take(MAX_TEXT).lines().map(String::trim).filter(String::isNotEmpty)
         val text = normalize(lines.joinToString("\n"))
-        val provider = if (Regex("\\bnequi\\b").containsMatchIn(text)) "NEQUI" else null
+        val firstLine = normalize(lines.firstOrNull().orEmpty())
+        val provider = when {
+            Regex("^(?:nu|nu colombia|banco nu)$").matches(firstLine) -> "NU"
+            Regex("\\bnequi\\b").containsMatchIn(text) -> "NEQUI"
+            else -> null
+        }
         val status = when {
             Regex("rechazad|fallid|cancelad|no se pudo|no fue exitos|failed|declined|cancelled|unsuccessful").containsMatchIn(text) -> ReceiptBankStatus.FAILED
             Regex("pendiente|en proceso|procesando|pending|processing").containsMatchIn(text) -> ReceiptBankStatus.PENDING
@@ -30,19 +35,35 @@ object ReceiptParser {
         val labelled = mutableListOf<BigDecimal>(); val standalone = mutableListOf<BigDecimal>()
         if (code != null) lines.forEachIndexed { i, line ->
             val n = normalize(line)
-            if (Regex("saldo|disponible|balance|telefono|celular|phone|referencia|reference|comprobante|fecha|date|tasa|rate").containsMatchIn(n)) return@forEachIndexed
+            if (Regex("saldo|disponible|balance|telefono|celular|phone|referencia|reference|comprobante|fecha|date|tasa|rate|comision|commission|fee|impuesto|tax").containsMatchIn(n)) return@forEachIndexed
             if (Regex("^(valor|monto|cuanto|amount|total(?: pagado)?)(?:\\s|:|$)").containsMatchIn(n)) {
                 val suffix = line.replace(Regex("^(valor|monto|cuánto|cuanto|amount|total(?: pagado)?)\\s*:?[\\s]*", RegexOption.IGNORE_CASE), "")
                 number(suffix, code)?.let(labelled::add)
                 if (suffix.isBlank()) lines.getOrNull(i + 1)?.let { number(it, code)?.let(labelled::add) }
             } else if (Regex("^(?:COP|USD|US\\$|\\$)\\s*[\\d.,\\s]+$", RegexOption.IGNORE_CASE).matches(line) &&
-                !Regex("saldo|balance|disponible").containsMatchIn(normalize(lines.getOrNull(i - 1).orEmpty()))) number(line, code)?.let(standalone::add)
+                !Regex("saldo|balance|disponible|comision|commission|fee|impuesto|tax").containsMatchIn(normalize(lines.getOrNull(i - 1).orEmpty()))) number(line, code)?.let(standalone::add)
         }
         val values = (if (labelled.isNotEmpty()) labelled else standalone).distinct()
         val amount = values.singleOrNull()?.let { runCatching { Money.fromDecimal(it, requireNotNull(code)) }.getOrNull() }?.takeIf { it.minorUnits > 0 }
-        return ReceiptAnalysis(amount, lines.mapNotNull(::date).distinct().singleOrNull(), direction, status,
+        val nonTransaction = Regex("generad|descargad|importad|impres|generated|downloaded|imported|printed")
+        val transactionLines = lines.filterIndexed { index, line ->
+            val previous = lines.getOrNull(index - 1).orEmpty()
+            !nonTransaction.containsMatchIn(normalize(line)) &&
+                !(nonTransaction.containsMatchIn(normalize(previous)) && !previous.any(Char::isDigit))
+        }
+        return ReceiptAnalysis(amount, transactionLines.mapNotNull { date(it, provider == "NEQUI") }.distinct().singleOrNull(), direction, status,
             field(lines, "referencia|reference|numero de comprobante|numero de transaccion|transaction (?:id|number)|comprobante")?.takeIf { it.any(Char::isDigit) },
-            provider, field(lines, "de|from|origen|nombre de quien envia"), field(lines, "para|to|destino|nombre de quien recibe"))
+            provider, field(lines, "de|from|origen|nombre de quien envia"), field(lines, "para|to|destino|nombre de quien recibe"),
+            transactionLines.filterIndexed { index, line ->
+                val label = normalize(line)
+                val previous = normalize(transactionLines.getOrNull(index - 1).orEmpty())
+                (Regex("hora|time|fecha|date").containsMatchIn(label) ||
+                    Regex("^(hora|time)\\s*:?").containsMatchIn(previous)) &&
+                    !Regex("\\b[ap]\\.?m\\.?\\b", RegexOption.IGNORE_CASE).containsMatchIn(line)
+            }.flatMap { line -> Regex("(?<!\\d)([01]?\\d|2[0-3]):([0-5]\\d)(?!\\d)").findAll(line).mapNotNull { match ->
+                runCatching { java.time.LocalTime.of(match.groupValues[1].toInt(), match.groupValues[2].toInt()) }.getOrNull()
+            }.toList() }.distinct().singleOrNull(),
+            if (Regex("\\b(entre mis cuentas|entre tus cuentas|between my own accounts|between your own accounts)\\b").containsMatchIn(text)) ReceiptEntryKind.TRANSFER else null)
     }
     private fun field(lines: List<String>, labels: String): String? {
         val regex = Regex("^(?:$labels)(?:\\s*:\\s*|\\s+|$)(.*)$")
@@ -73,12 +94,15 @@ object ReceiptParser {
         }
         return runCatching { BigDecimal(n) }.getOrNull()
     }
-    private fun date(value: String): LocalDate? {
+    private fun date(value: String, dayFirstKnown: Boolean): LocalDate? {
         val text = normalize(value)
         Regex("(?<!\\d)(20\\d{2})[-/年](\\d{1,2})[-/月](\\d{1,2})(?:日)?(?!\\d)").find(text)?.let {
             return validDate(it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()) }
         Regex("(?<!\\d)(\\d{1,2})[/.-](\\d{1,2})[/.-](20\\d{2})(?!\\d)").find(text)?.let {
-            return validDate(it.groupValues[3].toInt(), it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
+            val first = it.groupValues[1].toInt(); val second = it.groupValues[2].toInt()
+            if (!dayFirstKnown && first <= 12 && second <= 12 && first != second) return null
+            return if (!dayFirstKnown && second > 12) validDate(it.groupValues[3].toInt(), first, second)
+                else validDate(it.groupValues[3].toInt(), second, first) }
         val months = listOf("ene|jan", "feb", "mar", "abr|apr", "may", "jun", "jul", "ago|aug", "sep", "oct", "nov", "dic|dec")
         Regex("(?<!\\d)(\\d{1,2})\\s*(?:de\\s*)?([a-z]+)\\.?\\s*(?:de\\s*)?(20\\d{2})(?!\\d)").find(text)?.let {
             val month = months.indexOfFirst { p -> Regex("^(?:$p)").containsMatchIn(it.groupValues[2]) } + 1

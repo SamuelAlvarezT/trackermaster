@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 object ReceiptDraftCodec {
     fun encode(d: ReceiptDraft) = JSONObject().apply {
-        put("kind", d.kind?.name); put("amount", d.amount); put("currency", d.currency); put("date", d.date)
+        put("kind", d.kind?.name); put("amount", d.amount); put("currency", d.currency); put("date", d.date); put("time", d.time); put("currencyVerified", d.currencyVerified)
         put("account", d.accountId); put("pocket", d.pocketId); put("category", d.categoryId)
         put("target", d.targetAccountId); put("targetPocket", d.targetPocketId); put("received", d.receivedAmount)
         put("note", d.note); put("reference", d.reference); put("confirmed", d.confirmed); put("duplicate", d.duplicateAcknowledgement)
@@ -18,6 +18,6 @@ object ReceiptDraftCodec {
             accountId = id("account"), pocketId = id("pocket"), categoryId = id("category"), targetAccountId = id("target"),
             targetPocketId = id("targetPocket"), receivedAmount = o.optString("received"), note = o.optString("note"),
             reference = o.optString("reference"), confirmed = o.optBoolean("confirmed"),
-            duplicateAcknowledgement = o.optString("duplicate").takeIf(String::isNotEmpty))
+            duplicateAcknowledgement = o.optString("duplicate").takeIf(String::isNotEmpty), time = o.optString("time"), currencyVerified = o.optBoolean("currencyVerified"))
     }.getOrNull()
 }

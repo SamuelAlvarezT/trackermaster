@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="group_same_date">新分组要求相同日期</string>
+  <string name="group_same_account">新分组要求相同账户</string>
+  <string name="group_rules_existing">现有分组不会更改。</string>
+  <string name="group_create">创建分组</string>
+  <string name="group_name">分组名称</string>
+  <string name="group_selected">已选择 %1$d 项</string>
+  <string name="group_confirm">确认所选</string>
+  <string name="group_first">请先创建分组并核对每份草稿。</string>
+  <string name="group_confirm_detail">确认 %1$d 份已核对草稿？如有失败，整批取消。</string>
+  <string name="group_create_error">无法创建分组。请检查名称、成员及日期和账户规则。</string>
+  <string name="group_batch_error">没有确认任何交易。请检查所选草稿。</string>
+  <string name="group_batch_item_error">没有确认任何交易。请检查：%1$s</string>
+  <string name="group_draft_in">草稿 · %1$s</string>
+  <string name="group_add_existing">添加到现有分组</string>
+  <string name="group_history_title">分组 · 所有日期和账户</string>
+  <string name="group_count">%1$d 笔已确认 · %2$d 份草稿</string>
+  <string name="group_net">净额</string>
+  <string name="group_expand">展开分组</string>
+  <string name="group_remove">删除分组</string>
+  <string name="group_remove_detail">删除分组会保留交易和草稿。</string>
+  <string name="group_view_detail">查看详情</string>
+  <string name="group_batch_duplicates">部分所选草稿可能是同一笔交易。</string>
+  <string name="group_batch_distinct">我已核对并确认它们是不同的交易。</string>
+</resources>

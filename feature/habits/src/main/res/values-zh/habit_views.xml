@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="habit_view_today">今天</string>
+    <string name="habit_view_all">全部</string>
+    <string name="habit_scheduled_today">今天计划</string>
+    <string name="habit_not_today">今天不需要</string>
+    <string name="habit_next">下次：%1$s</string>
+    <string name="habit_no_next">没有下次计划日期</string>
+    <string name="habit_time_summary_habits">计划：%1$s · 剩余：%2$s</string>
+    <string name="habit_history_unavailable">此日期没有可用的历史计划。</string>
+    <string name="habit_scheduled_date">%1$s 的计划</string>
+    <string name="habit_not_date">%1$s 不需要</string>
+</resources>

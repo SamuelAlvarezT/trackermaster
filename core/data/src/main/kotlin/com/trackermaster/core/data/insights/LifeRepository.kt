@@ -17,13 +17,17 @@ import kotlinx.coroutines.flow.*
 import java.time.*
 import javax.inject.*
 
-data class LifeMetric(val key: String,val title: String,val value: Double,val unit: String="",val detail: String="",val previous: Double=0.0)
+data class LifeMetric(val key: String,val title: String,val value: Double,val unit: String="",val detail: String="",val previous: Double=0.0,val hasData: Boolean=true,val previousHasData: Boolean=true)
 data class LifeReport(val comparison: PeriodComparison,val metrics: List<LifeMetric>,val habitDaily: Map<LocalDate,Double>,
     val focusDaily: Map<LocalDate,Double>,val difficulties: List<Pair<String,Double>>,val goals: List<Pair<LifeGoal,Double>>) {
     fun calculatedText() = buildString {
         appendLine("${comparison.current.start} — ${comparison.current.end}")
         appendLine("Comparación: ${comparison.previous.start} — ${comparison.previous.end}")
-        metrics.forEach { appendLine("${it.title}: ${"%.2f".format(it.value)} ${it.unit} · anterior ${"%.2f".format(it.previous)}. ${it.detail}") }
+        metrics.forEach {
+            val current = if (it.hasData) "${"%.2f".format(java.util.Locale.US,it.value)} ${it.unit}" else "sin datos"
+            val previous = if (it.previousHasData) "${"%.2f".format(java.util.Locale.US,it.previous)} ${it.unit}" else "sin datos"
+            appendLine("${it.title}: $current · anterior $previous. ${it.detail}")
+        }
     }
 }
 data class LifeChoices(val habits: List<Habit> = emptyList(),val tasks: List<Task> = emptyList(),val savings: List<Pair<String,String>> = emptyList())
@@ -115,7 +119,7 @@ class LifeRepository @Inject constructor(private val db: TrackermasterDatabase,p
         val habits=LifeCalculations.habits(comparison.current,d.activity.habits,d.activity.logs,d.activity.history)
         val historical=d.copy(goalData=d.goalData.copy(goals=goalsAt(d,comparison.current.end)))
         val linked=historical.goals.filter { it.start<=comparison.current.end && it.end>=comparison.current.start && it.status!="ARCHIVED" }.map { it to goalValue(it,historical,span=DateSpan(it.start,minOf(it.end,comparison.current.end))) }
-        return LifeReport(comparison,now.map { it.copy(previous=before[it.key]?.value ?: 0.0) },habits.daily,focusDays(d,comparison.current).mapValues { it.value/60_000.0 },
+        return LifeReport(comparison,now.map { it.copy(previous=before[it.key]?.value ?: 0.0,previousHasData=before[it.key]?.hasData == true) },habits.daily,focusDays(d,comparison.current).mapValues { it.value/60_000.0 },
             habits.difficulty.map { (id,value) -> (d.activity.habits.firstOrNull { it.id==id }?.name ?: "Hábito eliminado") to value },linked)
     }
     private fun goalsAt(d: LifeData,day: LocalDate): List<LifeGoal> {
@@ -124,12 +128,12 @@ class LifeRepository @Inject constructor(private val db: TrackermasterDatabase,p
     }
     private fun metrics(d: LifeData,span: DateSpan): List<LifeMetric> = buildList {
         val h=LifeCalculations.habits(span,d.activity.habits,d.activity.logs,d.activity.history)
-        add(LifeMetric("habits","Habits · cumplimiento",h.percent ?: 0.0,"%",if(h.due==0) "Sin fechas programadas registradas" else "${h.due} fechas programadas; ${"%.2f".format(h.equivalent)} días equivalentes"))
+        add(LifeMetric("habits","Habits · cumplimiento",h.percent ?: 0.0,"%",if(h.due==0) "Sin fechas programadas registradas" else "${"%.2f".format(h.equivalent)} días equivalentes de ${h.due} programados",hasData=h.due>0))
         val t=LifeCalculations.tasks(span,d.activity.tasks,d.today,clock.zone())
         add(LifeMetric("tasks_done","Tasks · completadas",t.completed.toDouble()))
         add(LifeMetric("tasks_pending","Tasks · pendientes",t.pending.toDouble()))
         add(LifeMetric("tasks_overdue","Tasks · vencidas",t.overdue.toDouble()))
-        add(LifeMetric("tasks_ontime","Tasks · a tiempo",if(t.due==0) 0.0 else t.onTime*100.0/t.due,"%","${t.onTime}/${t.due} con vencimiento en el periodo; ${t.unknownCompletion} sin fecha de finalización"))
+        add(LifeMetric("tasks_ontime","Tasks · a tiempo",if(t.due==0) 0.0 else t.onTime*100.0/t.due,"%","${t.onTime}/${t.due} con vencimiento en el periodo; ${t.unknownCompletion} sin fecha de finalización",hasData=t.due>0))
         val transactions=d.finance.transactions.filter { LocalDate.ofEpochDay(it.dateEpochDay) in span && it.transferId==null && !it.principal && !it.investmentCapital }
         for(currency in d.finance.accounts.map { it.currencyCode }.distinct().sorted()) {
             val accounts=d.finance.accounts.filter { it.currencyCode==currency }.map { it.id }.toSet()
@@ -157,7 +161,10 @@ class LifeRepository @Inject constructor(private val db: TrackermasterDatabase,p
             val used=transactions.filter { (budget.categoryId==0L || it.categoryId==budget.categoryId) && it.type=="EXPENSE" &&
                 (budget.spaceId==null || it.spaceId==budget.spaceId) && d.finance.accounts.firstOrNull { a -> a.id==it.accountId }?.currencyCode==currency &&
                 LocalDate.ofEpochDay(it.dateEpochDay) in DateSpan(start,end) }.sumOf { it.amountMinor }
-            add(LifeMetric("budget_${budget.id}","Money · presupuesto #${budget.id}",if(allowance>0) used*100.0/allowance else 0.0,"% consumido","${Money(used,currency).decimal} $currency; límite proporcional a los días consultados: ${Money(allowance.toLong(),currency).decimal}; ${if(used<=allowance) "dentro del límite" else "excedido"}"))
+            val limitMoney = Money(allowance.toLong(),currency)
+            val budgetStatus = if (used <= allowance) "dentro del límite" else
+                "exceso: ${Money((used-allowance).toLong(),currency).format(d.locale)}"
+            add(LifeMetric("budget_${budget.id}","Money · presupuesto #${budget.id}",if(allowance>0) used*100.0/allowance else 0.0,"% consumido","${Money(used,currency).format(d.locale)}; límite proporcional a los días consultados: ${limitMoney.format(d.locale)}; $budgetStatus"))
         }
         if(d.finance.budgets.any { it.currencyCode==null || it.limitAmountMinor==null }) add(LifeMetric("budget_unknown","Money · presupuestos sin moneda definida",d.finance.budgets.count { it.currencyCode==null || it.limitAmountMinor==null }.toDouble(),detail="Consulta Money para asignar moneda; no se mezclan divisas"))
         val focus=focusDays(d,span)
@@ -181,7 +188,7 @@ class LifeRepository @Inject constructor(private val db: TrackermasterDatabase,p
             val clipped=DateSpan(maxOf(g.start,span.start),minOf(g.end,span.end))
             g to goalValue(g,historical,span=clipped)
         }
-        add(LifeMetric("goals","Objetivos · progreso",if(values.isEmpty()) 0.0 else values.map { GoalRules.ratio(it.second,it.first.target) }.average()*100,"%","Promedio normalizado; progresos manuales según la última versión guardada hasta el cierre consultado"))
+        add(LifeMetric("goals","Objetivos · progreso",if(values.isEmpty()) 0.0 else values.map { GoalRules.ratio(it.second,it.first.target) }.average()*100,"%","Promedio normalizado; progresos manuales según la última versión guardada hasta el cierre consultado",hasData=values.isNotEmpty()))
         add(LifeMetric("goals_done","Objetivos · completados",goals.count { it.status=="COMPLETED" && it.completedOn?.let { date -> date in span }==true }.toDouble()))
         add(LifeMetric("goals_pending","Objetivos · pendientes",goals.count { it.status!="COMPLETED" && it.end>=d.today }.toDouble()))
         add(LifeMetric("goals_overdue","Objetivos · vencidos",goals.count { it.status!="COMPLETED" && it.end<d.today }.toDouble()))

@@ -1,6 +1,8 @@
 package com.trackermaster.feature.insights
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +27,7 @@ import com.trackermaster.core.domain.insights.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.*
+import kotlin.math.roundToInt
 import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
 
@@ -105,53 +108,91 @@ private fun Results(vm: InsightsViewModel,initialFilter: String) {
                     if(hideMoney && metric.title.startsWith("Money")) {
                         Text("Importes ocultos. Cambia la visibilidad desde Money.",style=MaterialTheme.typography.bodySmall)
                     } else {
-                    Text("${"%.2f".format(metric.value)} ${metric.unit}",style=MaterialTheme.typography.headlineSmall)
-                    MetricBars(metric.value,metric.previous)
-                    Text("Anterior: ${"%.2f".format(metric.previous)} · ${LifeCalculations.variation(metric.value,metric.previous)}",style=MaterialTheme.typography.bodySmall)
-                    if(metric.detail.isNotBlank()) Text(metric.detail,style=MaterialTheme.typography.bodySmall)
+                    if (!metric.hasData) Text("Sin datos para calcular este indicador",style=MaterialTheme.typography.bodyMedium)
+                    else {
+                        Text(metricValue(metric.value,metric.unit) + if (metric.detail.isNotBlank() && metric.unit == "%") " · ${metric.detail}" else "",style=MaterialTheme.typography.headlineSmall)
+                        if (metric.previousHasData) {
+                            MetricBars(metric.value,metric.previous,metric.unit,metric.unit == "%" || metric.unit == "% de días")
+                            Text("Anterior: ${metricValue(metric.previous,metric.unit)} · Variación relativa: ${LifeCalculations.variation(metric.value,metric.previous)}",style=MaterialTheme.typography.bodySmall)
+                            if(metric.unit == "%" || metric.unit == "% de días") Text("Diferencia: ${"%+.2f".format(metric.value-metric.previous)} puntos porcentuales",style=MaterialTheme.typography.bodySmall)
+                        } else Text("Periodo anterior: sin datos comparables",style=MaterialTheme.typography.bodySmall)
+                    }
+                    if(metric.detail.isNotBlank() && (!metric.hasData || metric.unit != "%")) Text(metric.detail,style=MaterialTheme.typography.bodySmall)
                     }
                 } }
             }
             if(filter in listOf("Todas","Habits")) item { Text("Hábitos con mayor dificultad",style=MaterialTheme.typography.titleMedium)
                 if(r.difficulties.isEmpty()) Text("Sin fechas programadas suficientes") else r.difficulties.forEach { Text("${it.first}: ${"%.1f".format(it.second*100)} %") }
             }
-            item { Text("Sin registros, los valores son cero. Las fechas de creación desconocidas y finalizaciones antiguas sin hora no se inventan.",style=MaterialTheme.typography.bodySmall) }
+            item { Text("Los indicadores sin base suficiente se muestran como sin datos. Las fechas de creación desconocidas y finalizaciones antiguas sin hora no se inventan.",style=MaterialTheme.typography.bodySmall) }
         } ?: item { CircularProgressIndicator() }
     }
 }
 
+internal fun metricValue(value: Double, unit: String): String =
+    if (unit == "COP" || unit == "USD") com.trackermaster.core.domain.money.Money.fromLegacy(value,unit).format(java.util.Locale.US)
+    else "${"%.2f".format(java.util.Locale.US,value)} $unit"
+
 @Composable
-private fun MetricBars(current: Double,previous: Double) {
-    if(current==0.0 && previous==0.0) return
-    val primary=MaterialTheme.colorScheme.primary
-    val secondary=MaterialTheme.colorScheme.outline
-    Canvas(Modifier.fillMaxWidth().height(28.dp)) {
-        val min=minOf(0.0,current,previous);val max=maxOf(0.0,current,previous)
-        val range=(max-min).coerceAtLeast(1e-9)
-        val zero=((-min/range)*size.width).toFloat()
-        drawLine(primary,Offset(zero,6f),Offset(((current-min)/range*size.width).toFloat(),6f),strokeWidth=8f)
-        drawLine(secondary,Offset(zero,size.height-6f),Offset(((previous-min)/range*size.width).toFloat(),size.height-6f),strokeWidth=8f)
+private fun MetricBars(current: Double,previous: Double,unit: String,percentage: Boolean) {
+    var selected by remember(current,previous,unit) { mutableStateOf<String?>(null) }
+    val currentColor=MaterialTheme.colorScheme.secondary
+    val previousColor=MaterialTheme.colorScheme.primary
+    val min=if (percentage) 0.0 else minOf(0.0,current,previous)
+    val max=if (percentage) 100.0 else maxOf(0.0,current,previous).coerceAtLeast(min+1.0)
+    val range=(max-min).coerceAtLeast(1e-9)
+    Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
+        Text("Actual: ${metricValue(current,unit)}",style=MaterialTheme.typography.labelSmall)
+        Canvas(Modifier.fillMaxWidth().height(24.dp).pointerInput(current,unit) { detectTapGestures { selected = "Actual: ${metricValue(current,unit)}" } }) {
+            val zero=((-min/range)*size.width).toFloat()
+            drawLine(currentColor,Offset(zero,size.height/2),Offset(((current-min)/range*size.width).toFloat(),size.height/2),strokeWidth=size.height/2)
+        }
+        Text("Anterior: ${metricValue(previous,unit)}",style=MaterialTheme.typography.labelSmall)
+        Canvas(Modifier.fillMaxWidth().height(24.dp).pointerInput(previous,unit) { detectTapGestures { selected = "Anterior: ${metricValue(previous,unit)}" } }) {
+            val zero=((-min/range)*size.width).toFloat()
+            drawLine(previousColor,Offset(zero,size.height/2),Offset(((previous-min)/range*size.width).toFloat(),size.height/2),strokeWidth=size.height/2)
+        }
+        Text("Escala: ${metricValue(min,unit)} — ${metricValue(max,unit)}",style=MaterialTheme.typography.labelSmall)
+        selected?.let { Text(it,style=MaterialTheme.typography.bodySmall) }
     }
 }
 
 @Composable
 private fun DailyChart(title: String,span: DateSpan,values: Map<LocalDate,Double>) {
-    val color=MaterialTheme.colorScheme.primary
-    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+    val color=MaterialTheme.colorScheme.secondary
+    val axis=MaterialTheme.colorScheme.outline
+    var selected by remember(span,values) { mutableStateOf<LocalDate?>(null) }
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         Text(title,style=MaterialTheme.typography.titleSmall)
-        if(values.values.none { it>0 }) Text("Sin actividad registrada en el periodo",Modifier.padding(vertical=16.dp))
+        if(values.isEmpty()) Text("Sin datos en el periodo",Modifier.padding(vertical=16.dp))
         else {
-            val max=values.values.maxOrNull()?.coerceAtLeast(1.0) ?: 1.0
-            Canvas(Modifier.fillMaxWidth().height(100.dp).padding(vertical=8.dp)) {
-                val width=size.width/span.days
-                for(index in 0 until span.days.toInt()) {
-                    val amount=values[span.start.plusDays(index.toLong())] ?: 0.0
-                    if(amount>0) drawLine(color,Offset(width*(index+0.5f),size.height),Offset(width*(index+0.5f),(size.height*(1-amount/max)).toFloat()),strokeWidth=(width*0.65f).coerceAtLeast(1f),cap=StrokeCap.Round)
+            val min=minOf(0.0,values.values.minOrNull() ?: 0.0)
+            val max=maxOf(0.0,values.values.maxOrNull() ?: 0.0).coerceAtLeast(min+1.0)
+            val count=span.days.toInt().coerceAtLeast(1)
+            Canvas(Modifier.fillMaxWidth().height(140.dp).pointerInput(span,values) {
+                detectTapGestures { point ->
+                    val index=if(count==1) 0 else ((point.x/size.width)*(count-1)).roundToInt().coerceIn(0,count-1)
+                    selected=span.start.plusDays(index.toLong())
+                }
+            }) {
+                val range=max-min
+                val zero=(size.height*(max/range)).toFloat()
+                drawLine(axis,Offset(0f,zero),Offset(size.width,zero),strokeWidth=1.dp.toPx())
+                var previous: Offset?=null
+                for(index in 0 until count) {
+                    val value=values[span.start.plusDays(index.toLong())]
+                    if(value==null) { previous=null; continue }
+                    val point=Offset(if(count==1) size.width/2 else size.width*index/(count-1),
+                        (size.height*(max-value)/range).toFloat().coerceIn(0f,size.height))
+                    previous?.let { drawLine(color,it,point,strokeWidth=2.dp.toPx()) }
+                    drawCircle(color,radius=3.dp.toPx(),center=point)
+                    previous=point
                 }
             }
-            Text("Máximo diario: ${"%.1f".format(max)}",style=MaterialTheme.typography.labelSmall)
+            Text("Escala: ${"%.1f".format(min)} — ${"%.1f".format(max)}",style=MaterialTheme.typography.labelSmall)
+            selected?.let { day -> Text("$day: ${values[day]?.let { "%.2f".format(it) } ?: "sin datos"}",style=MaterialTheme.typography.bodySmall) }
         }
-        Text("${span.start} — ${span.end}",style=MaterialTheme.typography.labelSmall)
+        Text("${span.start} — ${span.end} · Toca la gráfica para consultar un día",style=MaterialTheme.typography.labelSmall)
     } }
 }
 

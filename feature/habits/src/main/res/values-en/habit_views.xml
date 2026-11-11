@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="habit_view_today">Today</string>
+    <string name="habit_view_all">All</string>
+    <string name="habit_scheduled_today">Scheduled for today</string>
+    <string name="habit_not_today">Not due today</string>
+    <string name="habit_next">Next: %1$s</string>
+    <string name="habit_no_next">No next scheduled date</string>
+    <string name="habit_time_summary_habits">Planned: %1$s · Remaining: %2$s</string>
+    <string name="habit_history_unavailable">Historical schedule is not available for this date.</string>
+    <string name="habit_scheduled_date">Scheduled for %1$s</string>
+    <string name="habit_not_date">Not due on %1$s</string>
+</resources>

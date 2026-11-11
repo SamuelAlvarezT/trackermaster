@@ -22,6 +22,10 @@ import com.trackermaster.core.domain.money.MoneyDirection
 @Composable
 fun MoneyHistoryScreen(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
     val history = state.history
+    var createDialog by remember { mutableStateOf(false) }
+    var groupName by remember { mutableStateOf("") }
+    var groupMenu by remember { mutableStateOf(false) }
+    val groupedRows = state.userGroups.flatMap { it.rows }.map { it.key }.toSet()
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -31,9 +35,21 @@ fun MoneyHistoryScreen(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
             IconButton({ onEvent(MoneyEvent.OpenPanel("filters")) }, Modifier.testTag("money_filters")) {
                 Icon(Icons.Default.FilterList, stringResource(R.string.m_filters)) }
         }
+        if (state.controls.selectedGroupKeys.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth().padding(horizontal=16.dp)) {
+                Text(stringResource(R.string.group_selected,state.controls.selectedGroupKeys.size))
+                MoneyTextButton({groupName="";createDialog=true},Modifier.fillMaxWidth(),enabled=!state.controls.saving) {Text(stringResource(R.string.group_create))}
+                if (state.userGroups.isNotEmpty()) Box {
+                    MoneyTextButton({groupMenu=true},Modifier.fillMaxWidth(),enabled=!state.controls.saving) { Text(stringResource(R.string.group_add_existing)) }
+                    DropdownMenu(groupMenu,{groupMenu=false}) { state.userGroups.forEach { item ->
+                        DropdownMenuItem(text={Text(item.group.name)},onClick={groupMenu=false;onEvent(MoneyEvent.AddToGroup(item.group.id))})
+                    } }
+                }
+            }
+        }
         LazyColumn(Modifier.fillMaxSize().testTag("money_history"), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (history.groups.isEmpty()) item("empty") {
+            if (state.userGroups.isEmpty() && history.groups.isEmpty()) item("empty") {
                 val hasFilters = history.filters != MoneyFilters()
                 MoneyEmpty(stringResource(if (hasFilters) R.string.m_no_results else R.string.m_no_movements),
                     stringResource(if (hasFilters) R.string.m_no_results_detail else R.string.m_no_movements_detail),
@@ -43,28 +59,86 @@ fun MoneyHistoryScreen(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
                         else if (history.hasAccounts) onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE)) else onEvent(MoneyEvent.OpenAccount())
                     })
             }
+            if (state.userGroups.isNotEmpty()) item("groups_title") { Text(stringResource(R.string.group_history_title),style=MaterialTheme.typography.titleMedium) }
+            items(state.userGroups, key={"user-group:${it.group.id}"}) { item -> MoneyUserGroupCard(item,state.preferences.hideAmounts,onEvent) }
             history.groups.forEach { group ->
-                item("day:${group.day}") {
+                val ungrouped = group.rows.filterNot { it.key in groupedRows }
+                if (ungrouped.isNotEmpty()) item("day:${group.day}") {
                     Column(Modifier.padding(top = 12.dp, bottom = 4.dp)) {
                         Text(dayLabel(group.day), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                        Text(stringResource(R.string.m_day_net, moneyLabel(group.net, state.preferences.hideAmounts)),
+                        Text(stringResource(R.string.m_day_net, moneyLabel(MoneyPresentation.groups(ungrouped, group.net.currencyCode).single().net, state.preferences.hideAmounts)),
                             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                items(group.rows, key = { it.key }) { MoneySwipeRow(it, state.preferences.hideAmounts, onEvent) }
+                items(ungrouped, key = { it.key }) { row ->
+                    Row(verticalAlignment=Alignment.CenterVertically) {
+                        val key = "movement:${row.movement.id}"
+                        Checkbox(key in state.controls.selectedGroupKeys,{onEvent(MoneyEvent.ToggleGroupMember(key))},Modifier.testTag("group-select:${row.key}"),enabled=!state.controls.saving)
+                        Box(Modifier.weight(1f)) { MoneySwipeRow(row, state.preferences.hideAmounts, onEvent) }
+                    }
+                }
             }
         }
     }
+    if (createDialog) AlertDialog(onDismissRequest={createDialog=false},title={Text(stringResource(R.string.group_create))},
+        text={OutlinedTextField(groupName,{groupName=it.take(120)},label={Text(stringResource(R.string.group_name))},singleLine=true)},
+        confirmButton={TextButton(onClick={createDialog=false;onEvent(MoneyEvent.CreateGroup(groupName))},enabled=groupName.isNotBlank()) {Text(stringResource(R.string.m_save))}},
+        dismissButton={TextButton(onClick={createDialog=false}) {Text(stringResource(R.string.m_cancel))}})
+}
+
+@Composable
+private fun MoneyUserGroupCard(item: MoneyUserGroup, hidden: Boolean, onEvent: (MoneyEvent) -> Unit) {
+    var expanded by remember(item.group.id) { mutableStateOf(false) }
+    var remove by remember(item.group.id) { mutableStateOf(false) }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(item.group.name,style=MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.group_count,item.rows.size,item.drafts.size),style=MaterialTheme.typography.bodySmall)
+                    if(item.totals.isNotEmpty()) Column {
+                        Text(stringResource(R.string.group_net),style=MaterialTheme.typography.labelSmall)
+                        item.totals.forEach { MoneyAmount(it,hidden,style=MaterialTheme.typography.bodySmall) }
+                    }
+                }
+                IconButton(onClick={expanded=!expanded},modifier=Modifier.testTag("group-expand:${item.group.id}")) {Icon(if(expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,stringResource(R.string.group_expand))}
+                IconButton(onClick={remove=true},modifier=Modifier.testTag("group-remove:${item.group.id}")) {Icon(Icons.Default.DeleteOutline,stringResource(R.string.group_remove))}
+            }
+            if(expanded) {
+                item.rows.forEach { row ->
+                    Text(listOfNotNull(dayLabel(row.movement.date),item.receiptTimes[row.key]).joinToString(" · "),style=MaterialTheme.typography.labelSmall)
+                    MoneySwipeRow(row,hidden,onEvent)
+                    MoneyTextButton({
+                        when {
+                            row.movement.investmentId != null -> onEvent(MoneyEvent.Investments)
+                            row.movement.principal -> onEvent(MoneyEvent.Commitments())
+                            else -> onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE,row))
+                        }
+                    }) { Text(stringResource(R.string.group_view_detail)) }
+                }
+                item.drafts.forEach { draft ->
+                    MoneyOutlinedButton({onEvent(MoneyEvent.ReviewDraft(draft.id))},Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.group_draft_in,draft.name))
+                    }
+                }
+            }
+        }
+    }
+    if(remove) AlertDialog(onDismissRequest={remove=false},title={Text(stringResource(R.string.group_remove))},
+        text={Text(stringResource(R.string.group_remove_detail))},
+        confirmButton={TextButton(onClick={remove=false;onEvent(MoneyEvent.DeleteGroup(item.group.id))}) {Text(stringResource(R.string.group_remove))}},
+        dismissButton={TextButton(onClick={remove=false}) {Text(stringResource(R.string.m_cancel))}})
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MoneySwipeRow(row: MoneyHistoryRow, hidden: Boolean, onEvent: (MoneyEvent) -> Unit) {
     if(row.movement.principal || row.movement.investmentId!=null){MoneyTransactionCard(row,hidden,onEvent);return}
+    var confirmSwipeDelete by remember(row.key) { mutableStateOf(false) }
     val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         when (value) {
             SwipeToDismissBoxValue.StartToEnd -> onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE, row))
-            SwipeToDismissBoxValue.EndToStart -> onEvent(MoneyEvent.Delete(row.movement.id))
+            SwipeToDismissBoxValue.EndToStart -> confirmSwipeDelete = true
             else -> Unit
         }
         false // The database is the source of truth; do not dismiss optimistically after a failed write.
@@ -79,6 +153,10 @@ private fun MoneySwipeRow(row: MoneyHistoryRow, hidden: Boolean, onEvent: (Money
             }
         }
     }) { MoneyTransactionCard(row, hidden, onEvent) }
+    if (confirmSwipeDelete) AlertDialog(onDismissRequest = { confirmSwipeDelete = false },
+        title = { Text(stringResource(R.string.m_delete_title)) }, text = { Text(stringResource(R.string.m_delete_detail)) },
+        confirmButton = { MoneyTextButton({ confirmSwipeDelete = false; onEvent(MoneyEvent.Delete(row.movement.id)) }) { Text(stringResource(R.string.m_delete)) } },
+        dismissButton = { MoneyTextButton({ confirmSwipeDelete = false }) { Text(stringResource(R.string.m_cancel)) } })
 }
 
 @Composable

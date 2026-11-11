@@ -15,6 +15,10 @@ class ReceiptParserTest {
         val a=ReceiptParser.parse("Nequi\nTransferencia exitosa\nMonto: $10.000")
         assertNull(a.direction); assertEquals(ReceiptBankStatus.SUCCESS,a.status)
     }
+    @Test fun transferRequiresEvidenceOfOwnAccounts() {
+        assertEquals(ReceiptEntryKind.TRANSFER, ReceiptDraft.from(ReceiptParser.parse("Transferencia entre mis cuentas")).kind)
+        assertNull(ReceiptDraft.from(ReceiptParser.parse("Transferencia exitosa a Maria")).kind)
+    }
     @Test fun labelledAmountBeatsBalanceAndPhone() {
         val a=ReceiptParser.parse("Nequi\nMonto: $3.200\nSaldo disponible\n$ 987.000\nCelular 3001234567\nReferencia 1234567890")
         assertEquals(Money(320000,"COP"),a.amount)
@@ -28,6 +32,20 @@ class ReceiptParserTest {
     @Test fun pendingAndFailedOverrideSuccessWords() {
         assertEquals(ReceiptBankStatus.PENDING,ReceiptParser.parse("Nequi\nEnvío exitoso\nPendiente").status)
         assertEquals(ReceiptBankStatus.FAILED,ReceiptParser.parse("Nequi\nNo fue exitoso\nEn proceso").status)
+    }
+    @Test fun generatedDatesAndAmbiguousNumericDatesAreNotAssumed() {
+        assertNull(ReceiptParser.parse("Fecha generada: 2026-11-03").date)
+        assertNull(ReceiptParser.parse("Fecha: 04/10/2026").date)
+        assertEquals(LocalDate.of(2026, 10, 13), ReceiptParser.parse("Fecha: 13/10/2026").date)
+    }
+    @Test fun timeIsOptionalAndGenerationTimeIsIgnored() {
+        assertNull(ReceiptParser.parse("Fecha 2026-11-03").time)
+        assertEquals(java.time.LocalTime.of(14, 32), ReceiptParser.parse("Fecha 2026-11-03\nHora 14:32").time)
+        assertNull(ReceiptParser.parse("Generado 2026-11-03 15:00").time)
+        assertNull(ReceiptParser.parse("Hora 14:32\nHora 15:00").time)
+    }
+    @Test fun aFeeAloneIsNotSuggestedAsTransactionAmount() {
+        assertNull(ReceiptParser.parse("Nequi\nComisión\n$ 1.000,00").amount)
     }
     @Test fun datesUseCalendarDayAndRejectInvalidOrConflicting() {
         assertEquals(LocalDate.of(2026,10,4),ReceiptParser.parse("4 de octubre de 2026").date)

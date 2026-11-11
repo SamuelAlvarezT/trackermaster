@@ -99,7 +99,7 @@ class DefumblrLockScreenActivity : ComponentActivity() {
                 initialValue = AppSettings()
             )
 
-            TrackermasterTheme(settings.themeMode, settings.accentIndex) {
+            TrackermasterTheme(settings.themeMode, settings.accentIndex, settings.turquoiseEnabled) {
                 if (settings.defumblrEnabled) {
                     LockScreenContent(
                         settings = settings,

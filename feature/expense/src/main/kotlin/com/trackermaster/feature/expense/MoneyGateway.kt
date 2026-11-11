@@ -30,6 +30,12 @@ object MoneyDispatchers {
 /** ViewModel boundary: a fake can exercise the entire UDF flow without Compose or SQLite. */
 interface MoneyGateway {
     val data: Flow<MoneyWorkspaceData>
+    val receiptDraftCount: Flow<Int> get() = kotlinx.coroutines.flow.flowOf(0)
+    val receiptRecords: Flow<List<MoneyReceipt>> get() = kotlinx.coroutines.flow.flowOf(emptyList())
+    val groups: Flow<List<MoneyGroup>> get() = kotlinx.coroutines.flow.flowOf(emptyList())
+    suspend fun createGroup(name: String, keys: List<String>, rules: MoneyGroupRules): String = error("Grouping unavailable")
+    suspend fun addToGroup(id: String, keys: List<String>, rules: MoneyGroupRules) { error("Grouping unavailable") }
+    suspend fun deleteGroup(id: String) { error("Grouping unavailable") }
     val preferences: Flow<MoneyPreferences>
     val localeTag: Flow<String>
     suspend fun initialize()
@@ -43,6 +49,7 @@ interface MoneyGateway {
     suspend fun category(name: String, income: Boolean): Long
     suspend fun space(name: String): Long
     suspend fun appearance(detailed: Boolean, sections: Boolean)
+    suspend fun groupRules(sameDate: Boolean?, sameAccount: Boolean?) {}
     suspend fun privacy(hidden: Boolean)
     suspend fun rememberFunding(account: Long, pocket: Long?)
     fun notifyChanged()
@@ -51,8 +58,15 @@ interface MoneyGateway {
 @Singleton
 class LocalMoneyGateway @Inject constructor(private val repo: MoneyRepository,
     private val prefs: MoneyPreferencesRepository, settings: SettingsRepository, private val scheduler: MoneyPlanningScheduler,
-    investments: MoneyInvestmentRepository) : MoneyGateway {
+    investments: MoneyInvestmentRepository, receipts: MoneyReceiptRepository,
+    private val grouping: MoneyGroupRepository) : MoneyGateway {
     override val data = combine(repo.observeWorkspace(),investments.data) { workspace, book -> workspace.copy(investments = book) }
+    override val receiptDraftCount = receipts.drafts.map { it.size }
+    override val receiptRecords = receipts.all
+    override val groups = grouping.groups
+    override suspend fun createGroup(name: String, keys: List<String>, rules: MoneyGroupRules) = grouping.create(name, keys, rules)
+    override suspend fun addToGroup(id: String, keys: List<String>, rules: MoneyGroupRules) { grouping.add(id, keys, rules) }
+    override suspend fun deleteGroup(id: String) { grouping.delete(id) }
     override val preferences = prefs.preferences
     override val localeTag = settings.settings.map { it.localeTag }
     override suspend fun initialize() = repo.ensureCategories()
@@ -71,6 +85,7 @@ class LocalMoneyGateway @Inject constructor(private val repo: MoneyRepository,
     override suspend fun category(name: String, income: Boolean) = repo.createCategory(name, income)
     override suspend fun space(name: String) = repo.createSpace(name)
     override suspend fun appearance(detailed: Boolean, sections: Boolean) { prefs.setAppearance(detailed, sections) }
+    override suspend fun groupRules(sameDate: Boolean?, sameAccount: Boolean?) { prefs.setGroupRules(sameDate, sameAccount) }
     override suspend fun privacy(hidden: Boolean) = prefs.setPrivacy(hidden)
     override suspend fun rememberFunding(account: Long, pocket: Long?) { prefs.rememberFunding(account, pocket) }
     override fun notifyChanged() { prefs.notifyMoneyChanged(); scheduler.refresh() }

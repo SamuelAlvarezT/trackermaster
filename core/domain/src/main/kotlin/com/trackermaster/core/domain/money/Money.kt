@@ -25,12 +25,26 @@ data class Money(val minorUnits: Long, val currencyCode: String) {
         return copy(minorUnits = Math.subtractExact(minorUnits, other.minorUnits))
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun format(locale: Locale): String {
-        val number = NumberFormat.getNumberInstance(locale).apply {
-            minimumFractionDigits = scale(currencyCode)
+        val value = decimal
+        val hasFraction = value.stripTrailingZeros().scale() > 0
+        val number = NumberFormat.getNumberInstance(Locale.US).apply {
+            minimumFractionDigits = if (hasFraction) minOf(2, scale(currencyCode)) else 0
             maximumFractionDigits = scale(currencyCode)
         }
-        return "$currencyCode ${number.format(decimal)}"
+        return "$currencyCode ${number.format(value)}"
+    }
+
+    /** Compact display for a widget that opens the full Money screen on tap. */
+    fun formatCompact(locale: Locale): String {
+        if (decimal.abs() < BigDecimal("1000000")) return format(locale)
+        val millions = decimal.divide(BigDecimal("1000000"), 1, RoundingMode.HALF_UP)
+        val number = NumberFormat.getNumberInstance(Locale.US).apply {
+            minimumFractionDigits = if (millions.stripTrailingZeros().scale() > 0) 1 else 0
+            maximumFractionDigits = 1
+        }
+        return "${number.format(millions)} M $currencyCode"
     }
 
     companion object {

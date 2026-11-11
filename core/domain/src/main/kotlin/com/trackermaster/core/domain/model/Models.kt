@@ -161,6 +161,7 @@ data class Achievement(
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.DARK,
     val accentIndex: Int = 0,
+    val turquoiseEnabled: Boolean = true,
     val localeTag: String = "en",
     val biometricEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
@@ -214,4 +215,5 @@ data class DashboardSummary(
     val focusScoreWeek: Int,
     val journalStreak: Int,
     val balancesByCurrency: List<com.trackermaster.core.domain.money.Money> = emptyList(),
+    val habitTime: com.trackermaster.core.domain.habits.HabitTimeSummary = com.trackermaster.core.domain.habits.HabitTimeSummary(),
 )

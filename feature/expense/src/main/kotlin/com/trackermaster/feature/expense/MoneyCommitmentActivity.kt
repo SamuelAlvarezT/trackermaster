@@ -31,7 +31,7 @@ class MoneyCommitmentActivity : FragmentActivity() {
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
             var authenticated by remember{mutableStateOf(false)}
-            MoneyLocale(state.settings.localeTag){TrackermasterTheme(state.settings.themeMode,state.settings.accentIndex){
+            MoneyLocale(state.settings.localeTag){TrackermasterTheme(state.settings.themeMode,state.settings.accentIndex,state.settings.turquoiseEnabled){
                 BackHandler {
                     if(!state.controls.saving){
                         if(state.settings.biometricEnabled && !authenticated)finish()

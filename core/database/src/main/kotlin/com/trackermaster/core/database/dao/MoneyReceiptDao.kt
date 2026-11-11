@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MoneyReceiptDao {
+    @Query("SELECT * FROM money_receipts ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<MoneyReceiptEntity>>
     @Query("SELECT * FROM money_receipts WHERE stage != 'CONFIRMED' ORDER BY createdAt DESC")
     fun observeDrafts(): Flow<List<MoneyReceiptEntity>>
     @Query("SELECT * FROM money_receipts WHERE id = :id") suspend fun get(id: String): MoneyReceiptEntity?

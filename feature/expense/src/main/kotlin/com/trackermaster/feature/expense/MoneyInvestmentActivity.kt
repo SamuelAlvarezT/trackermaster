@@ -24,7 +24,7 @@ class MoneyInvestmentActivity:FragmentActivity(){
         setContent{
             val state by model.state.collectAsStateWithLifecycle()
             var authenticated by remember{mutableStateOf(false)}
-            MoneyLocale(state.settings.localeTag){TrackermasterTheme(state.settings.themeMode,state.settings.accentIndex){
+            MoneyLocale(state.settings.localeTag){TrackermasterTheme(state.settings.themeMode,state.settings.accentIndex,state.settings.turquoiseEnabled){
                 BackHandler{if(!state.saving){if(state.settings.biometricEnabled && !authenticated)finish()else if(state.draft!=null || state.selected!=null)model.onAction(InvestmentAction.Close)else finish()}}
                 MoneyPrivateAccess(state.loading,!state.loadError && state.workspace!=null,state.settings.biometricEnabled,authenticated,
                     gate={ReceiptAuthentication(this,{authenticated=true},{finish()},R.string.i_title,R.string.i_auth)},

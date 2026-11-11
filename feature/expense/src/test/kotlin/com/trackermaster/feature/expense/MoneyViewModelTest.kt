@@ -33,6 +33,14 @@ class MoneyViewModelTest {
         vm.onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE))
         vm.onEvent(MoneyEvent.Editor(vm.uiState.value.controls.editor!!.copy(amount = amount)))
     }
+    @Test fun receiptDraftCountTracksChanges() = runTest(dispatcher) {
+        val gateway = FakeMoneyGateway(); val vm = vm(gateway)
+        assertEquals(0, vm.uiState.value.receiptDraftCount)
+        gateway.receiptDraftCount.value = 3; advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.receiptDraftCount)
+        gateway.receiptDraftCount.value = 0; advanceUntilIdle()
+        assertEquals(0, vm.uiState.value.receiptDraftCount)
+    }
     @Test fun widgetRequestsOpenAnEditorOnceAndDoNotOverwriteADraft()=runTest(dispatcher) {
         val vm=vm(FakeMoneyGateway())
         assertTrue(vm.openFromWidget("first","INCOME"))

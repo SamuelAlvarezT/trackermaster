@@ -31,4 +31,14 @@
     <string name="habit_archive">Archivar Hábito</string>
     <string name="habit_frequency">Frecuencia: %1$s</string>
     <string name="habit_history_year">Historial del Año</string>
+    <string name="habit_view_today">Hoy</string>
+    <string name="habit_view_all">Todos</string>
+    <string name="habit_scheduled_today">Programados para hoy</string>
+    <string name="habit_not_today">No tocan hoy</string>
+    <string name="habit_next">Próximo: %1$s</string>
+    <string name="habit_no_next">Sin próxima fecha programada</string>
+    <string name="habit_time_summary_habits">Planificado: %1$s · Pendiente: %2$s</string>
+    <string name="habit_history_unavailable">Programación histórica no disponible para esta fecha.</string>
+    <string name="habit_scheduled_date">Programados para %1$s</string>
+    <string name="habit_not_date">No tocan el %1$s</string>
 </resources>

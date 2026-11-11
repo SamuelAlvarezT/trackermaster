@@ -24,6 +24,12 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Tune
+import com.trackermaster.core.domain.HabitScheduleLogic
+import com.trackermaster.core.domain.habits.habitTimeSummary
+import com.trackermaster.core.domain.habits.formatHabitMinutes
+import com.trackermaster.core.domain.habits.HabitProgressRules
+import com.trackermaster.core.domain.habits.HabitScheduleVersion
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,9 +54,12 @@ import java.time.LocalDate
 
 @Composable
 @Suppress("UNUSED_VALUE")
+@OptIn(ExperimentalMaterial3Api::class)
 fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long? = null) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
+    LaunchedEffect(Unit) { viewModel.resetDate() }
+    var datePickerOpen by remember { mutableStateOf(false) }
     var showEditor by remember { mutableStateOf(false) }
     var editHabitData by remember { mutableStateOf<Habit?>(null) }
     var deleteHabitData by remember { mutableStateOf<Habit?>(null) }
@@ -67,7 +76,13 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
             }
         }
     }
-    val currentRawList = if (uiState.selectedTab == 0) uiState.activeHabits else uiState.archivedHabits
+    // This is intentionally local state: each entry into Habits starts with Today.
+    var showAll by remember { mutableStateOf(false) }
+    var viewMenuOpen by remember { mutableStateOf(false) }
+    val currentRawList = if (uiState.selectedTab != 0) uiState.archivedHabits
+        else if (uiState.isReorderMode) uiState.activeHabits
+        else if (showAll) uiState.activeHabits.sortedBy { !habitDue(it.first, uiState.today, uiState.actualToday, uiState.history) }
+        else uiState.activeHabits.filter { habitDue(it.first, uiState.today, uiState.actualToday, uiState.history) }
     
     // We keep local list strictly for drag-drop fluidity but sync it to uiState
     var localList by remember(currentRawList) { mutableStateOf(currentRawList) }
@@ -75,6 +90,10 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
 
     val lazyListState = rememberLazyListState()
     val today = uiState.today
+    val missingHistory = today < uiState.actualToday && uiState.activeHabits.any { (habit, _) ->
+        (!habit.creationDateKnown || habit.createdEpochDay <= today.toEpochDay()) &&
+            uiState.history.none { it.habitId == habit.id && it.effectiveFrom <= today }
+    }
     val last7Days = remember(today) { (0..6).map { today.minusDays(it.toLong()) }.reversed() }
     val locale=LocalConfiguration.current.locales[0]
     val weekdayHeaders = remember(last7Days,locale) { last7Days.map { it.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).take(3) } }
@@ -97,14 +116,6 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        floatingActionButtonPosition = FabPosition.Center,
-        floatingActionButton = {
-            if (uiState.selectedTab == 0 && !uiState.isReorderMode) {
-                FloatingActionButton(onClick = { showEditor = true }) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                }
-            }
-        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -117,7 +128,13 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                     .padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.width(48.dp))
+                if (uiState.selectedTab == 0 && !uiState.isReorderMode) {
+                    IconButton(onClick = { showEditor = true }, modifier = Modifier.testTag("habit_add")) {
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.habit_new_title))
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(48.dp))
+                }
 
                 Row(
                     modifier = Modifier
@@ -161,13 +178,31 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                 }
             }
 
+            TextButton(onClick = { datePickerOpen = true }, modifier = Modifier.padding(start = 8.dp).testTag("habit_date_selector")) {
+                Icon(Icons.Default.DateRange, contentDescription = null); Spacer(Modifier.width(8.dp))
+                Text(uiState.today.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(locale)))
+            }
+            if (missingHistory) {
+                Text(stringResource(R.string.habit_history_unavailable), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
+            }
             if (localList.isEmpty() && !showEditor) {
+                if (uiState.selectedTab == 0 && !missingHistory) Text(stringResource(R.string.habit_time_summary_habits, formatHabitMinutes(0), formatHabitMinutes(0)),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall)
                 EmptyState(stringResource(R.string.habit_no_habits), Modifier.weight(1f))
             } else {
                 HabitWeekGrid(Modifier.padding(horizontal = HabitListHorizontalPadding + HabitCardContentPadding,
                     vertical = 4.dp)) { index ->
                     Text(weekdayHeaders[index],modifier=Modifier.testTag("habit_weekday:$index"),style=MaterialTheme.typography.labelSmall,
                         color=MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (uiState.selectedTab == 0 && !missingHistory) {
+                    val time = habitTimeSummary(uiState.activeHabits.filter { habitDue(it.first, today, uiState.actualToday, uiState.history) }
+                        .map { (habit, logs) ->
+                            val v = HabitProgressRules.versionOn(habit, today, uiState.history)
+                            habit.copy(progressType=v.progressType, targetDurationMs=v.targetDurationMs) to logs.firstOrNull { it.date == today }
+                        })
+                    Text(stringResource(R.string.habit_time_summary_habits, formatHabitMinutes(time.plannedMs), formatHabitMinutes(time.remainingMs)),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall)
                 }
                 LazyColumn(
                     state = lazyListState,
@@ -192,6 +227,15 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     itemsIndexed(localList, key = { _, pair -> pair.first.id }) { index, (habit, logs) ->
+                        val habitHistory = remember(habit.id, uiState.history) { uiState.history.filter { it.habitId == habit.id } }
+                        val due = habitDue(habit, today, uiState.actualToday, habitHistory)
+                        if (uiState.selectedTab == 0 && showAll && !uiState.isReorderMode &&
+                            (index == 0 || due != habitDue(localList[index - 1].first, today, uiState.actualToday, uiState.history))) {
+                            val heading = if (today == uiState.actualToday) stringResource(if (due) R.string.habit_scheduled_today else R.string.habit_not_today)
+                                else stringResource(if (due) R.string.habit_scheduled_date else R.string.habit_not_date,
+                                    today.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(locale)))
+                            Text(heading, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(vertical = 8.dp))
+                        }
                         val isDragged = index == dragDropState.draggedIndex
                         val translationY = if (isDragged) dragDropState.dragOffset else 0f
 
@@ -210,6 +254,8 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                                 habit = habit,
                                 logs = logs,
                                 today = today,
+                                readOnly = uiState.selectedTab == 0 && showAll && !due && !uiState.isReorderMode,
+                                isDueOnDate = { date -> habitDue(habit, date, uiState.actualToday, habitHistory) },
                                 isReorderMode = uiState.isReorderMode,
                                 onDayClick = { date -> viewModel.toggleDay(habit, date) },
                                 onMenuClick = { selectedHabitForMenu = habit }
@@ -218,6 +264,42 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                     }
                 }
             }
+            if (uiState.selectedTab == 0 && !uiState.isReorderMode) {
+                Box(Modifier.padding(start = 12.dp, bottom = 4.dp)) {
+                    TextButton(onClick = { viewMenuOpen = true }, modifier = Modifier.testTag("habit_view_selector")) {
+                        Icon(Icons.Default.Tune, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(if (showAll) R.string.habit_view_all else R.string.habit_view_today))
+                    }
+                    DropdownMenu(expanded = viewMenuOpen, onDismissRequest = { viewMenuOpen = false }) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.habit_view_today)) },
+                            onClick = { showAll = false; viewMenuOpen = false },
+                            trailingIcon = { if (!showAll) Icon(Icons.Default.Check, null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.habit_view_all)) },
+                            onClick = { showAll = true; viewMenuOpen = false },
+                            trailingIcon = { if (showAll) Icon(Icons.Default.Check, null) })
+                    }
+                }
+            }
+        }
+    }
+
+    if (datePickerOpen) {
+        val selectable = remember(uiState.actualToday) { object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                java.time.Instant.ofEpochMilli(utcTimeMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate() <= uiState.actualToday
+        } }
+        val picker = rememberDatePickerState(initialSelectedDateMillis = uiState.today.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(), selectableDates = selectable)
+        DatePickerDialog(onDismissRequest = { datePickerOpen = false }, confirmButton = {
+            TextButton(onClick = {
+                picker.selectedDateMillis?.let { millis ->
+                    val day = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                    if (day <= uiState.actualToday) viewModel.selectDate(day)
+                }
+                datePickerOpen = false
+            }) { Text(stringResource(R.string.habit_save)) }
+        }, dismissButton = { TextButton(onClick = { datePickerOpen = false }) { Text(stringResource(R.string.habit_cancel)) } }) {
+            DatePicker(state = picker)
         }
     }
 
@@ -294,7 +376,9 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
             habit = calendarHabitData!!,
             logs = calendarLogs,
             onDismiss = { calendarHabitData = null },
-            onDayClick = { date -> calendarHabitData?.let { viewModel.toggleDay(it, date) } }
+            onDayClick = { date -> calendarHabitData?.let {
+                if (!(uiState.selectedTab == 0 && showAll && !habitDue(it, today, uiState.actualToday, uiState.history))) viewModel.toggleDay(it, date)
+            } }
         )
     }
 
@@ -345,6 +429,13 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
     }
 }
 
+internal fun habitDue(habit: Habit, day: LocalDate, actualToday: LocalDate, history: List<HabitScheduleVersion>): Boolean {
+    if (habit.archived || (habit.creationDateKnown && day.toEpochDay() < habit.createdEpochDay)) return false
+    val version = history.filter { it.habitId == habit.id && it.effectiveFrom <= day }.maxByOrNull { it.effectiveFrom }
+    if (version == null && day < actualToday) return false
+    return HabitProgressRules.isDue(habit, day, version ?: HabitProgressRules.version(habit, day))
+}
+
 @Composable
 fun HabitRow(
     habit: Habit,
@@ -353,13 +444,15 @@ fun HabitRow(
     onDayClick: (LocalDate) -> Unit,
     onMenuClick: () -> Unit,
     today: LocalDate = LocalDate.now(),
+    readOnly: Boolean = false,
+    isDueOnDate: (LocalDate) -> Boolean = { HabitScheduleLogic.isDueOnDate(habit, it) },
 ) {
     val last7Days = remember(today) { (0..6).map { today.minusDays(it.toLong()) }.reversed() }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (readOnly) 0.8f else 0.5f)
         )
     ) {
         Column(Modifier.padding(HabitCardContentPadding)) {
@@ -401,6 +494,12 @@ fun HabitRow(
             }
             
             if (!isReorderMode) {
+                if (readOnly) {
+                    val next = (1L..366L).asSequence().map { today.plusDays(it) }.firstOrNull { isDueOnDate(it) }
+                    Text(if (next == null) stringResource(R.string.habit_no_next) else
+                        stringResource(R.string.habit_next, next.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(LocalConfiguration.current.locales[0]))),
+                        style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = stringResource(R.string.habit_frequency, habit.scheduleType.name),
@@ -412,7 +511,7 @@ fun HabitRow(
                         val date = last7Days[index]
                         val isToday = date == today
                         val log = logs.find { it.date == date }
-                        val isDue = com.trackermaster.core.domain.HabitScheduleLogic.isDueOnDate(habit, date)
+                        val isDue = isDueOnDate(date)
 
                         val (backgroundColor, textColor) = when {
                             !isDue -> Color.LightGray.copy(alpha = 0.3f) to MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -429,7 +528,7 @@ fun HabitRow(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 48.dp)
-                                .then(if (isDue) Modifier.clickable { onDayClick(date) } else Modifier)
+                                .then(if (isDue && !readOnly) Modifier.clickable { onDayClick(date) } else Modifier)
                                 .padding(vertical = 2.dp)
                         ) {
                             Box(

@@ -2,6 +2,7 @@ package com.trackermaster.feature.expense
 
 import androidx.lifecycle.*
 import com.trackermaster.core.data.money.ReceiptSource
+import com.trackermaster.core.data.money.ReceiptDraftCodec
 import com.trackermaster.core.domain.money.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
@@ -24,13 +25,24 @@ class ReceiptViewModelTest {
             @Suppress("UNCHECKED_CAST") override fun <T:ViewModel> create(modelClass:Class<T>):T=ReceiptViewModel(gateway,handle,dispatcher) as T
         })[ReceiptViewModel::class.java]
     }
-    private fun ready(vm:ReceiptViewModel){vm.onEvent(ReceiptEvent.Update(vm.state.value.form.copy(accountId=1,categoryId=1,confirmed=true)))}
-    @Test fun suggestionsNeverChooseFundingOrConfirmBankMovement()=runTest(dispatcher) {
+    private fun ready(vm:ReceiptViewModel){vm.onEvent(ReceiptEvent.Update(vm.state.value.form.copy(accountId=1,categoryId=1,confirmed=true,currencyVerified=true)))}
+    @Test fun brandedReceiptSuggestsUniqueAccountButNeverConfirmsMovement()=runTest(dispatcher) {
         val gateway=FakeReceiptGateway();val vm=vm(gateway);vm.receive(ReceiptSource.SharedText("proof"));advanceUntilIdle()
-        assertEquals("50000",vm.state.value.form.amount);assertNull(vm.state.value.form.accountId)
+        assertEquals("50000",vm.state.value.form.amount);assertEquals(1L,vm.state.value.form.accountId)
         assertFalse(vm.state.value.form.confirmed);assertFalse(vm.state.value.canSave)
         vm.onEvent(ReceiptEvent.Save);assertTrue(gateway.confirmed.isEmpty())
         ready(vm);advanceUntilIdle();assertTrue(vm.state.value.canSave)
+    }
+    @Test fun savingIncompleteDraftPersistsLatestEditBeforeReturning() = runTest(dispatcher) {
+        val gateway = FakeReceiptGateway(); val vm = vm(gateway)
+        vm.receive(ReceiptSource.SharedText("proof")); advanceUntilIdle()
+        val id = vm.state.value.receipt!!.id
+        vm.onEvent(ReceiptEvent.Update(vm.state.value.form.copy(note = "Last edit", accountId = null, time = "14:32")))
+        vm.onEvent(ReceiptEvent.SaveDraft); advanceUntilIdle()
+        assertNull(vm.state.value.receipt)
+        val stored = ReceiptDraftCodec.decode(gateway.get(id).draftJson)!!
+        assertEquals("Last edit", stored.note); assertEquals("14:32", stored.time)
+        assertTrue(gateway.confirmed.isEmpty())
     }
     @Test fun repeatedSaveDuringCommitUsesOneStableReceiptId()=runTest(dispatcher) {
         val gateway=FakeReceiptGateway();val vm=vm(gateway);vm.receive(ReceiptSource.SharedText("proof"));advanceUntilIdle();ready(vm);advanceUntilIdle()
@@ -60,7 +72,7 @@ class ReceiptViewModelTest {
         for(text in listOf("Nequi\nPendiente","Nequi\nFallida")) {
             val gateway=FakeReceiptGateway().apply{this.text=text};val vm=vm(gateway)
             vm.receive(ReceiptSource.SharedText("proof"));advanceUntilIdle()
-            vm.onEvent(ReceiptEvent.Update(ReceiptDraft(ReceiptEntryKind.EXPENSE,"100","COP","2026-10-04",1,categoryId=1,confirmed=true)));advanceUntilIdle()
+            vm.onEvent(ReceiptEvent.Update(ReceiptDraft(ReceiptEntryKind.EXPENSE,"100","COP","2026-10-04",1,categoryId=1,confirmed=true,currencyVerified=true)));advanceUntilIdle()
             assertFalse(vm.state.value.canSave);vm.onEvent(ReceiptEvent.Save);assertTrue(gateway.confirmed.isEmpty())
         }
     }
@@ -68,8 +80,15 @@ class ReceiptViewModelTest {
         val gateway=FakeReceiptGateway().apply{unreadable=true};val vm=vm(gateway)
         vm.receive(ReceiptSource.SharedText("proof"));advanceUntilIdle()
         assertEquals("UNREADABLE",vm.state.value.receipt!!.stage);assertNull(vm.state.value.form.kind)
-        vm.onEvent(ReceiptEvent.Update(ReceiptDraft(ReceiptEntryKind.EXPENSE,"100","COP","2026-10-04",1,categoryId=1,confirmed=true)));advanceUntilIdle()
+        vm.onEvent(ReceiptEvent.Update(ReceiptDraft(ReceiptEntryKind.EXPENSE,"100","COP","2026-10-04",1,categoryId=1,confirmed=true,currencyVerified=true)));advanceUntilIdle()
         assertTrue(vm.state.value.canSave)
+    }
+    @Test fun unknownCurrencyRequiresAnExplicitChoice()=runTest(dispatcher) {
+        val gateway=FakeReceiptGateway().apply { unreadable=true };val vm=vm(gateway)
+        vm.receive(ReceiptSource.SharedText("proof"));advanceUntilIdle()
+        val form=ReceiptDraft(ReceiptEntryKind.EXPENSE,"100","COP","2026-10-04",1,categoryId=1,confirmed=true)
+        vm.onEvent(ReceiptEvent.Update(form));advanceUntilIdle();assertFalse(vm.state.value.canSave)
+        vm.onEvent(ReceiptEvent.Update(form.copy(currencyVerified=true)));advanceUntilIdle();assertTrue(vm.state.value.canSave)
     }
     @Test fun duplicateReadFailureBlocksSaveUntilSuccessfulRetry()=runTest(dispatcher) {
         val gateway=FakeReceiptGateway().apply{failDuplicates=true};val vm=vm(gateway)

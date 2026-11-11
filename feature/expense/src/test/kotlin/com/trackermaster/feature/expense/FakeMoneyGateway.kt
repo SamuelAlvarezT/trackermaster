@@ -7,6 +7,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 
 internal class FakeMoneyGateway : MoneyGateway {
+    override val receiptDraftCount = MutableStateFlow(0)
     override val data = MutableStateFlow(MoneyPreviewData.workspace())
     override val preferences = MutableStateFlow(MoneyPreferences())
     override val localeTag = MutableStateFlow("en")

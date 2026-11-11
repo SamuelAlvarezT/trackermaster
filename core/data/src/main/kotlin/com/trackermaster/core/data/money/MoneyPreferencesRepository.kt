@@ -23,6 +23,8 @@ data class MoneyPreferences(
     val widgetCurrency: String? = null,
     val widgetSpaceId: Long? = null,
     val widgetAccountId: Long? = null,
+    val groupSameDate: Boolean = false,
+    val groupSameAccount: Boolean = false,
 )
 
 @Singleton
@@ -30,6 +32,8 @@ class MoneyPreferencesRepository @Inject constructor(@ApplicationContext private
     private val detailed = booleanPreferencesKey("detailed")
     private val sections = booleanPreferencesKey("sections")
     private val privacy = booleanPreferencesKey("privacy")
+    private val groupSameDate = booleanPreferencesKey("group_same_date")
+    private val groupSameAccount = booleanPreferencesKey("group_same_account")
     private val account = longPreferencesKey("last_account")
     private val pocket = longPreferencesKey("last_pocket")
     private val widgetCurrency=stringPreferencesKey("widget_currency")
@@ -38,7 +42,8 @@ class MoneyPreferencesRepository @Inject constructor(@ApplicationContext private
     private val privacyOverride = MutableStateFlow<Boolean?>(null)
     private val persisted = context.moneyDataStore.data.map { values ->
         MoneyPreferences(values[detailed] ?: false, values[sections] ?: false, values[privacy] ?: false,
-            values[account], values[pocket],values[widgetCurrency],values[widgetSpace],values[widgetAccount])
+            values[account], values[pocket],values[widgetCurrency],values[widgetSpace],values[widgetAccount],
+            values[groupSameDate] ?: false, values[groupSameAccount] ?: false)
     }
     // All active surfaces share the mask immediately, including if disk persistence fails.
     val preferences: Flow<MoneyPreferences> = combine(persisted, privacyOverride) { values, _ ->
@@ -46,6 +51,12 @@ class MoneyPreferencesRepository @Inject constructor(@ApplicationContext private
     }
     suspend fun setAppearance(isDetailed: Boolean, useSections: Boolean) {
         context.moneyDataStore.edit { it[detailed] = isDetailed; it[sections] = useSections }
+    }
+    suspend fun setGroupRules(sameDate: Boolean?, sameAccount: Boolean?) {
+        context.moneyDataStore.edit { values ->
+            if (sameDate != null) values[groupSameDate] = sameDate
+            if (sameAccount != null) values[groupSameAccount] = sameAccount
+        }
     }
     suspend fun setPrivacy(hidden: Boolean) {
         privacyOverride.value = hidden

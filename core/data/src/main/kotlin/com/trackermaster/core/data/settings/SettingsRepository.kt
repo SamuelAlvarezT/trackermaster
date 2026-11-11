@@ -25,6 +25,7 @@ class SettingsRepository @Inject constructor(
     private object Keys {
         val THEME = stringPreferencesKey("theme")
         val ACCENT = intPreferencesKey("accent")
+        val TURQUOISE = booleanPreferencesKey("turquoise_enabled")
         val LOCALE = stringPreferencesKey("locale")
         val BIOMETRIC = booleanPreferencesKey("biometric")
         val ONBOARDING = booleanPreferencesKey("onboarding")
@@ -48,6 +49,7 @@ class SettingsRepository @Inject constructor(
             themeMode = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: ThemeMode.DARK.name) }
                 .getOrDefault(ThemeMode.DARK),
             accentIndex = p[Keys.ACCENT] ?: 0,
+            turquoiseEnabled = p[Keys.TURQUOISE] ?: true,
             localeTag = p[Keys.LOCALE] ?: "en",
             biometricEnabled = p[Keys.BIOMETRIC] ?: false,
             onboardingComplete = p[Keys.ONBOARDING] ?: false,
@@ -72,6 +74,7 @@ class SettingsRepository @Inject constructor(
         edit { it[Keys.THEME] = mode.name };refreshMoneyWidget()
     }
     suspend fun setAccent(index: Int) = edit { it[Keys.ACCENT] = index }
+    suspend fun setTurquoiseEnabled(enabled: Boolean) = edit { it[Keys.TURQUOISE] = enabled }
     suspend fun setLocale(tag: String) {
         edit { it[Keys.LOCALE] = tag };refreshMoneyWidget()
     }

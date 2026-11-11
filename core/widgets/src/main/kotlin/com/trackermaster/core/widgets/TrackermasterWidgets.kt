@@ -35,18 +35,25 @@ import com.trackermaster.core.data.repository.MoodRepository
 import com.trackermaster.core.domain.HabitScheduleLogic
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class HabitProgressWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val entry = WidgetHiltEntryPoint.get(context)
-        val today = runBlocking { entry.habitRepository().observeTodayHabits().first() }
-        val done = today.count { (_, log) -> log != null && HabitScheduleLogic.isLogComplete(log) }
+        val repository = WidgetHiltEntryPoint.get(context).habitRepository()
+        val habits = repository.observeDay().flatMapLatest { repository.observeTodayHabits(it) }
+        val initial = habits.first()
         val action = actionStartActivity(ComponentName(context.packageName, "com.trackermaster.app.MainActivity"))
         provideContent {
-            WidgetBox("Habits Today", "$done / ${today.size}", action)
+            val today by habits.collectAsState(initial)
+            val done = today.count { (_, log) -> log != null && HabitScheduleLogic.isLogComplete(log) }
+            val time = com.trackermaster.core.domain.habits.habitTimeSummary(today)
+            WidgetBox("Habits Today", "$done / ${today.size}\n" + context.getString(com.trackermaster.core.ui.R.string.habit_time_summary,
+                com.trackermaster.core.domain.habits.formatHabitMinutes(time.plannedMs),
+                com.trackermaster.core.domain.habits.formatHabitMinutes(time.remainingMs)), action)
         }
     }
 }
@@ -127,6 +134,7 @@ class FocusQuickStartWidgetReceiver : GlanceAppWidgetReceiver() { override val g
 class DashboardComboWidgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget = DashboardComboWidget() }
 
 object WidgetRefresh {
+    suspend fun refreshHabits(context: Context) { HabitProgressWidget().updateAll(context) }
     suspend fun refreshAll(context: Context) {
         HabitProgressWidget().updateAll(context)
         StreakOverviewWidget().updateAll(context)

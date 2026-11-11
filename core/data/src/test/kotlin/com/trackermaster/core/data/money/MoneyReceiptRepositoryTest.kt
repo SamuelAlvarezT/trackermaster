@@ -31,7 +31,7 @@ class MoneyReceiptRepositoryTest {
         return receipts.analyzed(row.id,text,null,false)
     }
     private suspend fun form(account:Long)=ReceiptDraft(ReceiptEntryKind.EXPENSE,"10","COP","2026-10-04",account,
-        categoryId=money.createCategory("Expense",false),reference="R123",confirmed=true)
+        categoryId=money.createCategory("Expense",false),reference="R123",confirmed=true,currencyVerified=true)
     private suspend fun failure(action:suspend()->Unit):IllegalArgumentException=try{action();error("Expected rejected write")}catch(e:IllegalArgumentException){e}
     @Test fun importingAndEditingDraftNeverChangesBalance()=runTest {
         val a=account();val row=source();receipts.updateDraft(row.id,form(a))
@@ -46,6 +46,44 @@ class MoneyReceiptRepositoryTest {
         assertEquals(99000L,money.snapshot().accounts.single().total.minorUnits)
         assertEquals(row.path,db.moneyDao().movement(id)!!.imageUri)
         assertEquals(MoneyWriteFailure.REQUEST_CONFLICT,(failure{receipts.confirm(row.id,form.copy(amount="20"))} as MoneyWriteException).reason)
+    }
+    @Test fun batchFailureRollsBackEveryReceiptAndRetryIsIdempotent()=runTest {
+        val a=account(); val first=source("batch-a"); val second=source("batch-b", "Nequi\nEnviaste\nReferencia R456")
+        val one=form(a); val two=one.copy(amount="20", date="2026-10-05", reference="R456")
+        receipts.updateDraft(first.id,one); receipts.updateDraft(second.id,two.copy(confirmed=false))
+        val rejected = failure { receipts.confirmBatch(listOf(first.id to one, second.id to two.copy(confirmed=false))) }
+        assertEquals(second.id, (rejected as ReceiptBatchException).receiptId)
+        assertEquals(100000L,money.snapshot().accounts.single().total.minorUnits)
+        assertEquals("REVIEW",receipts.get(first.id).stage); assertEquals("REVIEW",receipts.get(second.id).stage)
+        receipts.updateDraft(second.id,two)
+        val saved=receipts.confirmBatch(listOf(first.id to one, second.id to two))
+        assertEquals(saved,receipts.confirmBatch(listOf(first.id to one, second.id to two)))
+        assertEquals(97000L,money.snapshot().accounts.single().total.minorUnits)
+        assertEquals(2,db.moneyDao().readLedger().single().movements.size)
+    }
+    @Test fun batchRejectsDraftChangedAfterReview()=runTest {
+        val a=account();val row=source("stale");val reviewed=form(a)
+        receipts.updateDraft(row.id,reviewed.copy(note="Changed elsewhere"))
+        val error=failure { receipts.confirmBatch(listOf(row.id to reviewed)) }
+        assertEquals(row.id,(error as ReceiptBatchException).receiptId)
+        assertEquals("REVIEW",receipts.get(row.id).stage)
+        assertTrue(db.moneyDao().readLedger().single().movements.isEmpty())
+    }
+    @Test fun batchDuplicatesNeedExplicitAcknowledgementAndDoNotMaskOlderMatches()=runTest {
+        val a=account(); val first=source("same"); val second=source("same"); val draft=form(a)
+        val batch=listOf(first.id to draft, second.id to draft)
+        receipts.updateDraft(first.id,draft); receipts.updateDraft(second.id,draft)
+        failure { receipts.confirmBatch(batch) }
+        assertTrue(db.moneyDao().readLedger().single().movements.isEmpty())
+        receipts.confirmBatch(batch, distinctBatchConfirmed=true)
+        assertEquals(2,db.moneyDao().readLedger().single().movements.size)
+        val older=source("same")
+        val other=source("new", "Nequi\nEnviaste\nReferencia R999")
+        val otherDraft=draft.copy(amount="20",date="2026-10-05",reference="R999")
+        receipts.updateDraft(older.id,draft); receipts.updateDraft(other.id,otherDraft)
+        failure { receipts.confirmBatch(listOf(older.id to draft,other.id to otherDraft), distinctBatchConfirmed=true) }
+        assertEquals("REVIEW",receipts.get(other.id).stage)
+        assertEquals(2,db.moneyDao().readLedger().single().movements.size)
     }
     @Test fun fileReferenceAndSimilarMatchesRequireSpecificAcknowledgement()=runTest {
         val a=account();val form=form(a);val first=source();receipts.confirm(first.id,form)
@@ -71,6 +109,11 @@ class MoneyReceiptRepositoryTest {
             assertEquals(ReceiptFailure.BANK_NOT_CONFIRMED,(failure{receipts.confirm(row.id,form)} as ReceiptException).reason)
         }
         val row=source();failure{receipts.confirm(row.id,form.copy(confirmed=false))}
+        assertEquals(100000L,money.snapshot().accounts.single().total.minorUnits)
+    }
+    @Test fun unknownCurrencyCannotBeConfirmedWithoutExplicitChoice()=runTest {
+        val a=account();val row=source();val draft=form(a).copy(currencyVerified=false)
+        assertEquals(ReceiptFailure.INVALID_DRAFT,(failure { receipts.confirm(row.id,draft) } as ReceiptException).reason)
         assertEquals(100000L,money.snapshot().accounts.single().total.minorUnits)
     }
     @Test fun invalidFundingRollsBackAndRetainsRecoverableDraft()=runTest {

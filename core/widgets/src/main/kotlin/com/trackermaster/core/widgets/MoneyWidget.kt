@@ -51,7 +51,7 @@ class ExpenseBalanceWidget : GlanceAppWidget() {
             val expanded=size.height>=340.dp
             val medium=size.height>=200.dp && size.width>=230.dp
             fun text(id: Int)=localized.getString(id)
-            fun amount(value: Money)=if(prefs.hideAmounts) text(P8R.string.p8_widget_privacy) else value.format(locale)
+            fun amount(value: Money)=if(prefs.hideAmounts) text(P8R.string.p8_widget_privacy) else value.formatCompact(locale)
             fun action(kind: String?=null)=actionStartActivity(Intent().setComponent(ComponentName(context.packageName,"com.trackermaster.app.MainActivity"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setAction("com.trackermaster.money.WIDGET_${kind ?: "OPEN"}").putExtra("tab","expense").apply {

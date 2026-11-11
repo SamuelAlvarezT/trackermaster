@@ -141,7 +141,7 @@ fun DashboardScreen(
             item {
                 TrackerCard(
                     title = stringResource(R.string.tracker_habits),
-                    subtitle = "${summary.habitsCompletedToday}/${summary.habitsDueToday} today",
+                    subtitle = "${summary.habitsCompletedToday}/${summary.habitsDueToday} · ${habitTimeLabel(summary)}",
                     onClick = { onNavigate(Routes.Habits.route) },
                 )
             }
@@ -250,7 +250,7 @@ private fun ModernDashboardContent(
                 ModernNavCard(Icons.Default.TaskAlt, stringResource(R.string.tracker_tasks), "$pendingTasks pending tasks", MaterialTheme.colorScheme.primary) {
                     onNavigate(Routes.Tasks.route)
                 }
-                ModernNavCard(Icons.Default.CheckCircle, stringResource(R.string.tracker_habits), "${summary.habitsCompletedToday}/${summary.habitsDueToday} today", Color(0xFF2E7D32)) {
+                ModernNavCard(Icons.Default.CheckCircle, stringResource(R.string.tracker_habits), "${summary.habitsCompletedToday}/${summary.habitsDueToday} · ${habitTimeLabel(summary)}", Color(0xFF2E7D32)) {
                     onNavigate(Routes.Habits.route)
                 }
                 ModernNavCard(Icons.Default.Mood, stringResource(R.string.tracker_mood), moodText, Color(0xFFAD1457)) {
@@ -321,3 +321,9 @@ private fun ModernNavCard(
         }
     }
 }
+
+@androidx.compose.runtime.Composable
+private fun habitTimeLabel(summary: com.trackermaster.core.domain.model.DashboardSummary): String =
+    androidx.compose.ui.res.stringResource(com.trackermaster.core.ui.R.string.habit_time_summary,
+        com.trackermaster.core.domain.habits.formatHabitMinutes(summary.habitTime.plannedMs),
+        com.trackermaster.core.domain.habits.formatHabitMinutes(summary.habitTime.remainingMs))

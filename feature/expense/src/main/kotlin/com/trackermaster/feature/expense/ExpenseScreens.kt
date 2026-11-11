@@ -51,6 +51,7 @@ private fun MoneyEffects(vm: MoneyViewModel) {
             .putExtra("planning_tab",effect.tab).putExtra("planning_budget",effect.budgetId?:0L)
             .putExtra("planning_currency",effect.currency).putExtra("planning_space",effect.space?:0L))
         MoneyEffect.ImportReceipt -> context.startActivity(Intent(context,MoneyReceiptActivity::class.java))
+        is MoneyEffect.ReviewDraft -> context.startActivity(Intent(context,MoneyReceiptActivity::class.java).putExtra("receipt_id", effect.id))
         is MoneyEffect.ViewReceipt -> ReceiptViewer.open(context,effect.path,vm.localeTag.value)
     } } }
 }

@@ -3,7 +3,14 @@ package com.trackermaster.core.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import android.app.Activity
+import android.content.ContextWrapper
+import android.os.Build
+import android.view.View
+import android.view.WindowInsetsController
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -23,22 +30,43 @@ val AccentColors = listOf(
 fun TrackermasterTheme(
     themeMode: ThemeMode,
     accentIndex: Int,
+    turquoiseEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colors = remember(themeMode, accentIndex) { trackermasterColors(themeMode, accentIndex) }
+    val colors = remember(themeMode, accentIndex, turquoiseEnabled) { trackermasterColors(themeMode, accentIndex, turquoiseEnabled) }
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        val activity = generateSequence(view.context) { (it as? ContextWrapper)?.baseContext }.filterIsInstance<Activity>().firstOrNull()
+        SideEffect {
+            activity?.window?.let { window ->
+                val light = themeMode == ThemeMode.LIGHT
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val flags = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                    window.insetsController?.setSystemBarsAppearance(if (light) flags else 0, flags)
+                } else {
+                    @Suppress("DEPRECATION")
+                    val flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                    @Suppress("DEPRECATION")
+                    window.decorView.systemUiVisibility = if (light) window.decorView.systemUiVisibility or flags else window.decorView.systemUiVisibility and flags.inv()
+                }
+            }
+        }
+    }
     MaterialTheme(
         colorScheme = colors,
         content = content,
     )
 }
 
-fun trackermasterColors(themeMode: ThemeMode, accentIndex: Int): ColorScheme {
+fun trackermasterColors(themeMode: ThemeMode, accentIndex: Int, turquoiseEnabled: Boolean = true): ColorScheme {
     val base = if (themeMode == ThemeMode.LIGHT) lightColorScheme() else darkColorScheme(
         background = if (themeMode == ThemeMode.OLED) Color.Black else Color(0xFF121212),
         surface = if (themeMode == ThemeMode.OLED) Color.Black else Color(0xFF1E1E1E),
     )
     val accent = readableAccent(AccentColors[accentIndex.coerceIn(AccentColors.indices)], base.surfaceContainerHighest)
-    return base.copy(primary = accent, secondary = accent, surfaceTint = accent)
+    val secondary = if (turquoiseEnabled) readableAccent(Color(0xFF5EDDD0), base.surfaceContainerHighest) else accent
+    val onSecondary = if (secondary.luminance() > 0.179f) Color.Black else Color.White
+    return base.copy(primary = accent, secondary = secondary, onSecondary = if (turquoiseEnabled) onSecondary else base.onSecondary, surfaceTint = accent)
 }
 
 /** Preserve the selected hue while making accent text readable on Material card surfaces. */

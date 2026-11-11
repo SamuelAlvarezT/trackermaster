@@ -185,3 +185,42 @@ internal fun moneyReportPresentation(data: MoneyWorkspaceData, controls: MoneyCo
         report.months.map { MoneyMonthTotal(it.month.atDay(1),it.totals.income,it.totals.expenses) },report.totals,report,
         if(showAssets)investmentValue else null,if(showAssets)(cash ?: Money(0,controls.currency)) + investmentValue else null)
 }
+
+
+internal fun moneyUserGroups(data: MoneyWorkspaceData, groups: List<MoneyGroup>, receipts: List<MoneyReceipt>): List<MoneyUserGroup> {
+    if (groups.isEmpty()) return emptyList()
+    val receiptById = receipts.associateBy { it.id }
+    val currencies = data.ledger.movements.map { it.amount.currencyCode }.distinct()
+    val fullRange = MoneyDateRange(LocalDate.MIN, LocalDate.MAX)
+    val rows = currencies.flatMap { code -> MoneyPresentation.rows(data.ledger, data.categories, null, code, fullRange) }
+        .distinctBy { it.key }
+    fun key(row: MoneyHistoryRow): String {
+        val sourceId = row.movement.entryRequestId ?: row.movement.transferId
+        return when {
+            sourceId != null && sourceId in receiptById -> "receipt:$sourceId"
+            row.movement.transferId != null -> "transfer:${row.movement.transferId}"
+            else -> "movement:${row.movement.id}"
+        }
+    }
+    return groups.map { group ->
+        val members = group.memberKeys.toSet()
+        val grouped = rows.filter { key(it) in members }
+        val drafts = group.memberKeys.mapNotNull { member ->
+            member.takeIf { it.startsWith("receipt:") }?.removePrefix("receipt:")?.let(receiptById::get)
+                ?.takeIf { it.stage != "CONFIRMED" }
+        }
+        val legs = grouped.flatMap { row -> listOfNotNull(row.movement, row.incoming) }
+        val totals = legs.groupBy { it.amount.currencyCode }.map { (currency, entries) ->
+            entries.fold(Money(0, currency)) { sum, movement ->
+                if (movement.direction == MoneyDirection.INCOME) sum + movement.amount else sum - movement.amount
+            }
+        }.sortedBy { it.currencyCode }
+        val times = grouped.mapNotNull { row ->
+            val memberKey = key(row)
+            val id = memberKey.takeIf { it.startsWith("receipt:") }?.removePrefix("receipt:")
+            val time = id?.let(receiptById::get)?.draftJson?.let(com.trackermaster.core.data.money.ReceiptDraftCodec::decode)?.time
+            time?.takeIf { it.isNotBlank() }?.let { row.key to it }
+        }.toMap()
+        MoneyUserGroup(group, grouped, drafts, totals, times)
+    }
+}

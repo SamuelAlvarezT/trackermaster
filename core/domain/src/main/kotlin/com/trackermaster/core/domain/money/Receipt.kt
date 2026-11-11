@@ -6,17 +6,20 @@ enum class ReceiptBankStatus { SUCCESS, PENDING, FAILED, UNKNOWN }
 enum class ReceiptEntryKind { INCOME, EXPENSE, TRANSFER }
 data class ReceiptAnalysis(val amount: Money? = null, val date: LocalDate? = null,
     val direction: MoneyDirection? = null, val status: ReceiptBankStatus = ReceiptBankStatus.UNKNOWN,
-    val reference: String? = null, val provider: String? = null, val sender: String? = null, val recipient: String? = null)
+    val reference: String? = null, val provider: String? = null, val sender: String? = null, val recipient: String? = null,
+    val time: java.time.LocalTime? = null, val suggestedKind: ReceiptEntryKind? = null)
 /** A suggestion is never a ledger write; missing fields need an explicit choice. */
 data class ReceiptDraft(val kind: ReceiptEntryKind? = null, val amount: String = "", val currency: String = "COP",
     val date: String = "", val accountId: Long? = null, val pocketId: Long? = null, val categoryId: Long? = null,
     val targetAccountId: Long? = null, val targetPocketId: Long? = null, val receivedAmount: String = "",
-    val note: String = "", val reference: String = "", val confirmed: Boolean = false, val duplicateAcknowledgement: String? = null) {
+    val note: String = "", val reference: String = "", val confirmed: Boolean = false, val duplicateAcknowledgement: String? = null,
+    val time: String = "", val currencyVerified: Boolean = false) {
     companion object {
-        fun from(analysis: ReceiptAnalysis) = ReceiptDraft(kind = analysis.direction?.let {
+        fun from(analysis: ReceiptAnalysis) = ReceiptDraft(kind = analysis.suggestedKind ?: analysis.direction?.let {
             if (it == MoneyDirection.INCOME) ReceiptEntryKind.INCOME else ReceiptEntryKind.EXPENSE },
             amount = analysis.amount?.decimal?.stripTrailingZeros()?.toPlainString().orEmpty(),
-            currency = analysis.amount?.currencyCode ?: "COP", date = analysis.date?.toString().orEmpty(), reference = analysis.reference.orEmpty())
+            currency = analysis.amount?.currencyCode ?: "COP", date = analysis.date?.toString().orEmpty(), reference = analysis.reference.orEmpty(),
+            time = analysis.time?.toString().orEmpty(), currencyVerified = analysis.amount != null)
     }
 }
 enum class ReceiptDuplicateReason { FILE, REFERENCE, SIMILAR }
@@ -34,6 +37,7 @@ object ReceiptValidation {
         return Money.fromDecimal(text.trim().replace(',', '.'), currency).also { require(it.minorUnits > 0) }
     }
     fun movement(draft: ReceiptDraft, workspace: MoneyWorkspaceData, requestId: String, path: String): MoneyMovement {
+        if (draft.time.isNotBlank()) java.time.LocalTime.parse(draft.time)
         val kind = requireNotNull(draft.kind)
         val account = workspace.ledger.snapshot.accounts.single { it.account.id == draft.accountId }.account
         require(!account.archived && account.initialBalance.currencyCode == draft.currency)

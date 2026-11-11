@@ -5,6 +5,7 @@
   <string name="r_auth_unavailable">La autenticación no se completó. Reintenta o revisa la configuración biométrica del dispositivo.</string>
   <string name="r_title">Revisar comprobante</string>
   <string name="r_share_label">Trackermaster · Comprobante de dinero</string>
+  <string name="r_import_waiting">Importar comprobante / %1$d pendientes</string>
   <string name="r_import">Importar comprobante</string>
   <string name="r_intro">Comparte el comprobante desde tu billetera o elige un archivo. Revisa los datos antes de guardar.</string>
   <string name="r_choose">Elegir imagen o PDF</string>
@@ -19,6 +20,7 @@
   <string name="r_confirm">Confirmo que esta operación se realizó</string>
   <string name="r_bank_blocked">Este comprobante indica una operación pendiente o fallida. No se puede guardar como movimiento confirmado.</string>
   <string name="r_unreadable_review">No se encontró texto legible. Puedes completar el movimiento manualmente y conservar el original.</string>
+  <string name="r_time">Hora (HH:mm, opcional)</string>
   <string name="r_reference">Referencia</string>
   <string name="r_sender">Origen: %1$s</string>
   <string name="r_recipient">Destino: %1$s</string>
@@ -29,6 +31,7 @@
   <string name="r_private">Muestra los importes para ver el comprobante y sus datos detectados.</string>
   <string name="r_no_viewer">No hay una app disponible para abrir este archivo.</string>
   <string name="r_date_missing">Seleccionar fecha de la operación</string>
+  <string name="r_duplicate_exact">El archivo del comprobante ya está registrado</string>
   <string name="r_duplicate">Posible movimiento ya registrado</string>
   <string name="r_duplicate_file">Este mismo archivo está adjunto a un movimiento existente.</string>
   <string name="r_duplicate_reference">Esta referencia aparece en un movimiento existente.</string>
@@ -38,6 +41,7 @@
   <string name="r_saved_detail">El comprobante quedó adjunto y se actualizó el saldo de la cuenta.</string>
   <string name="r_done">Terminar</string>
   <string name="r_another">Importar otro comprobante</string>
+  <string name="r_save_draft">Guardar borrador</string>
   <string name="r_save">Confirmar y guardar</string>
   <string name="r_save_error">No se pudo guardar. Tu borrador se conserva; revisa la cuenta, el bolsillo y los importes, y vuelve a intentar.</string>
   <string name="r_error_unsupported">Elige una imagen, PDF o texto compatible.</string>
@@ -55,4 +59,9 @@
   <string name="r_status_pending">Estado del comprobante: pendiente</string>
   <string name="r_status_failed">Estado del comprobante: fallido</string>
   <string name="r_status_unknown">Estado del comprobante: sin determinar</string>
+  <string name="r_detected">Detectado · revisa</string>
+  <string name="r_missing_or_ambiguous">Falta o es ambiguo · elige manualmente</string>
+  <string name="r_currency_review">Moneda no detectada · selecciónala antes de confirmar</string>
+  <string name="r_time_unspecified">Hora sin especificar</string>
+  <string name="r_existing_detail">Transacción existente</string>
 </resources>

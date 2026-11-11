@@ -78,6 +78,15 @@ class FocusProgressRepositoryTest {
         db.habitLogDao().update(log(h)!!.copy(durationMs=120_000))
         repo.resume();clock.advance(60_000);repo.pause();assertEquals(180_000L,log(h)!!.durationMs)
     }
+    @Test fun manualToggleAndReversalKeepPartialFocusProgress()=runTest {
+        val id=habit(); repo.start(FocusCategoryType.WORK,30,id); clock.advance(600_000); repo.pause()
+        val habits=com.trackermaster.core.data.repository.HabitRepository(db.habitDao(),db.habitLogDao(),db.achievementDao(),db,clock)
+        val item=requireNotNull(habits.getHabit(id))
+        habits.toggleHabitDayState(item,clock.today())
+        assertTrue(log(id)!!.completed);assertEquals(600_000L,log(id)!!.durationMs)
+        habits.toggleHabitDayState(item,clock.today())
+        assertFalse(log(id)!!.completed);assertEquals(600_000L,log(id)!!.durationMs)
+    }
     @Test fun loggedGoalRemainsThirtyMinutesAfterGoalChange()=runTest {
         val h=habit();repo.start(FocusCategoryType.WORK,10,h);clock.advance(600_000);repo.checkpoint()
         db.habitDao().update(db.habitDao().getById(h)!!.copy(targetDurationMs=600_000))

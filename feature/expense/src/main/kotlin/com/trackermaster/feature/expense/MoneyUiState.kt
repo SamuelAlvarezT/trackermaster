@@ -10,7 +10,7 @@ enum class MoneyDestination { SUMMARY, MOVEMENTS, BUDGETS, REPORTS, ACCOUNTS }
 enum class MoneyLoadState { LOADING, CONTENT, ERROR }
 enum class MoneyPeriodKind { WEEK, MONTH, YEAR, RANGE }
 enum class MoneyEntryKind { EXPENSE, INCOME, TRANSFER }
-enum class MoneyUiError { LOAD, SAVE, AMOUNT, CATEGORY, ACCOUNT, DATE, FUNDS, CURRENCY, CONFLICT, NAME, EXPORT }
+enum class MoneyUiError { LOAD, SAVE, AMOUNT, CATEGORY, ACCOUNT, DATE, FUNDS, CURRENCY, CONFLICT, NAME, EXPORT, GROUP }
 enum class MoneyNoticeKind { SAVED, DELETED, RESTORED, PREFERENCES_FAILED }
 data class MoneyNotice(val id: Long, val kind: MoneyNoticeKind)
 
@@ -34,6 +34,8 @@ data class MoneyHistoryRow(
     val targetPocketName: String? = null,
 )
 data class MoneyDayGroup(val day: LocalDate, val rows: List<MoneyHistoryRow>, val net: Money)
+data class MoneyUserGroup(val group: MoneyGroup, val rows: List<MoneyHistoryRow>, val drafts: List<MoneyReceipt>,
+    val totals: List<Money>, val receiptTimes: Map<String, String>)
 data class MoneyOverviewUiState(
     val balance: Money = Money(0, "COP"),
     val totals: MoneyPeriodTotals = MoneyPeriodTotals(Money(0, "COP"), Money(0, "COP")),
@@ -97,9 +99,12 @@ data class MoneyControls(
     val saving: Boolean = false, val notice: MoneyNotice? = null, val error: MoneyUiError? = null,
     val privacyOverride: Boolean? = null,
     val exporting: Boolean = false,
+    val selectedGroupKeys: Set<String> = emptySet(),
 )
 data class MoneyHomeUiState(
     val load: MoneyLoadState = MoneyLoadState.LOADING,
+    val receiptDraftCount: Int = 0,
+    val userGroups: List<MoneyUserGroup> = emptyList(),
     val preferences: MoneyPreferences = MoneyPreferences(hideAmounts = true),
     val controls: MoneyControls = MoneyControls(),
     val spaces: List<MoneySpace> = emptyList(), val currencies: List<String> = listOf("COP", "USD"),
@@ -119,6 +124,7 @@ sealed interface MoneyEvent {
     data class Commitments(val tab: String = "debts") : MoneyEvent
     data class Planning(val tab: String = "budgets", val budgetId: Long? = null) : MoneyEvent
     data object ImportReceipt : MoneyEvent
+    data class ReviewDraft(val id: String) : MoneyEvent
     data class ViewReceipt(val path: String) : MoneyEvent
     data class Navigate(val destination: MoneyDestination) : MoneyEvent
     data class Space(val id: Long?) : MoneyEvent
@@ -130,6 +136,11 @@ sealed interface MoneyEvent {
     data class Filters(val filters: MoneyFilters) : MoneyEvent
     data class ShowArchived(val show: Boolean) : MoneyEvent
     data class Appearance(val detailed: Boolean, val sections: Boolean) : MoneyEvent
+    data class GroupRules(val sameDate: Boolean? = null, val sameAccount: Boolean? = null) : MoneyEvent
+    data class ToggleGroupMember(val key: String) : MoneyEvent
+    data class CreateGroup(val name: String) : MoneyEvent
+    data class AddToGroup(val id: String) : MoneyEvent
+    data class DeleteGroup(val id: String) : MoneyEvent
     data class OpenPanel(val panel: String) : MoneyEvent
     data object Privacy : MoneyEvent
     data object Retry : MoneyEvent
@@ -160,5 +171,6 @@ sealed interface MoneyEffect {
     data class Commitments(val tab: String, val currency: String, val space: Long?) : MoneyEffect
     data class Planning(val tab: String, val budgetId: Long?, val currency: String, val space: Long?) : MoneyEffect
     data object ImportReceipt : MoneyEffect
+    data class ReviewDraft(val id: String) : MoneyEffect
     data class ViewReceipt(val path: String) : MoneyEffect
 }

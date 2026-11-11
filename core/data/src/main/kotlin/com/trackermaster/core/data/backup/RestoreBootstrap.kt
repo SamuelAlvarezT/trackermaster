@@ -50,7 +50,7 @@ object RestoreBootstrap {
         try {
             val folder=checked(context,JSONObject(pending(context).readText()).getString("folder"),"restore-staging")
             val prepared=JSONObject(File(folder,"prepared.json").readText())
-            require(prepared.getInt("schema") in 13..14)
+            require(prepared.getInt("schema") in 13..15)
             val entries=prepared.getJSONObject("entries")
             for(name in entries.keys()) {
                 val file=BackupFiles.target(folder,name);val expected=entries.getJSONObject(name)

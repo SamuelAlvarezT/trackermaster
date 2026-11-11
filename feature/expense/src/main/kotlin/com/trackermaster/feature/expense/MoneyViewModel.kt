@@ -60,10 +60,12 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
             _uiState.update { it.copy(load = MoneyLoadState.LOADING) }
             try {
                 gateway.initialize()
-                combine(gateway.data, gateway.preferences, controls) { data, prefs, control ->
+                val groupData = combine(gateway.groups, gateway.receiptRecords) { groups, receipts -> groups to receipts }
+                combine(gateway.data, gateway.preferences, controls, gateway.receiptDraftCount, groupData) { data, prefs, control, draftCount, groupInfo ->
                     if(control.privacyOverride==prefs.hideAmounts) controls.compareAndSet(control,control.copy(privacyOverride=null))
                     data to presenter.build(data, control)
-                        .copy(preferences = prefs.copy(hideAmounts = control.privacyOverride ?: prefs.hideAmounts))
+                        .copy(receiptDraftCount = draftCount, userGroups = moneyUserGroups(data, groupInfo.first, groupInfo.second),
+                            preferences = prefs.copy(hideAmounts = control.privacyOverride ?: prefs.hideAmounts))
                 }.flowOn(computation).collect { (data, state) ->
                     workspace = data
                     _uiState.value = state.copy(preferences = state.preferences.copy(
@@ -84,6 +86,7 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
             is MoneyEvent.Commitments -> effectChannel.trySend(MoneyEffect.Commitments(event.tab,controls.value.currency,controls.value.spaceId))
             is MoneyEvent.Planning -> effectChannel.trySend(MoneyEffect.Planning(event.tab,event.budgetId,controls.value.currency,controls.value.spaceId))
             MoneyEvent.ImportReceipt -> effectChannel.trySend(MoneyEffect.ImportReceipt)
+            is MoneyEvent.ReviewDraft -> effectChannel.trySend(MoneyEffect.ReviewDraft(event.id))
             is MoneyEvent.ViewReceipt -> if (!uiState.value.preferences.hideAmounts) effectChannel.trySend(MoneyEffect.ViewReceipt(event.path))
             MoneyEvent.Retry -> observe()
             is MoneyEvent.Navigate -> change { it.copy(destination = event.destination) }
@@ -103,6 +106,17 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
             is MoneyEvent.Filters -> change { it.copy(filters = event.filters) }
             is MoneyEvent.ShowArchived -> change { it.copy(showArchived = event.show) }
             is MoneyEvent.Appearance -> write(notify = false) { gateway.appearance(event.detailed, event.sections) }
+            is MoneyEvent.GroupRules -> write(notify = false) { gateway.groupRules(event.sameDate, event.sameAccount) }
+            is MoneyEvent.ToggleGroupMember -> change { c -> c.copy(selectedGroupKeys = if (event.key in c.selectedGroupKeys) c.selectedGroupKeys - event.key else c.selectedGroupKeys + event.key) }
+            is MoneyEvent.CreateGroup -> write(notify = false, failureOverride = MoneyUiError.GROUP) {
+                gateway.createGroup(event.name, controls.value.selectedGroupKeys.toList(), MoneyGroupRules(uiState.value.preferences.groupSameDate, uiState.value.preferences.groupSameAccount))
+                change { it.copy(selectedGroupKeys = emptySet()) }
+            }
+            is MoneyEvent.AddToGroup -> write(notify = false, failureOverride = MoneyUiError.GROUP) {
+                gateway.addToGroup(event.id, controls.value.selectedGroupKeys.toList(), MoneyGroupRules(uiState.value.preferences.groupSameDate, uiState.value.preferences.groupSameAccount))
+                change { it.copy(selectedGroupKeys = emptySet()) }
+            }
+            is MoneyEvent.DeleteGroup -> write(notify = false) { gateway.deleteGroup(event.id) }
             MoneyEvent.Privacy -> {
                 if (writing) return
                 val hidden = !uiState.value.preferences.hideAmounts
@@ -307,7 +321,7 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
             }
         }
     }
-    private fun write(notify: Boolean = true, action: suspend () -> Unit) {
+    private fun write(notify: Boolean = true, failureOverride: MoneyUiError? = null, action: suspend () -> Unit) {
         if (writing) return
         writing = true
         change { it.copy(saving = true, error = null) }
@@ -315,7 +329,7 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
             try { action(); if (notify) gateway.notifyChanged() }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
-                val error = when (failure) {
+                val error = failureOverride ?: when (failure) {
                     is MoneyWriteException -> when (failure.reason) {
                         MoneyWriteFailure.INSUFFICIENT_FUNDS -> MoneyUiError.FUNDS
                         MoneyWriteFailure.CURRENCY_CHANGED -> MoneyUiError.CURRENCY

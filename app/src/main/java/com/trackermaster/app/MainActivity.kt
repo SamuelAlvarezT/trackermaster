@@ -118,7 +118,7 @@ class MainActivity : FragmentActivity() {
             } else {
                 var unlocked by remember(loaded.biometricEnabled,navigationRequest) { mutableStateOf(!loaded.biometricEnabled) }
                 val rootState=rememberSaveableStateHolder()
-                TrackermasterTheme(loaded.themeMode,loaded.accentIndex) {
+                TrackermasterTheme(loaded.themeMode,loaded.accentIndex,loaded.turquoiseEnabled) {
                     com.trackermaster.core.ui.LocalizedAppContent(loaded.localeTag) {
                     if(!unlocked && loaded.biometricEnabled) BiometricGate(activity=this,onUnlocked={unlocked=true})
                     else if(!loaded.onboardingComplete) OnboardingScreen(onComplete={

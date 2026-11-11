@@ -40,6 +40,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { repo.setTheme(mode) }
     fun setAccent(i: Int) = viewModelScope.launch { repo.setAccent(i) }
+    fun setTurquoise(enabled: Boolean) = viewModelScope.launch { repo.setTurquoiseEnabled(enabled) }
     fun setLocale(tag: String) = viewModelScope.launch {
         repo.setLocale(tag)
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
@@ -151,6 +152,12 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 ThemeMode.entries.forEach { mode ->
                     FilterChip(s.themeMode == mode, { vm.setTheme(mode) }, { Text(mode.name) })
                 }
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(P8R.string.turquoise_accent), Modifier.weight(1f))
+                Switch(s.turquoiseEnabled, { vm.setTurquoise(it) })
             }
         }
         item { Text("Accent color") }
