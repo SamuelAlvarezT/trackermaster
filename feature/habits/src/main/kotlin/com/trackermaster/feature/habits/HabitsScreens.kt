@@ -66,6 +66,7 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
     var reminderHabitData by remember { mutableStateOf<Habit?>(null) }
     var descriptionHabitData by remember { mutableStateOf<Habit?>(null) }
     var calendarHabitData by remember { mutableStateOf<Habit?>(null) }
+    var pendingDay by remember { mutableStateOf<Pair<Habit, LocalDate>?>(null) }
     var selectedHabitForMenu by remember { mutableStateOf<Habit?>(null) }
 
     var handledHabitId by remember { mutableStateOf<Long?>(null) }
@@ -106,10 +107,9 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
         }
     }
     
-    val onDragEnd = {
-        viewModel.updateHabitsOrder(localList.map { it.first })
-        Unit
-    }
+    var reorderError by remember { mutableStateOf(false) }
+    var savingOrder by remember { mutableStateOf(false) }
+    val onDragEnd = { Unit }
 
     val dragDropState = rememberDragDropState(lazyListState, onSwap, onDragEnd)
     val context = LocalContext.current
@@ -169,7 +169,20 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                     }
                 }
 
-                IconButton(onClick = { viewModel.toggleReorderMode() }) {
+                if (uiState.isReorderMode) {
+                    TextButton(onClick = { localList = uiState.activeHabits; viewModel.toggleReorderMode() }, enabled = !savingOrder) {
+                        Text(stringResource(R.string.habit_cancel))
+                    }
+                }
+                IconButton(enabled = uiState.selectedTab == 0 && !savingOrder, onClick = {
+                    if (uiState.isReorderMode) {
+                        savingOrder = true
+                        viewModel.updateHabitsOrder(localList.map { it.first }) { success ->
+                            savingOrder = false
+                            reorderError = !success
+                        }
+                    } else viewModel.toggleReorderMode()
+                }) {
                     Icon(
                         imageVector = if (uiState.isReorderMode) Icons.Default.Check else Icons.Default.Menu,
                         contentDescription = "Reorder",
@@ -178,9 +191,32 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                 }
             }
 
-            TextButton(onClick = { datePickerOpen = true }, modifier = Modifier.padding(start = 8.dp).testTag("habit_date_selector")) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { datePickerOpen = true }, modifier = Modifier.weight(1f).testTag("habit_date_selector")) {
                 Icon(Icons.Default.DateRange, contentDescription = null); Spacer(Modifier.width(8.dp))
                 Text(uiState.today.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(locale)))
+            }
+            if (uiState.selectedTab == 0 && !uiState.isReorderMode) {
+                Box {
+                    TextButton(onClick = { viewMenuOpen = true }, modifier = Modifier.testTag("habit_view_selector")) {
+                        Icon(Icons.Default.Tune, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(if (showAll) R.string.habit_view_all else R.string.habit_view_today))
+                    }
+                    DropdownMenu(expanded = viewMenuOpen, onDismissRequest = { viewMenuOpen = false }) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.habit_view_today)) },
+                            onClick = { showAll = false; viewMenuOpen = false },
+                            trailingIcon = { if (!showAll) Icon(Icons.Default.Check, null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.habit_view_all)) },
+                            onClick = { showAll = true; viewMenuOpen = false },
+                            trailingIcon = { if (showAll) Icon(Icons.Default.Check, null) })
+                    }
+                }
+            }
+            }
+            if (reorderError) {
+                Text("No se pudo guardar el orden. Inténtalo de nuevo.", color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp))
             }
             if (missingHistory) {
                 Text(stringResource(R.string.habit_history_unavailable), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
@@ -257,31 +293,25 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                                 readOnly = uiState.selectedTab == 0 && showAll && !due && !uiState.isReorderMode,
                                 isDueOnDate = { date -> habitDue(habit, date, uiState.actualToday, habitHistory) },
                                 isReorderMode = uiState.isReorderMode,
-                                onDayClick = { date -> viewModel.toggleDay(habit, date) },
+                                onDayClick = { date -> if (java.time.YearMonth.from(date) < java.time.YearMonth.from(uiState.actualToday)) pendingDay = habit to date else viewModel.toggleDay(habit, date) },
                                 onMenuClick = { selectedHabitForMenu = habit }
                             )
                         }
                     }
                 }
             }
-            if (uiState.selectedTab == 0 && !uiState.isReorderMode) {
-                Box(Modifier.padding(start = 12.dp, bottom = 4.dp)) {
-                    TextButton(onClick = { viewMenuOpen = true }, modifier = Modifier.testTag("habit_view_selector")) {
-                        Icon(Icons.Default.Tune, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(if (showAll) R.string.habit_view_all else R.string.habit_view_today))
-                    }
-                    DropdownMenu(expanded = viewMenuOpen, onDismissRequest = { viewMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.habit_view_today)) },
-                            onClick = { showAll = false; viewMenuOpen = false },
-                            trailingIcon = { if (!showAll) Icon(Icons.Default.Check, null) })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.habit_view_all)) },
-                            onClick = { showAll = true; viewMenuOpen = false },
-                            trailingIcon = { if (showAll) Icon(Icons.Default.Check, null) })
-                    }
-                }
-            }
+
         }
+    }
+
+    pendingDay?.let { (habit, date) ->
+        val log = uiState.activeHabits.firstOrNull { it.first.id == habit.id }?.second?.firstOrNull { it.date == date }
+        val current = when { log == null || (!log.completed && log.value == 0) -> "Sin estado"; log.completed -> "Completado"; log.value > 0 -> "En progreso"; else -> "No completado" }
+        val next = when (current) { "Sin estado" -> "Completado"; "Completado" -> "En progreso"; "En progreso" -> "No completado"; else -> "Sin estado" }
+        AlertDialog(onDismissRequest = { pendingDay = null }, title = { Text(habit.name) },
+            text = { Text("${date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.LONG))}\n$current → $next") },
+            confirmButton = { TextButton(onClick = { pendingDay = null; viewModel.toggleDay(habit, date) }) { Text("Confirmar") } },
+            dismissButton = { TextButton(onClick = { pendingDay = null }) { Text(stringResource(R.string.habit_cancel)) } })
     }
 
     if (datePickerOpen) {
@@ -375,9 +405,10 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
         FullScreenCalendarDialog(
             habit = calendarHabitData!!,
             logs = calendarLogs,
+            isDueOnDate = { date -> habitDue(calendarHabitData!!, date, uiState.actualToday, uiState.history) },
             onDismiss = { calendarHabitData = null },
             onDayClick = { date -> calendarHabitData?.let {
-                if (!(uiState.selectedTab == 0 && showAll && !habitDue(it, today, uiState.actualToday, uiState.history))) viewModel.toggleDay(it, date)
+                if (habitDue(it, date, uiState.actualToday, uiState.history)) viewModel.toggleDay(it, date)
             } }
         )
     }

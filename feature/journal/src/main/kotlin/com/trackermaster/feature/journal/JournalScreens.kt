@@ -73,6 +73,13 @@ class JournalViewModel @Inject constructor(private val repo: JournalRepository,p
         busy.value=true
         try {repo.save(entry);onSaved()} catch(e: Exception) {error.value=e.message ?: "No se pudo guardar"} finally {busy.value=false}
     }
+    fun importEntries(entries: List<JournalEntry>, seenIds: Set<Long>, onSaved: () -> Unit) = viewModelScope.launch {
+        if (busy.value) return@launch
+        busy.value = true
+        try { repo.importEntries(entries, seenIds); onSaved() }
+        catch (e: Exception) { error.value = e.message ?: "No se pudo importar" }
+        finally { busy.value = false }
+    }
     fun trash(id: Long)=viewModelScope.launch {runCatching {repo.trash(id)}.onFailure {error.value="No se pudo mover a la papelera"}}
     fun recover(id: Long)=viewModelScope.launch {runCatching {repo.recover(id)}.onFailure {error.value=it.message ?: "No se pudo recuperar"}}
     fun purge(id: Long)=viewModelScope.launch {runCatching {repo.permanentlyDelete(id)}.onFailure {error.value="No se pudo eliminar"}}
@@ -88,6 +95,23 @@ fun JournalScreen(vm: JournalViewModel = hiltViewModel()) {
     var tab by remember {mutableIntStateOf(0)};var query by remember {mutableStateOf("")};var searching by remember {mutableStateOf(false)}
     var menu by remember {mutableStateOf(false)};var trash by remember {mutableStateOf(false)};var lucidOnly by remember {mutableStateOf(false)}
     var moodOnly by remember {mutableStateOf(false)};var moodPanel by remember {mutableStateOf(false)}
+    var calendarOpen by remember {mutableStateOf(false)}
+    var importPreview by remember { mutableStateOf<List<DiaryImportRow>?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                val raw = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                        ?: error("No se pudo abrir el archivo")
+                }
+                val rows = parseMyDiary(raw)
+                if (rows.isEmpty()) vm.error.value = "No se detectaron bloques de MyDiary."
+                else importPreview = rows
+            } catch (e: Exception) { vm.error.value = e.message ?: "No se pudo leer el archivo" }
+        }
+    }
     var editor by remember {mutableStateOf<JournalEntry?>(null)};var selectedId by remember {mutableStateOf<Long?>(null)}
     var deleting by remember {mutableStateOf<JournalEntry?>(null)};var history by remember {mutableStateOf<Long?>(null)}
     val kind=if(tab==0) "PERSONAL" else "DREAM"
@@ -99,6 +123,8 @@ fun JournalScreen(vm: JournalViewModel = hiltViewModel()) {
             DropdownMenuItem(text={Text(if(trash) "Ver entradas" else "Papelera")},onClick={trash=!trash;menu=false})
             DropdownMenuItem(text={Text(if(lucidOnly) "Todos los sueños" else "Solo sueños lúcidos")},onClick={lucidOnly=!lucidOnly;moodOnly=false;menu=false})
             DropdownMenuItem(text={Text(if(moodOnly) "Todos los estados de ánimo" else "Con estado de ánimo")},onClick={moodOnly=!moodOnly;lucidOnly=false;menu=false})
+            DropdownMenuItem(text={Text("Importar MyDiary (.txt)")},onClick={menu=false;importPicker.launch(arrayOf("text/plain", "application/octet-stream"))})
+            DropdownMenuItem(text={Text("Calendario mensual")},onClick={calendarOpen=true;menu=false})
             DropdownMenuItem(text={Text("Estado de ánimo e historial")},onClick={moodPanel=true;menu=false})
         }}
     })},floatingActionButton={if(!trash) FloatingActionButton({val now=LocalDateTime.now();editor=JournalEntry(richTextHtml="",createdAt=now,updatedAt=now,kind=kind)}) {Icon(Icons.Default.Add,"Crear entrada")}}) {pad ->
@@ -111,10 +137,16 @@ fun JournalScreen(vm: JournalViewModel = hiltViewModel()) {
             }
         }
     }
+    importPreview?.let { rows -> DiaryImportPreview(rows, all, busy, onDismiss = { importPreview = null }, onImport = { selected, seenIds ->
+        val importedAt = LocalDateTime.now()
+        vm.importEntries(selected.map { row -> JournalEntry(title = "Entrada ${row.date}", richTextHtml = encodeImportedText(row.body),
+            createdAt = importedAt, updatedAt = importedAt, contentDate = LocalDate.parse(row.date), kind = "PERSONAL") }, seenIds) { importPreview = null; tab = 0; trash = false }
+    }) }
+    if(calendarOpen) JournalCalendar(all.filter { it.deletedAt == null }, onDismiss={calendarOpen=false}, onOpen={ id -> calendarOpen=false; selectedId=id })
     editor?.let {entry ->JournalEditor(entry,habits,vm.levels,busy,onDismiss={editor=null},onSave={saved ->vm.save(saved) {editor=null;selectedId=null;tab=if(saved.kind=="DREAM") 1 else 0}})}
     all.firstOrNull {it.id==selectedId}?.let {entry ->
         AlertDialog(onDismissRequest={selectedId=null},title={Text(entry.title.ifBlank {"Sin título"})},text={LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            item {Text("Fecha del contenido: ${entry.contentDate}\nCreada: ${entry.createdAt}\nEditada: ${entry.updatedAt}",style=MaterialTheme.typography.labelSmall)}
+            item {Text("Fecha del contenido: ${entry.contentDate}\n${if (entry.richTextHtml.startsWith(IMPORT_MARKER)) "Importada" else "Creada"}: ${entry.createdAt}\nEditada: ${entry.updatedAt}",style=MaterialTheme.typography.labelSmall)}
             item {Text(stripHtml(entry.richTextHtml));Text("${entry.tags} ${entry.emotions}");if(entry.lucid) Text("Sueño lúcido")}
             items(entry.attachments) {AttachmentPreview(it)}
             item {TextButton({history=entry.id;selectedId=null}) {Text("Historial de versiones")}}
@@ -138,6 +170,118 @@ fun JournalScreen(vm: JournalViewModel = hiltViewModel()) {
     }
     if(moodPanel) AlertDialog(onDismissRequest={moodPanel=false},title={Text("Estado de ánimo")},text={MoodJournalPanel(moods,vm.levels,vm::logMood)},confirmButton={TextButton({moodPanel=false}) {Text("Cerrar")}})
     error?.let {AlertDialog(onDismissRequest={vm.error.value=null},title={Text("Aviso")},text={Text(it)},confirmButton={TextButton({vm.error.value=null}) {Text("Cerrar")}})}
+}
+
+private const val IMPORT_MARKER = "<!--mydiary-import-->"
+internal fun encodeImportedText(value: String) = IMPORT_MARKER + value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+internal data class DiaryImportRow(val date: String, val body: String, val include: Boolean = true)
+
+internal fun parseMyDiary(raw: String): List<DiaryImportRow> {
+    val text = raw.removePrefix("\uFEFF").replace("\r\n", "\n").replace('\r', '\n')
+    val footer = Regex("""(?m)^Powered by MyDiary[ \t]*\n-{3,}[ \t]*(?:\n|$)""")
+    val header = Regex("""^\s*(\d{4}/\d{2}/\d{2})[ \t]*\n""")
+    var start = 0
+    val rows = mutableListOf<DiaryImportRow>()
+    for (match in footer.findAll(text)) {
+        val block = text.substring(start, match.range.first)
+        val h = header.find(block) ?: throw IllegalArgumentException("Bloque ${rows.size + 1}: falta una fecha de encabezado válida")
+        val date = h.groupValues[1].replace('/', '-')
+        var body = block.substring(h.range.last + 1)
+        if (body.startsWith("\n")) body = body.substring(1)
+        if (body.endsWith("\n")) body = body.dropLast(1)
+        rows += DiaryImportRow(date, body)
+        start = match.range.last + 1
+    }
+    require(text.substring(start).isBlank()) { "Hay contenido después del último separador" }
+    return rows
+}
+
+@Composable
+private fun DiaryImportPreview(initial: List<DiaryImportRow>, existing: List<JournalEntry>, busy: Boolean,
+    onDismiss: () -> Unit, onImport: (List<DiaryImportRow>, Set<Long>) -> Unit) {
+    val seenIds = remember(initial) { existing.map { it.id }.toSet() }
+    var rows by remember(initial) { mutableStateOf(initial.map { row ->
+        val duplicate = existing.any { it.contentDate.toString() == row.date && stripHtml(it.richTextHtml) == row.body }
+        row.copy(include = !duplicate)
+    }) }
+    AlertDialog(onDismissRequest = { if (!busy) onDismiss() }, title = { Text("Importar ${rows.size} entradas") }, text = {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { Text("Revisa las fechas, el texto y las posibles coincidencias. Las entradas coincidentes quedan sin seleccionar; puedes incluirlas manualmente.") }
+            items(rows.size) { index ->
+                val row = rows[index]
+                val date = runCatching { LocalDate.parse(row.date) }.getOrNull()
+                val duplicate = date != null && existing.any { it.contentDate == date && stripHtml(it.richTextHtml) == row.body }
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(row.include, { checked -> rows = rows.toMutableList().also { it[index] = row.copy(include = checked) } })
+                        Text("Entrada ${index + 1}" + if (duplicate) " · posible duplicado" else "")
+                    }
+                    OutlinedTextField(row.date, { value -> rows = rows.toMutableList().also { it[index] = row.copy(date = value) } },
+                        label = { Text("Fecha AAAA-MM-DD") }, isError = date == null, singleLine = true)
+                    Text(row.body, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }, confirmButton = {
+        TextButton(enabled = !busy && rows.any { it.include } && rows.filter { it.include }.all { runCatching { LocalDate.parse(it.date) }.isSuccess },
+            onClick = { onImport(rows.filter { it.include }, seenIds) }) { Text("Importar seleccionadas") }
+    }, dismissButton = { TextButton(enabled = !busy, onClick = onDismiss) { Text("Cancelar") } })
+}
+
+@Composable
+private fun JournalCalendar(entries: List<JournalEntry>, onDismiss: () -> Unit, onOpen: (Long) -> Unit) {
+    var month by remember { mutableStateOf(java.time.YearMonth.now()) }
+    var selected by remember { mutableStateOf(LocalDate.now()) }
+    val byDate = remember(entries) { entries.groupBy { it.contentDate } }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Calendario del diario") }, text = {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = { month = month.minusMonths(1) }) { Text("‹") }
+                Text(month.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) + " " + month.year)
+                TextButton(onClick = { month = month.plusMonths(1) }) { Text("›") }
+            }
+            Row { Text("● Personal", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+                Text("   ◆ Sueños", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelSmall)
+                Text("   · Hoy", style = MaterialTheme.typography.labelSmall) }
+            Row(Modifier.fillMaxWidth()) {
+                java.time.DayOfWeek.values().forEach { day ->
+                    Text(day.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()).take(2),
+                        Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            val offset = month.atDay(1).dayOfWeek.value - 1
+            val rows = (offset + month.lengthOfMonth() + 6) / 7
+            repeat(rows) { row ->
+                Row(Modifier.fillMaxWidth()) {
+                    repeat(7) { col ->
+                        val day = row * 7 + col - offset + 1
+                        if (day in 1..month.lengthOfMonth()) {
+                            val date = month.atDay(day)
+                            val dayEntries = byDate[date].orEmpty()
+                            val indicators = buildString {
+                                if (dayEntries.any { it.kind == "PERSONAL" }) append("●")
+                                if (dayEntries.any { it.kind == "DREAM" }) append("◆")
+                                if (dayEntries.size > 1) append(dayEntries.size)
+                            }
+                            Column(Modifier.weight(1f).clickable { selected = date }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text((if (date == selected) "[" else "") + day + (if (date == selected) "]" else "") + (if (date == LocalDate.now()) "·" else ""), style = MaterialTheme.typography.labelMedium)
+                                Row {
+                                    if (dayEntries.any { it.kind == "PERSONAL" }) Text("●", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+                                    if (dayEntries.any { it.kind == "DREAM" }) Text("◆", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelSmall)
+                                    if (dayEntries.size > 1) Text(dayEntries.size.toString(), style = MaterialTheme.typography.labelSmall)
+                                    if (indicators.isEmpty()) Text(" ", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        } else Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+            Text(selected.toString(), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp))
+            byDate[selected].orEmpty().forEach { entry ->
+                TextButton(onClick = { onOpen(entry.id) }) { Text((if (entry.kind == "DREAM") "◆ " else "● ") + entry.title.ifBlank { "Sin título" }) }
+            }
+        }
+    }, confirmButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } })
 }
 
 @Composable
@@ -227,7 +371,7 @@ private fun MoodRow(entry: MoodEntry, levels: List<MoodLevel>) {
 @Composable
 private fun JournalEditor(initial: JournalEntry,habits: List<Habit>,levels: List<MoodLevel>,busy: Boolean,onDismiss: ()->Unit,onSave: (JournalEntry)->Unit) {
     val context=LocalContext.current
-    var entry by remember {mutableStateOf(initial)};var body by remember {mutableStateOf(initial.richTextHtml)}
+    var entry by remember {mutableStateOf(initial)};var body by remember {mutableStateOf(if (initial.richTextHtml.startsWith(IMPORT_MARKER)) stripHtml(initial.richTextHtml) else initial.richTextHtml)}
     var date by remember {mutableStateOf(initial.contentDate.toString())};var contribution by remember {mutableStateOf(initial.contribution.toString())}
     var habitsMenu by remember {mutableStateOf(false)};var removeImage by remember {mutableStateOf<Attachment?>(null)}
     val imagePicker=rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {uri ->uri?.let {entry=entry.copy(attachments=entry.attachments+copyAttachment(context,it,"image/*"))}}
@@ -261,11 +405,13 @@ private fun JournalEditor(initial: JournalEntry,habits: List<Habit>,levels: List
         Row {TextButton({imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))}) {Text("Imagen")};TextButton({audioPicker.launch("audio/*")}) {Text("Audio")};TextButton({pdfPicker.launch("application/pdf")}) {Text("PDF")}}
         entry.attachments.forEach {attachment ->AttachmentPreview(attachment);TextButton({removeImage=attachment}) {Text("Quitar adjunto")}}
         if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-    }},confirmButton={TextButton({onSave(entry.copy(richTextHtml=body,contentDate=LocalDate.parse(date),contribution=contribution.toInt()))},enabled=!busy && runCatching {LocalDate.parse(date)<=LocalDate.now()}.getOrDefault(false) && contribution.toIntOrNull() in 1..1440 && (body.isNotBlank() || entry.attachments.isNotEmpty())) {Text("Guardar")}},dismissButton={TextButton(onDismiss,enabled=!busy) {Text("Cancelar")}})
+    }},confirmButton={TextButton({onSave(entry.copy(richTextHtml=if (initial.richTextHtml.startsWith(IMPORT_MARKER)) encodeImportedText(body) else body,contentDate=LocalDate.parse(date),contribution=contribution.toInt()))},enabled=!busy && runCatching {LocalDate.parse(date)<=LocalDate.now()}.getOrDefault(false) && contribution.toIntOrNull() in 1..1440 && (body.isNotBlank() || entry.attachments.isNotEmpty())) {Text("Guardar")}},dismissButton={TextButton(onDismiss,enabled=!busy) {Text("Cancelar")}})
     removeImage?.let {attachment ->AlertDialog(onDismissRequest={removeImage=null},title={Text("¿Quitar el adjunto de esta versión?")},text={Text("Seguirá disponible en las versiones anteriores guardadas.")},confirmButton={TextButton({entry=entry.copy(attachments=entry.attachments.filterNot {it.path==attachment.path});removeImage=null}) {Text("Quitar")}},dismissButton={TextButton({removeImage=null}) {Text("Cancelar")}})}
 }
 
-private fun stripHtml(html: String): String {
+internal fun stripHtml(html: String): String {
+    if (html.startsWith(IMPORT_MARKER)) return html.removePrefix(IMPORT_MARKER)
+        .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
     return html
         .replace("<br>", "\n")
         .replace(Regex("<[^>]+>"), "")

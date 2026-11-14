@@ -38,6 +38,13 @@ class JournalRepository @Inject constructor(private val journalDao: JournalDao,p
         snapshot(changed.copy(id=id))
         id
     }
+    suspend fun importEntries(entries: List<JournalEntry>, seenIds: Set<Long>) = db.withTransaction {
+        val appearedSincePreview = journalDao.observeEntries().first().filter { it.id !in seenIds }
+        require(entries.none { incoming -> appearedSincePreview.any { existing ->
+            existing.contentEpochDay == incoming.contentDate.toEpochDay() && existing.richTextHtml == incoming.richTextHtml
+        } }) { "Apareció una posible coincidencia desde la vista previa. Revisa el archivo de nuevo." }
+        entries.forEach { save(it) }
+    }
     suspend fun trash(id: Long) { read(id)?.let { save(it.copy(deletedAt=clock.wallMs())) } }
     suspend fun recover(id: Long) { read(id)?.let { save(it.copy(deletedAt=null)) } }
     suspend fun restore(id: Long,revisionId: Long) = db.withTransaction {

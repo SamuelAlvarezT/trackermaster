@@ -70,7 +70,7 @@ class HabitRepository @Inject constructor(
             }
         }
 
-    suspend fun updateHabitsOrder(habits: List<Habit>) {
+    suspend fun updateHabitsOrder(habits: List<Habit>) = database.withTransaction {
         habits.forEachIndexed { index, habit ->
             habitDao.updateSortOrder(habit.id,index)
         }

@@ -2,6 +2,9 @@ package com.trackermaster.feature.habits
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -163,6 +166,7 @@ fun CalendarMonthGrid(
     yearMonth: java.time.YearMonth,
     habit: Habit,
     logs: List<HabitLog>,
+    isDueOnDate: (LocalDate) -> Boolean,
     onDayClick: (LocalDate) -> Unit
 ) {
     val today = LocalDate.now()
@@ -206,7 +210,7 @@ fun CalendarMonthGrid(
                         val date = yearMonth.atDay(dayNumber)
                         val isToday = date == today
                         val log = logs.find { it.date == date }
-                        val isDue = com.trackermaster.core.domain.HabitScheduleLogic.isDueOnDate(habit, date)
+                        val isDue = isDueOnDate(date)
 
                         val (backgroundColor, textColor) = when {
                             !isDue -> Color.LightGray.copy(alpha = 0.3f) to MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -245,13 +249,18 @@ fun CalendarMonthGrid(
 fun FullScreenCalendarDialog(
     habit: Habit,
     logs: List<HabitLog>,
+    isDueOnDate: (LocalDate) -> Boolean,
     onDismiss: () -> Unit,
     onDayClick: (LocalDate) -> Unit
 ) {
     val currentMonth = remember { java.time.YearMonth.now() }
-    val months = remember(currentMonth) {
-        listOf(currentMonth.minusMonths(2), currentMonth.minusMonths(1), currentMonth)
+    var pendingDate by remember { mutableStateOf<LocalDate?>(null) }
+    val firstMonth = remember(habit.createdEpochDay, logs, currentMonth) {
+        val creation = java.time.YearMonth.from(LocalDate.ofEpochDay(habit.createdEpochDay))
+        val oldestLog = logs.minOfOrNull { it.date }?.let { java.time.YearMonth.from(it) }
+        minOf(creation, oldestLog ?: creation, currentMonth)
     }
+    val monthCount = java.time.temporal.ChronoUnit.MONTHS.between(firstMonth, currentMonth).toInt() + 1
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -284,12 +293,35 @@ fun FullScreenCalendarDialog(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(months) { month ->
-                        CalendarMonthGrid(yearMonth = month, habit = habit, logs = logs, onDayClick = onDayClick)
+                    items(monthCount, key = { it }) { index ->
+                        val month = currentMonth.minusMonths(index.toLong())
+                        CalendarMonthGrid(yearMonth = month, habit = habit, logs = logs, isDueOnDate = isDueOnDate, onDayClick = { date ->
+                            if (java.time.YearMonth.from(date) < currentMonth) pendingDate = date else onDayClick(date)
+                        })
                     }
                 }
             }
         }
+    }
+    pendingDate?.let { date ->
+        val log = logs.firstOrNull { it.date == date }
+        val current = when {
+            log == null || (!log.completed && log.value == 0) -> "Sin estado"
+            log.completed -> "Completado"
+            log.value > 0 -> "En progreso"
+            else -> "No completado"
+        }
+        val next = when (current) {
+            "Sin estado" -> "Completado"
+            "Completado" -> "En progreso"
+            "En progreso" -> "No completado"
+            else -> "Sin estado"
+        }
+        AlertDialog(onDismissRequest = { pendingDate = null },
+            title = { Text(habit.name) },
+            text = { Text("${date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.LONG))}\n$current → $next") },
+            confirmButton = { TextButton(onClick = { pendingDate = null; onDayClick(date) }) { Text("Confirmar") } },
+            dismissButton = { TextButton(onClick = { pendingDate = null }) { Text(stringResource(R.string.habit_cancel)) } })
     }
 }
 
@@ -301,21 +333,25 @@ fun HabitEditorDialog(
 ) {
     var name by remember { mutableStateOf(initialHabit?.name ?: "") }
     var progressType by remember { mutableStateOf(initialHabit?.progressType ?: ProgressType.CHECKBOX) }
-    var scheduleType by remember { mutableStateOf(initialHabit?.scheduleType ?: ScheduleType.DAILY) }
+    var scheduleType by remember { mutableStateOf(if (initialHabit?.scheduleType == ScheduleType.SPECIFIC_DAYS) ScheduleType.CUSTOM else initialHabit?.scheduleType ?: ScheduleType.DAILY) }
     var targetCountStr by remember { mutableStateOf(initialHabit?.targetCount?.toString() ?: "1") }
     var targetDurationMinutesStr by remember { mutableStateOf((initialHabit?.targetDurationMs?.div(60000L))?.toString() ?: "10") }
     var scheduleDaysBitmask by remember { mutableStateOf(initialHabit?.scheduleDaysBitmask ?: 1) }
+    var scheduleEdited by remember { mutableStateOf(false) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(if (initialHabit == null) R.string.habit_new_title else R.string.habit_edit_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).imePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.habit_name_label)) }, singleLine = true)
                 Text(stringResource(R.string.habit_progress_label, progressType.name))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ProgressType.entries.take(3).forEach { t ->
-                        FilterChip(progressType == t, { progressType = t }, { Text(t.name.take(4)) })
+                ProgressType.entries.take(3).chunked(2).forEach { choices ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        choices.forEach { type ->
+                            FilterChip(progressType == type, { progressType = type }, { Text(type.name, maxLines = 1) }, modifier = Modifier.weight(1f))
+                        }
+                        if (choices.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
                 if (progressType == ProgressType.COUNTER) {
@@ -325,30 +361,38 @@ fun HabitEditorDialog(
                 }
 
                 Text(stringResource(R.string.habit_schedule_label, scheduleType.name))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ScheduleType.entries.take(4).forEach { s ->
-                        FilterChip(scheduleType == s, { scheduleType = s }, { Text(s.name.take(5)) })
-                    }
-                }
-                if (scheduleType == ScheduleType.WEEKLY || scheduleType == ScheduleType.SPECIFIC_DAYS) {
-                    val days = listOf("M", "T", "W", "T", "F", "S", "S")
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        days.forEachIndexed { index, day ->
-                            val bit = 1 shl index
-                            val isSelected = (scheduleDaysBitmask and bit) != 0
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { 
-                                    scheduleDaysBitmask = if (isSelected) {
-                                        scheduleDaysBitmask and bit.inv()
-                                    } else {
-                                        scheduleDaysBitmask or bit
-                                    }
-                                },
-                                label = { Text(day) }
-                            )
+                ScheduleType.entries.take(4).chunked(2).forEach { choices ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        choices.forEach { choice ->
+                            FilterChip(scheduleType == choice, { scheduleType = choice; scheduleEdited = true },
+                                { Text(choice.name, maxLines = 1) }, modifier = Modifier.weight(1f))
                         }
                     }
+                }
+                if (scheduleType == ScheduleType.WEEKLY || scheduleType == ScheduleType.SPECIFIC_DAYS || scheduleType == ScheduleType.CUSTOM) {
+                    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+                    val days = remember(locale) { java.time.DayOfWeek.values().map { it.getDisplayName(java.time.format.TextStyle.FULL, locale) } }
+                    days.chunked(4).forEachIndexed { row, labels ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            labels.forEachIndexed { column, day ->
+                                val bit = 1 shl (row * 4 + column)
+                                val selected = scheduleDaysBitmask and bit != 0
+                                Surface(
+                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).toggleable(value = selected, role = androidx.compose.ui.semantics.Role.Checkbox, onValueChange = {
+                                        scheduleEdited = true
+                                        scheduleDaysBitmask = if (selected) scheduleDaysBitmask and bit.inv() else scheduleDaysBitmask or bit
+                                    }),
+                                    shape = CircleShape,
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) { Text(day.take(2), maxLines = 1) }
+                                }
+                            }
+                            repeat(4 - labels.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                    Text(days.filterIndexed { index, _ -> scheduleDaysBitmask and (1 shl index) != 0 }.joinToString(", "),
+                        style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -361,14 +405,14 @@ fun HabitEditorDialog(
                         initialHabit?.copy(
                             name = name,
                             progressType = progressType,
-                            scheduleType = scheduleType,
+                            scheduleType = if (scheduleType == ScheduleType.CUSTOM && (initialHabit?.scheduleType != ScheduleType.CUSTOM || scheduleEdited)) ScheduleType.SPECIFIC_DAYS else scheduleType,
                             scheduleDaysBitmask = scheduleDaysBitmask,
                             targetCount = count,
                             targetDurationMs = mins * 60000L
                         ) ?: Habit(
                             name = name,
                             progressType = progressType,
-                            scheduleType = scheduleType,
+                            scheduleType = if (scheduleType == ScheduleType.CUSTOM && (initialHabit?.scheduleType != ScheduleType.CUSTOM || scheduleEdited)) ScheduleType.SPECIFIC_DAYS else scheduleType,
                             scheduleDaysBitmask = scheduleDaysBitmask,
                             targetCount = count,
                             targetDurationMs = mins * 60000L,

@@ -19,7 +19,7 @@ private val Context.unlockSettings by preferencesDataStore("unlock_launch_settin
 private val Context.unlockRuntime by preferencesDataStore("unlock_launch_runtime")
 
 data class UnlockLaunchSettings(val enabled: Boolean=false,val intervalMinutes: Int=30,val rotation: Int=0,
-    val localeTag: String="en",val lastOutcome: String="NONE") {
+    val localeTag: String="en",val lastOutcome: String="NONE", val lastOffWall: Long? = null, val lastUnlockWall: Long? = null, val lastAttemptWall: Long? = null, val evaluation: String = "NONE") {
     val destination get()=UnlockLaunchRules.destinations[Math.floorMod(rotation,6)]
 }
 data class UnlockDelivery(val token: String,val destination: String,val issuedElapsedMs: Long)
@@ -39,33 +39,39 @@ class UnlockLaunchStore @Inject constructor(@ApplicationContext private val cont
         val boot=intPreferencesKey("boot_count");val token=stringPreferencesKey("delivery_token")
         val destination=stringPreferencesKey("destination");val issued=longPreferencesKey("issued_elapsed")
         val visible=booleanPreferencesKey("delivery_visible")
+        val lastOffWall=longPreferencesKey("diagnostic_off_wall"); val lastUnlockWall=longPreferencesKey("diagnostic_unlock_wall")
+        val lastAttemptWall=longPreferencesKey("diagnostic_attempt_wall"); val evaluation=stringPreferencesKey("diagnostic_evaluation")
     }
     val settings=context.unlockSettings.data.map { p -> UnlockLaunchSettings(p[Key.enabled] ?: false,
-        (p[Key.interval] ?: 30).takeIf { it in UnlockLaunchRules.intervalsMinutes } ?: 30,p[Key.rotation] ?: 0,
-        p[Key.locale] ?: "en",p[Key.outcome] ?: "NONE") }
+        (p[Key.interval] ?: 30).takeIf { it in UnlockLaunchRules.allowedMinutes } ?: 30,p[Key.rotation] ?: 0,
+        p[Key.locale] ?: "en",p[Key.outcome] ?: "NONE", p[Key.lastOffWall], p[Key.lastUnlockWall], p[Key.lastAttemptWall], p[Key.evaluation] ?: "NONE") }
 
     suspend fun configure(enabled: Boolean,interval: Int,locale: String): Unit = lock.withLock {
-        require(interval in UnlockLaunchRules.intervalsMinutes)
+        require(interval in UnlockLaunchRules.allowedMinutes)
         context.unlockSettings.edit { it[Key.enabled]=enabled;it[Key.interval]=interval;it[Key.locale]=locale;it[Key.outcome]="NONE" }
         context.unlockRuntime.edit { it.clear() }
     }
     suspend fun clearRuntime() = lock.withLock { context.unlockRuntime.edit { it.clear() };Unit }
     suspend fun screenOff(eventElapsedMs: Long=clock.elapsedMs()): Unit = lock.withLock {
         if(!settings.first().enabled) return@withLock
+        var started = false
         context.unlockRuntime.edit { p ->
             // A lock-screen glance can cause another SCREEN_OFF. It keeps the original period.
             if(p[Key.cycle]==null || p[Key.boot]!=clock.bootCount()) {
-                p.clear();p[Key.cycle]=UUID.randomUUID().toString();p[Key.off]=eventElapsedMs;p[Key.boot]=clock.bootCount()
+                p.clear();p[Key.cycle]=UUID.randomUUID().toString();p[Key.off]=eventElapsedMs;p[Key.boot]=clock.bootCount(); started = true
             }
         }
+        if (started) context.unlockSettings.edit { it[Key.lastOffWall] = clock.wallMs() }
     }
     suspend fun unlocked(eventElapsedMs: Long=clock.elapsedMs()): UnlockDelivery? = lock.withLock {
         val config=settings.first()
         var delivery: UnlockDelivery?=null
+        var evaluation = "SIN_PERIODO"
         context.unlockRuntime.edit { p ->
             val cycle=p[Key.cycle]?.let { UnlockCycle(it,p[Key.off] ?: eventElapsedMs,p[Key.boot] ?: -1) }
             if(cycle==null) return@edit // Duplicate USER_PRESENT must not invalidate a delivery awaiting acknowledgement.
             val decision=UnlockLaunchRules.decide(cycle,eventElapsedMs,clock.bootCount(),config.intervalMinutes,config.rotation)
+            evaluation = if (!config.enabled) "DESACTIVADO" else if (decision.eligible) "ELEGIBLE" else "INTERVALO_NO_CUMPLIDO_O_REINICIO"
             p.clear() // Every unlock ends this period, even if it was shorter than the interval.
             if(config.enabled && decision.eligible) {
                 val token=UUID.randomUUID().toString()
@@ -74,8 +80,10 @@ class UnlockLaunchStore @Inject constructor(@ApplicationContext private val cont
                 delivery=UnlockDelivery(token,decision.destination,eventElapsedMs)
             }
         }
+        context.unlockSettings.edit { it[Key.lastUnlockWall] = clock.wallMs(); it[Key.evaluation] = evaluation }
         delivery
     }
+    suspend fun attempt() { context.unlockSettings.edit { it[Key.lastAttemptWall] = clock.wallMs(); it[Key.outcome] = "ATTEMPTING" } }
     private fun valid(p: Preferences,token: String): Boolean = p[Key.token]==token && p[Key.boot]==clock.bootCount() &&
         clock.elapsedMs()-(p[Key.issued] ?: Long.MIN_VALUE) in 0..120_000
 

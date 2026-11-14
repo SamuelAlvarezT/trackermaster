@@ -5,6 +5,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UnlockLaunchRulesTest {
+    @Test fun customTwoMinuteIntervalUsesExactElapsedTime() {
+        val cycle = UnlockCycle("test", 1000, 4)
+        assertFalse(UnlockLaunchRules.decide(cycle, 120999, 4, 2, 0).eligible)
+        assertTrue(UnlockLaunchRules.decide(cycle, 121000, 4, 2, 0).eligible)
+    }
     private val cycle=UnlockCycle("one-lock",1000,4)
     @Test fun everySupportedIntervalHasAnExactBoundary() {
         for(minutes in UnlockLaunchRules.intervalsMinutes) {

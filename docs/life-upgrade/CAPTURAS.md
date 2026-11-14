@@ -94,3 +94,46 @@ Capturas del dispositivo conectado SM-A336M con Android 14. Se abrió un borrado
 - [app tasks lista](<C:/Users/usu/Desktop/habit tracker app/docs/life-upgrade/screenshots/app_tasks_lista.png>)
 - [app tasks ultimo elemento](<C:/Users/usu/Desktop/habit tracker app/docs/life-upgrade/screenshots/app_tasks_ultimo_elemento.png>)
 - [app tasks ultimo elemento antes](<C:/Users/usu/Desktop/habit tracker app/docs/life-upgrade/screenshots/app_tasks_ultimo_elemento_antes.png>)
+
+
+## Revisión del 11 de noviembre de 2026
+
+- El dispositivo SM-A336M con Android 14 apareció conectado y autorizado por ADB. Esta comprobación no valida el funcionamiento de la aplicación.
+- El archivo de referencia se examinó localmente: contiene 44 líneas de fecha, 44 separadores y 44 marcas de exportación; se observaron fechas repetidas. No se guardó el contenido privado en este documento.
+- No se han tomado capturas de las modificaciones de esta revisión ni se ha realizado la prueba real de desbloqueo de 30 minutos. Las imágenes anteriores corresponden a verificaciones previas.
+
+
+## Verificación en SM-A336M — 13 de noviembre de 2026
+
+Las capturas de esta verificación permanecen solo en el equipo y están excluidas de Git porque pueden contener información personal.
+
+- Instalación de actualización con `adb install -r`: correcta; firma idéntica a la versión instalada. La app abrió sin error fatal observado.
+- [Selector de fecha y Today en una fila](screenshots/habits_selector_fecha_2026-11-13.png).
+- [Formulario Custom](screenshots/habits_custom_2026-11-13.png) y [siete días seleccionados](screenshots/habits_siete_dias_2026-11-13.png). El formulario se canceló sin guardar.
+- [Formulario con texto al 150 %](screenshots/habits_texto_150_2026-11-13.png). Se restauró la escala original de 0,8.
+- La vista previa detectó 44 bloques y ningún duplicado; se importaron a Diario personal. Al volver a abrir el archivo se detectaron las 44 coincidencias, sin guardar un segundo lote.
+- [Calendario de abril de 2026 con entradas importadas](screenshots/journal_calendario_importado_2026-11-13.png). Se abrió una entrada y se verificó que muestra la fecha del contenido y la de importación por separado.
+- La prueba real de apertura tras 30 minutos, la rotación, la recuperación después de reiniciar y la persistencia del orden manual siguen pendientes. No se han verificado todos los tamaños de pantalla ni el teclado con texto ampliado.
+
+
+### Prueba de desbloqueo de 2 minutos — diagnóstico inicial
+
+- La configuración personalizada de 2 minutos se instaló y se verificó en Ajustes.
+- En una prueba real, el diagnóstico registró pantalla apagada a las 13:50:36; al desbloquear después de más de dos minutos no registró el evento de desbloqueo ni un intento de apertura.
+- El historial de broadcasts de Android mostró `USER_PRESENT` enviado por `com.android.systemui` con UID distinto al del sistema. El receptor de la app estaba registrado como `RECEIVER_NOT_EXPORTED`, por lo que no aceptaba ese emisor.
+- Se modificó el registro del receptor de los broadcasts protegidos de pantalla y desbloqueo; queda pendiente instalar y verificar esta corrección en una segunda prueba. La prueba corta no sustituye la de 30 minutos.
+
+
+### Corrección y segunda prueba de 2 minutos
+
+- Se instaló la versión que recibe `USER_PRESENT` desde System UI. La configuración de 2 minutos permaneció tras la actualización.
+- Con la app en segundo plano, el teléfono permaneció bloqueado desde las 14:01:13 hasta las 14:03:53. Android registró el inicio de la actividad desde segundo plano y la app apareció en Home.
+- [Diagnóstico de la prueba exitosa](screenshots/desbloqueo_2min_exitoso_2026-11-13.png): evaluación `ELEGIBLE`, resultado `OPENED` y siguiente destino `Habits`.
+- La prueba de 30 minutos, el ciclo completo de rotación y la recuperación tras reiniciar continúan pendientes. El intervalo quedó en 2 minutos para facilitar pruebas adicionales.
+
+
+### Historial de hábitos
+
+- [Lista continua de meses anteriores](screenshots/habits_historial_2026-11-13.png): se observaron meses desde noviembre hasta junio de 2026 en un hábito.
+- [Confirmación de una fecha anterior](screenshots/habits_confirmar_mes_anterior_2026-11-13.png): al cancelar y volver a tocar el mismo día, se mantuvo el estado mostrado. No se confirmó un cambio de prueba sobre los datos del usuario.
+- Se abrió y canceló el modo de ordenación. Queda pendiente comprobar un cambio real de orden persistido y su restauración tras reiniciar.

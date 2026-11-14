@@ -55,7 +55,10 @@ class UnlockMonitorService: Service() {
             .setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true).build())
         UnlockMonitorSignals.running.value=true
         val filter=IntentFilter().apply { addAction(Intent.ACTION_SCREEN_OFF);addAction(Intent.ACTION_USER_PRESENT) }
-        if(Build.VERSION.SDK_INT>=33) registerReceiver(receiver,filter,RECEIVER_NOT_EXPORTED)
+        // SCREEN_OFF and USER_PRESENT are protected system broadcasts. On Samsung,
+        // USER_PRESENT is sent by System UI under its own UID, not the system UID;
+        // a non-exported receiver therefore misses the unlock event.
+        if(Build.VERSION.SDK_INT>=33) registerReceiver(receiver,filter,RECEIVER_EXPORTED)
         else { @Suppress("UnspecifiedRegisterReceiverFlag") registerReceiver(receiver,filter) }
         scope.launch {
             // A restarted monitor must never interrupt an already unlocked phone.
@@ -85,6 +88,7 @@ class UnlockMonitorService: Service() {
             return
         }
         if(!automatic) { notifyToOpen(value,"FALLBACK");return }
+        store.attempt()
         try {
             startActivity(Intent(this,MainActivity::class.java).apply {
                 putExtra("tab",value.destination);putExtra(UnlockLaunchStore.EXTRA_TOKEN,value.token)

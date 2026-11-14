@@ -65,8 +65,16 @@ class HabitsViewModel @Inject constructor(private val repo: HabitRepository) : V
 
     fun saveHabit(habit: Habit) = viewModelScope.launch { repo.saveHabit(habit) }
 
-    fun updateHabitsOrder(habits: List<Habit>) = viewModelScope.launch {
-        repo.updateHabitsOrder(habits)
+    fun updateHabitsOrder(habits: List<Habit>, onResult: (Boolean) -> Unit) = viewModelScope.launch {
+        try {
+            repo.updateHabitsOrder(habits)
+            _isReorderMode.value = false
+            onResult(true)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            onResult(false)
+        }
     }
 
     fun toggleArchive(habit: Habit) = viewModelScope.launch {

@@ -55,6 +55,7 @@ fun UnlockSettingsSection(vm: UnlockSettingsViewModel=hiltViewModel()) {
     val monitorError by UnlockMonitorSignals.error.collectAsStateWithLifecycle()
     var capabilities by remember { mutableStateOf(unlockCapabilities(context)) }
     var settingsUnavailable by remember { mutableStateOf(false) }
+    var customMinutes by remember { mutableStateOf("") }
     val notifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { capabilities=unlockCapabilities(context) }
     DisposableEffect(owner,context) {
         val observer=LifecycleEventObserver { _,event -> if(event==Lifecycle.Event.ON_RESUME) capabilities=unlockCapabilities(context) }
@@ -78,6 +79,16 @@ fun UnlockSettingsSection(vm: UnlockSettingsViewModel=hiltViewModel()) {
                         UnlockLaunchRules.intervalsMinutes.forEach { minutes -> FilterChip(current.intervalMinutes==minutes,
                             onClick={vm.configure(true,minutes)},label={Text(stringResource(if(minutes==30)P8R.string.p8_unlock_minutes else P8R.string.p8_unlock_hours,if(minutes==30)minutes else minutes/60))}) }
                     }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        val valid = customMinutes.toIntOrNull()?.let { it in UnlockLaunchRules.allowedMinutes } == true
+                        OutlinedTextField(value = customMinutes, onValueChange = { customMinutes = it.filter(Char::isDigit).take(4) },
+                            label = { Text("Minutos personalizados (1–1440)") }, singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                            isError = customMinutes.isNotEmpty() && !valid, modifier = Modifier.weight(1f))
+                        Button(onClick = { vm.configure(true, customMinutes.toInt()); customMinutes = "" }, enabled = valid) { Text("Aplicar") }
+                    }
+                    fun stamp(ms: Long?): String = ms?.let { java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime().toString() } ?: "—"
+                    Text("Diagnóstico: pantalla apagada ${stamp(current.lastOffWall)} · desbloqueo ${stamp(current.lastUnlockWall)}\nIntervalo: ${current.intervalMinutes} min · evaluación: ${current.evaluation}\nÚltimo intento: ${stamp(current.lastAttemptWall)} · resultado: ${current.lastOutcome}", style = MaterialTheme.typography.bodySmall)
                     Text(stringResource(P8R.string.p8_unlock_rotation,stringResource(unlockSectionName(current.destination))))
                     Text(stringResource(if(running)P8R.string.p8_unlock_running else P8R.string.p8_unlock_stopped))
                     if(!running) OutlinedButton(onClick=vm::restart) { Text(stringResource(P8R.string.p8_unlock_restart)) }

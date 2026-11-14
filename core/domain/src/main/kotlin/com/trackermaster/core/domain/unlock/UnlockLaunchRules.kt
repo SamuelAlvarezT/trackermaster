@@ -6,9 +6,10 @@ data class UnlockDecision(val eligible: Boolean, val destination: String)
 object UnlockLaunchRules {
     val destinations = listOf("home","habits","tasks","expense","focus","journal")
     val intervalsMinutes = listOf(30,60,120,180)
+    val allowedMinutes = 1..1440
     fun decide(cycle: UnlockCycle?, nowElapsedMs: Long, bootCount: Int, intervalMinutes: Int,
         rotation: Int): UnlockDecision {
-        require(intervalMinutes in intervalsMinutes)
+        require(intervalMinutes in allowedMinutes)
         val eligible = cycle != null && cycle.bootCount == bootCount &&
             nowElapsedMs >= cycle.screenOffElapsedMs && nowElapsedMs-cycle.screenOffElapsedMs >= intervalMinutes*60_000L
         return UnlockDecision(eligible,destinations[Math.floorMod(rotation,destinations.size)])
