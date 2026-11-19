@@ -17,6 +17,12 @@ class HabitTimeSummaryTest {
         assertEquals(1_200_000L,result.remainingMs)
         assertEquals("1 h 30 min", formatHabitMinutes(result.plannedMs))
     }
+    @Test fun savedDailyGoalAndTypeTakePrecedenceOverCurrentHabit() {
+        val habit = Habit(1, "Timer", ProgressType.COUNTER, ScheduleType.DAILY, targetDurationMs=3_600_000)
+        val log = HabitLog(habitId=1, date=LocalDate.of(2026, 11, 3), durationMs=600_000,
+            progressTypeAtLog=ProgressType.TIMER, targetDurationMsAtLog=1_500_000)
+        assertEquals(HabitTimeSummary(1_500_000, 900_000), habitTimeSummary(listOf(habit to log)))
+    }
     @Test fun nonTimedHabitsDoNotInventDuration() {
         val habit=Habit(1,"Count",ProgressType.COUNTER,ScheduleType.DAILY,targetDurationMs=600_000)
         assertEquals(HabitTimeSummary(),habitTimeSummary(listOf(habit to null)))

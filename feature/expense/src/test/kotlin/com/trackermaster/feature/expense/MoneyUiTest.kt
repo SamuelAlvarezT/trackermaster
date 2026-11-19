@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.SavedStateHandle
@@ -61,6 +62,17 @@ class MoneyUiTest {
         assertEquals(1, gateway.recorded.size); assertEquals(500000L, gateway.recorded.single().amount.minorUnits)
         assertEquals(before - 500000, vm.uiState.value.overview.balance.minorUnits)
         compose.onNodeWithTag("money_amount_input").assertDoesNotExist()
+    }
+    @Test fun noteSupportsEditingInsideAccentedTextAndMultilineInput() {
+        val vm = render()
+        compose.onNodeWithTag("money_add_expense").performClick()
+        compose.runOnIdle { vm.onEvent(MoneyEvent.Editor(vm.uiState.value.controls.editor!!.copy(expanded = true))) }
+        val note = compose.onNodeWithTag("money_note_input")
+        note.performScrollTo().performClick().performTextInput("caé")
+        note.performTextInputSelection(TextRange(2))
+        note.performTextInput("f")
+        note.performTextInput("\nmañana")
+        compose.runOnIdle { assertEquals("caf\nmañanaé", vm.uiState.value.controls.editor!!.note) }
     }
     @Test fun privacyRemovesExactBalanceFromSemanticsImmediately() {
         val vm = render()

@@ -1,0 +1,13 @@
+<resources>
+    <string name="unrecorded_title">Hábitos sin registrar</string>
+    <string name="unrecorded_home">Inicio</string>
+    <string name="unrecorded_empty">No hay hábitos de días anteriores pendientes de registrar.</string>
+    <string name="unrecorded_date">Fecha pendiente: %1$s</string>
+    <string name="unrecorded_done">Hecho</string>
+    <string name="unrecorded_not_done">No hecho</string>
+    <string name="unrecorded_focus">Trabajar hoy en Focus</string>
+    <string name="unrecorded_cancel">Cancelar</string>
+    <string name="unrecorded_confirm_title">Confirmar cambio anterior</string>
+    <string name="unrecorded_confirm_detail">%1$s · %2$s: %3$s</string>
+    <string name="unrecorded_confirm">Confirmar</string>
+</resources>

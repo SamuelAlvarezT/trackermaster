@@ -16,6 +16,7 @@ import com.trackermaster.core.database.entity.*
         FocusRuntimeEntity::class,
         FocusHabitContributionEntity::class,
         HabitEntity::class,
+        HabitDynamicGoalEntity::class,
         HabitLogEntity::class,
         MoodEntryEntity::class,
         MoodTagEntity::class,
@@ -43,10 +44,11 @@ import com.trackermaster.core.database.entity.*
         MoneyInvestmentEntity::class,
         MoneyInvestmentEventEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 abstract class TrackermasterDatabase : RoomDatabase() {
+    abstract fun habitDynamicGoalDao(): HabitDynamicGoalDao
     abstract fun lifeDao(): LifeDao
     abstract fun progressDao(): ProgressDao
     abstract fun habitDao(): HabitDao

@@ -40,6 +40,12 @@ data class Habit(
     val sortOrder: Int = 0,
     val createdEpochDay: Long = LocalDate.now().toEpochDay(),
     val creationDateKnown: Boolean = true,
+    val dynamicDurationEnabled: Boolean = false,
+    val dynamicInitialMinutes: Int = 10,
+    val dynamicMinimumMinutes: Int = 10,
+    val dynamicMaximumMinutes: Int = 60,
+    val dynamicAdjustmentPercent: Int = 100,
+    val dynamicStartEpochDay: Long? = null,
 )
 
 data class HabitLog(
@@ -188,6 +194,7 @@ data class Task(
     val plannedDate: String? = null,
     val completedAtEpoch: Long? = null,
     val cancelledAtEpoch: Long? = null,
+    val archived: Boolean = false,
 )
 
 data class SubTask(

@@ -67,7 +67,12 @@ class DashboardViewModel @Inject constructor(
     val pendingHabits=habitRepository.observePendingHabits().map { PendingHabitsUiState(loading=false,habits=it) }
         .catch { emit(PendingHabitsUiState(loading=false,error=true)) }
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),PendingHabitsUiState())
+    val unrecordedDays = habitRepository.observeUnrecordedDays().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val summary = repo.observeSummary().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardSummary(0, 0, null, 0.0, 0, 0))
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val todayPlan = habitRepository.observeDay().flatMapLatest { day ->
+        combine(habitRepository.observeTodayHabits(day), taskRepo.observeTasks()) { habits, tasks -> buildTodayPlan(day, habits, tasks) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val pendingTasksCount = taskRepo.observeTasks().map { list -> list.count { !it.completed } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val moneyPreferences = moneyPreferencesRepo.preferences.catch { emit(MoneyPreferences(hideAmounts = true)) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, MoneyPreferences(hideAmounts = true))
@@ -82,6 +87,8 @@ fun DashboardScreen(
 ) {
     val summary by vm.summary.collectAsStateWithLifecycle()
     val pendingTasks by vm.pendingTasksCount.collectAsStateWithLifecycle()
+    val todayPlan by vm.todayPlan.collectAsStateWithLifecycle()
+    val unrecordedDays by vm.unrecordedDays.collectAsStateWithLifecycle()
     val pendingHabits by vm.pendingHabits.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val moneyPreferences by vm.moneyPreferences.collectAsStateWithLifecycle()
@@ -120,7 +127,9 @@ fun DashboardScreen(
             ModernDashboardContent(
                 summary = summary,
                 pendingTasks = pendingTasks,
+                todayPlan = todayPlan,
                 pendingHabits = pendingHabits,
+                yesterdayUnrecorded = unrecordedDays.count { it.date == LocalDate.now().minusDays(1) },
                 moneyBalance = moneyBalance,
                 onNavigate = onNavigate,
                 modifier = Modifier.padding(pad),
@@ -130,14 +139,12 @@ fun DashboardScreen(
         LazyColumn(Modifier.padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge) }
             item { Text(stringResource(com.trackermaster.core.ui.R.string.p8_today),style=MaterialTheme.typography.titleMedium) }
+            item { TodayPlanCard(todayPlan,
+                onHabit = { id -> onNavigate("${Routes.Habits.route}?habitId=$id") },
+                onTask = { id -> onNavigate("${Routes.Tasks.route}?taskId=$id") }) }
+            item { val count = unrecordedDays.count { it.date == LocalDate.now().minusDays(1) }
+                TrackerCard(title = stringResource(R.string.yesterday_review_title), subtitle = androidx.compose.ui.res.pluralStringResource(R.plurals.yesterday_review_count, count, count), onClick = { onNavigate("unrecorded") }) }
             item { PendingHabitsCard(pendingHabits,{ id -> onNavigate("${Routes.Habits.route}?habitId=$id") }) }
-            item {
-                TrackerCard(
-                    title = stringResource(R.string.tracker_tasks),
-                    subtitle = "$pendingTasks pending tasks",
-                    onClick = { onNavigate(Routes.Tasks.route) },
-                )
-            }
             item {
                 TrackerCard(
                     title = stringResource(R.string.tracker_habits),
@@ -193,7 +200,9 @@ fun DashboardScreen(
 private fun ModernDashboardContent(
     summary: DashboardSummary,
     pendingTasks: Int,
+    todayPlan: TodayPlan?,
     pendingHabits: PendingHabitsUiState,
+    yesterdayUnrecorded: Int,
     moneyBalance: String,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -244,12 +253,13 @@ private fun ModernDashboardContent(
             }
         }
         item { Text(stringResource(com.trackermaster.core.ui.R.string.p8_today), style = MaterialTheme.typography.titleMedium) }
+        item { TodayPlanCard(todayPlan,
+            onHabit = { id -> onNavigate("${Routes.Habits.route}?habitId=$id") },
+            onTask = { id -> onNavigate("${Routes.Tasks.route}?taskId=$id") }) }
+        item { TrackerCard(title = stringResource(R.string.yesterday_review_title), subtitle = androidx.compose.ui.res.pluralStringResource(R.plurals.yesterday_review_count, yesterdayUnrecorded, yesterdayUnrecorded), onClick = { onNavigate("unrecorded") }) }
         item { PendingHabitsCard(pendingHabits,{ id -> onNavigate("${Routes.Habits.route}?habitId=$id") }) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ModernNavCard(Icons.Default.TaskAlt, stringResource(R.string.tracker_tasks), "$pendingTasks pending tasks", MaterialTheme.colorScheme.primary) {
-                    onNavigate(Routes.Tasks.route)
-                }
                 ModernNavCard(Icons.Default.CheckCircle, stringResource(R.string.tracker_habits), "${summary.habitsCompletedToday}/${summary.habitsDueToday} · ${habitTimeLabel(summary)}", Color(0xFF2E7D32)) {
                     onNavigate(Routes.Habits.route)
                 }

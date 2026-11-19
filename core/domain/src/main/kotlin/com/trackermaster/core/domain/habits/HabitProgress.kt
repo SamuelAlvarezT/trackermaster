@@ -26,6 +26,8 @@ data class PendingHabit(
     val includesProvisionalToday: Boolean get() = todayDeficit > 0.0
 }
 
+data class UnrecordedHabitDay(val habit: Habit, val date: LocalDate)
+
 object HabitProgressRules {
     fun version(habit: Habit, from: LocalDate) = HabitScheduleVersion(habit.id, from,
         habit.progressType, habit.scheduleType, habit.scheduleDaysBitmask, habit.targetCount,
@@ -55,6 +57,32 @@ object HabitProgressRules {
             ProgressType.CHECKBOX -> 0.0
         }
         return ratio.coerceIn(0.0, 1.0)
+    }
+
+    fun unrecordedDays(habits: List<Habit>, logs: List<HabitLog>, history: List<HabitScheduleVersion>, today: LocalDate): List<UnrecordedHabitDay> {
+        val logsByHabit = logs.groupBy { it.habitId }
+        val historyByHabit = history.groupBy { it.habitId }
+        return habits.filterNot { it.archived }.flatMap { habit ->
+            val habitLogs = logsByHabit[habit.id].orEmpty()
+            val from = if (!habit.creationDateKnown && habit.createdEpochDay == 0L)
+                habitLogs.minOfOrNull { it.date } ?: today else LocalDate.ofEpochDay(habit.createdEpochDay)
+            val byDate = habitLogs.groupBy { it.date }.mapValues { (_, rows) -> rows.maxBy { it.id } }
+            val versions = historyByHabit[habit.id].orEmpty().sortedBy { it.effectiveFrom }
+            buildList {
+                var date = from
+                var nextVersion = 0
+                var activeVersion: HabitScheduleVersion? = null
+                while (date < today) {
+                    while (nextVersion < versions.size && versions[nextVersion].effectiveFrom <= date) {
+                        activeVersion = versions[nextVersion++]
+                    }
+                    val log = byDate[date]
+                    val blank = log == null || (!log.completed && log.value == 0 && log.durationMs == 0L && log.checklistState.values.none { it })
+                    if (blank && isDue(habit, date, activeVersion ?: version(habit, date))) add(UnrecordedHabitDay(habit, date))
+                    date = date.plusDays(1)
+                }
+            }
+        }.sortedWith(compareByDescending<UnrecordedHabitDay> { it.date }.thenBy { it.habit.name })
     }
 
     fun pending(habits: List<Habit>, logs: List<HabitLog>, history: List<HabitScheduleVersion>,

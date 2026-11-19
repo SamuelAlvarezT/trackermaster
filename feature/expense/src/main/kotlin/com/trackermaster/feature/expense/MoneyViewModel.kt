@@ -127,6 +127,7 @@ class MoneyViewModel @Inject constructor(private val gateway: MoneyGateway,
             is MoneyEvent.OpenPanel -> panel(event.panel)
             is MoneyEvent.OpenEntry -> openEntry(event)
             is MoneyEvent.Editor -> updateEditor(event.value)
+            is MoneyEvent.EditorNote -> controls.value.editor?.let { updateEditor(it.copy(note = event.value)) }
             MoneyEvent.CloseEditor -> if (!writing) { change { it.copy(editor = null, editorDateOpen = false, categoryEditor = false) }; savedState["money_draft"] = null }
             is MoneyEvent.EntryDate -> { change { it.copy(editor = it.editor?.copy(date = event.day), editorDateOpen = false) }; persistDraft() }
             MoneyEvent.SaveEntry -> saveEntry()

@@ -26,7 +26,7 @@ class UnlockLaunchRulesTest {
     }
     @Test fun timeBeforeScreenOffNeverQualifies() { assertFalse(UnlockLaunchRules.decide(cycle,0,4,30,0).eligible) }
     @Test fun rotationIsPersistentOrderedAndWraps() {
-        assertEquals(listOf("home","habits","tasks","expense","focus","journal"),UnlockLaunchRules.destinations)
-        assertEquals(0,UnlockLaunchRules.nextRotation(5));assertEquals(3,UnlockLaunchRules.nextRotation(2))
+        assertEquals(listOf("home","unrecorded","habits","tasks","expense","focus","journal"),UnlockLaunchRules.destinations)
+        assertEquals(0,UnlockLaunchRules.nextRotation(6));assertEquals(3,UnlockLaunchRules.nextRotation(2))
     }
 }

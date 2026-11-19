@@ -28,7 +28,7 @@ class UnlockLaunchStoreTest {
         store.screenOff() // Lock-screen glance must not reset the first SCREEN_OFF.
         clock.elapsed+=10*60_000
         val delivery=store.unlocked()!!
-        assertEquals(UnlockLaunchRules.destinations[first%6],delivery.destination)
+        assertEquals(UnlockLaunchRules.destinations[first % UnlockLaunchRules.destinations.size],delivery.destination)
         assertNull(store.unlocked()) // no accumulation of multiple launches for one lock
         assertTrue(store.pending(delivery.token))
         assertEquals(first,store.settings.first().rotation)

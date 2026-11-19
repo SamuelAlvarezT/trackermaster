@@ -41,4 +41,5 @@
     <string name="habit_history_unavailable">Programación histórica no disponible para esta fecha.</string>
     <string name="habit_scheduled_date">Programados para %1$s</string>
     <string name="habit_not_date">No tocan el %1$s</string>
+    <string name="habit_today_progress">Hoy: %1$s · %2$s realizados</string>
 </resources>

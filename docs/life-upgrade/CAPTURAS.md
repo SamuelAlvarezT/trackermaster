@@ -2,6 +2,19 @@
 
 Capturas tomadas en el teléfono. `app_`: app habitual y datos reales; `fixture_`: paquete de pruebas y datos sintéticos. Las capturas de diagnóstico conservan la evidencia anterior a las correcciones.
 
+- [Meta dinámica inicial](screenshots/fixture_dynamic_goal_2026-11-19.png): detalle del hábito sintético con su meta inicial.
+- [Tareas archivadas](screenshots/fixture_tasks_archived_2026-11-19.png): tarea sintética archivada y opción de recuperarla.
+
+- [Home: plan de hoy](screenshots/fixture_home_plan_2026-11-18.png): hábito de tiempo y tarea sin fecha creados en la copia aislada; sus filas abrieron los detalles correspondientes. La captura precede al ajuste de orden e idioma.
+
+- [Focus: sonido de alarma seleccionado](screenshots/fixture_focus_alarma_sonido_2026-11-18.png): nombre del sonido y vibración desactivada en la copia aislada.
+
+- [Focus: configuración de alarma](screenshots/fixture_focus_alarma_configuracion_2026-11-18.png): opciones de sonido, archivo propio, vibración y muestra en la copia aislada del Samsung.
+
+- [Focus: confirmación de finalización anticipada](screenshots/fixture_focus_confirmacion_2026-11-16.png): sesión sintética pausada en el Samsung, antes de confirmar desde la app.
+
+- [Hábitos sin registrar: estado vacío](screenshots/fixture_habitos_sin_registrar_vacio_2026-11-16.png): pantalla de la app aislada sin registros de prueba, abierta en Samsung SM-A336M.
+
 Las capturas anteriores y la referencia con datos reales se conservan localmente; las capturas sintéticas nuevas documentan las pruebas incorporadas al repositorio.
 
 No se capturó la pantalla de claves. La fuente original 0,8 quedó restaurada después de probar 1,3.
@@ -137,3 +150,7 @@ Las capturas de esta verificación permanecen solo en el equipo y están excluid
 - [Lista continua de meses anteriores](screenshots/habits_historial_2026-11-13.png): se observaron meses desde noviembre hasta junio de 2026 en un hábito.
 - [Confirmación de una fecha anterior](screenshots/habits_confirmar_mes_anterior_2026-11-13.png): al cancelar y volver a tocar el mismo día, se mantuvo el estado mostrado. No se confirmó un cambio de prueba sobre los datos del usuario.
 - Se abrió y canceló el modo de ordenación. Queda pendiente comprobar un cambio real de orden persistido y su restauración tras reiniciar.
+# Gboard
+
+- [Gboard en Journal](screenshots/fixture_gboard_journal_2026-11-19.png): prueba con texto sintético; detalles y límites en [la evidencia de Gboard](GBOARD-2026-11-19.md).
+- [Sugerencia de Gboard](screenshots/fixture_gboard_suggestion_2026-11-19.png): sustitución propuesta para una palabra de prueba antes de pulsar espacio.

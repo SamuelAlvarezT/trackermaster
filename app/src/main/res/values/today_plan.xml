@@ -1,0 +1,13 @@
+<resources>
+    <string name="today_plan_title">Today’s plan</string>
+    <string name="today_plan_empty">Nothing pending for today.</string>
+    <string name="today_plan_habit">Habit</string>
+    <string name="today_plan_habit_time">Habit · %1$s remaining</string>
+    <string name="today_plan_task_due">Task · due %1$s</string>
+    <string name="today_plan_task_undated">Task · no due date</string>
+    <string name="yesterday_review_title">Yesterday’s review</string>
+    <plurals name="yesterday_review_count">
+        <item quantity="one">%d habit not recorded</item>
+        <item quantity="other">%d habits not recorded</item>
+    </plurals>
+</resources>

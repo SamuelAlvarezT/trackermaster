@@ -10,4 +10,5 @@
     <string name="habit_history_unavailable">此日期没有可用的历史计划。</string>
     <string name="habit_scheduled_date">%1$s 的计划</string>
     <string name="habit_not_date">%1$s 不需要</string>
+    <string name="habit_today_progress">今天：目标 %1$s · 已完成 %2$s</string>
 </resources>

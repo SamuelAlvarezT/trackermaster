@@ -45,6 +45,20 @@ class FocusProgressRepositoryTest {
         assertEquals(1_800_000L,log(h)!!.durationMs);assertTrue(log(h)!!.completed)
         assertEquals(2,db.openHelper.readableDatabase.query("SELECT id FROM focus_sessions").use { it.count })
     }
+    @Test fun focusContributesToDynamicDailyTargetWithoutDuplicatingTime() = runTest {
+        val day = clock.today()
+        val h = db.habitDao().insert(HabitEntity(name="Dynamic",progressType="TIMER",scheduleType="DAILY",
+            targetDurationMs=10*60_000,colorArgb=0,createdEpochDay=day.toEpochDay(),creationDateKnown=true,
+            dynamicDurationEnabled=true,dynamicInitialMinutes=30,dynamicMinimumMinutes=10,
+            dynamicMaximumMinutes=60,dynamicStartEpochDay=day.toEpochDay()))
+        repo.start(FocusCategoryType.WORK,10,h); clock.advance(600_000); repo.checkpoint(); repo.checkpoint()
+        assertEquals(600_000L,log(h)!!.durationMs)
+        assertEquals(1_800_000L,log(h)!!.targetDurationMsAtLog)
+        assertFalse(log(h)!!.completed)
+        repo.start(FocusCategoryType.WORK,20,h); clock.advance(1_200_000); repo.checkpoint()
+        assertEquals(1_800_000L,log(h)!!.durationMs)
+        assertTrue(log(h)!!.completed)
+    }
     @Test fun pauseExcludesTimeAndNewRepositoryRecoversWithoutDuplication()=runTest {
         val h=habit();repo.start(FocusCategoryType.WORK,30,h);clock.advance(120_005);repo.pause()
         clock.advance(900_000);repo=FocusProgressRepository(db,clock);repo.checkpoint()

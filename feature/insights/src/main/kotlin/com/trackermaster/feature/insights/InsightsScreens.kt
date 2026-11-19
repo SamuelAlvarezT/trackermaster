@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
@@ -100,8 +101,8 @@ private fun Results(vm: InsightsViewModel,initialFilter: String) {
         report?.let { r ->
             item { Text("${r.comparison.current.start} — ${r.comparison.current.end}\nFrente a ${r.comparison.previous.start} — ${r.comparison.previous.end}\n${if(r.comparison.provisional) "Informe provisional" else "Periodo cerrado"}",style=MaterialTheme.typography.bodySmall) }
             item { LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) { items(listOf("Todas","Habits","Tasks","Money","Focus","Journal","Objetivos")) { name -> FilterChip(selected=filter==name,onClick={filter=name},label={Text(name)}) } } }
-            if(filter in listOf("Todas","Habits")) item { DailyChart("Habits · evolución en días equivalentes",r.comparison.current,r.habitDaily) }
-            if(filter in listOf("Todas","Focus")) item { DailyChart("Focus · minutos por día",r.comparison.current,r.focusDaily) }
+            if(filter in listOf("Todas","Habits")) item { DailyChart("Habits · evolución en días equivalentes",r.comparison.current,r.habitDaily,"días") }
+            if(filter in listOf("Todas","Focus")) item { DailyChart("Focus · minutos por día",r.comparison.current,r.focusDaily,"min") }
             items(r.metrics.filter { filter=="Todas" || it.title.startsWith(filter) },key={it.key}) { metric ->
                 Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
                     Text(metric.title,style=MaterialTheme.typography.titleSmall)
@@ -114,7 +115,7 @@ private fun Results(vm: InsightsViewModel,initialFilter: String) {
                         if (metric.previousHasData) {
                             MetricBars(metric.value,metric.previous,metric.unit,metric.unit == "%" || metric.unit == "% de días")
                             Text("Anterior: ${metricValue(metric.previous,metric.unit)} · Variación relativa: ${LifeCalculations.variation(metric.value,metric.previous)}",style=MaterialTheme.typography.bodySmall)
-                            if(metric.unit == "%" || metric.unit == "% de días") Text("Diferencia: ${"%+.2f".format(metric.value-metric.previous)} puntos porcentuales",style=MaterialTheme.typography.bodySmall)
+                            if(metric.unit == "%" || metric.unit == "% de días") Text("Diferencia: ${if (metric.value >= metric.previous) "+" else ""}${formatInsightNumber(metric.value-metric.previous)} puntos porcentuales",style=MaterialTheme.typography.bodySmall)
                         } else Text("Periodo anterior: sin datos comparables",style=MaterialTheme.typography.bodySmall)
                     }
                     if(metric.detail.isNotBlank() && (!metric.hasData || metric.unit != "%")) Text(metric.detail,style=MaterialTheme.typography.bodySmall)
@@ -122,7 +123,7 @@ private fun Results(vm: InsightsViewModel,initialFilter: String) {
                 } }
             }
             if(filter in listOf("Todas","Habits")) item { Text("Hábitos con mayor dificultad",style=MaterialTheme.typography.titleMedium)
-                if(r.difficulties.isEmpty()) Text("Sin fechas programadas suficientes") else r.difficulties.forEach { Text("${it.first}: ${"%.1f".format(it.second*100)} %") }
+                if(r.difficulties.isEmpty()) Text("Sin fechas programadas suficientes") else r.difficulties.forEach { Text("${it.first}: ${formatInsightNumber(it.second*100)} %") }
             }
             item { Text("Los indicadores sin base suficiente se muestran como sin datos. Las fechas de creación desconocidas y finalizaciones antiguas sin hora no se inventan.",style=MaterialTheme.typography.bodySmall) }
         } ?: item { CircularProgressIndicator() }
@@ -131,7 +132,10 @@ private fun Results(vm: InsightsViewModel,initialFilter: String) {
 
 internal fun metricValue(value: Double, unit: String): String =
     if (unit == "COP" || unit == "USD") com.trackermaster.core.domain.money.Money.fromLegacy(value,unit).format(java.util.Locale.US)
-    else "${"%.2f".format(java.util.Locale.US,value)} $unit"
+    else "${formatInsightNumber(value)} $unit"
+
+internal fun formatInsightNumber(value: Double): String =
+    java.text.DecimalFormat("#,##0.##", java.text.DecimalFormatSymbols(java.util.Locale.US)).format(value)
 
 @Composable
 private fun MetricBars(current: Double,previous: Double,unit: String,percentage: Boolean) {
@@ -158,7 +162,7 @@ private fun MetricBars(current: Double,previous: Double,unit: String,percentage:
 }
 
 @Composable
-private fun DailyChart(title: String,span: DateSpan,values: Map<LocalDate,Double>) {
+private fun DailyChart(title: String,span: DateSpan,values: Map<LocalDate,Double>, unit: String) {
     val color=MaterialTheme.colorScheme.secondary
     val axis=MaterialTheme.colorScheme.outline
     var selected by remember(span,values) { mutableStateOf<LocalDate?>(null) }
@@ -167,15 +171,27 @@ private fun DailyChart(title: String,span: DateSpan,values: Map<LocalDate,Double
         if(values.isEmpty()) Text("Sin datos en el periodo",Modifier.padding(vertical=16.dp))
         else {
             val min=minOf(0.0,values.values.minOrNull() ?: 0.0)
-            val max=maxOf(0.0,values.values.maxOrNull() ?: 0.0).coerceAtLeast(min+1.0)
+            val observedMax=maxOf(0.0,values.values.maxOrNull() ?: 0.0)
+            val max=if (observedMax > min) observedMax else min + 1.0
             val count=span.days.toInt().coerceAtLeast(1)
-            Canvas(Modifier.fillMaxWidth().height(140.dp).pointerInput(span,values) {
+            Text("Unidad: $unit", style = MaterialTheme.typography.labelSmall)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.widthIn(min = 36.dp, max = 96.dp).height(140.dp).padding(end = 6.dp, top = 4.dp, bottom = 4.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                Text(formatInsightNumber(max), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                Text(formatInsightNumber((max + min) / 2), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                Text(formatInsightNumber(min), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            }
+            Canvas(Modifier.weight(1f).height(140.dp).padding(4.dp).pointerInput(span,values) {
                 detectTapGestures { point ->
                     val index=if(count==1) 0 else ((point.x/size.width)*(count-1)).roundToInt().coerceIn(0,count-1)
                     selected=span.start.plusDays(index.toLong())
                 }
             }) {
                 val range=max-min
+                for (line in 0..4) {
+                    val y = size.height * line / 4f
+                    drawLine(axis.copy(alpha = 0.22f), Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+                }
                 val zero=(size.height*(max/range)).toFloat()
                 drawLine(axis,Offset(0f,zero),Offset(size.width,zero),strokeWidth=1.dp.toPx())
                 var previous: Offset?=null
@@ -189,8 +205,8 @@ private fun DailyChart(title: String,span: DateSpan,values: Map<LocalDate,Double
                     previous=point
                 }
             }
-            Text("Escala: ${"%.1f".format(min)} — ${"%.1f".format(max)}",style=MaterialTheme.typography.labelSmall)
-            selected?.let { day -> Text("$day: ${values[day]?.let { "%.2f".format(it) } ?: "sin datos"}",style=MaterialTheme.typography.bodySmall) }
+            }
+            selected?.let { day -> Text("$day: ${values[day]?.let { "${formatInsightNumber(it)} $unit" } ?: "sin datos"}",style=MaterialTheme.typography.bodySmall) }
         }
         Text("${span.start} — ${span.end} · Toca la gráfica para consultar un día",style=MaterialTheme.typography.labelSmall)
     } }

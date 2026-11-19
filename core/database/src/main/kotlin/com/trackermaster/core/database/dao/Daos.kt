@@ -20,6 +20,9 @@ interface HabitDao {
     @Query("SELECT * FROM habits ORDER BY sortOrder ASC, name ASC")
     fun observeAll(): Flow<List<HabitEntity>>
 
+    @Query("SELECT * FROM habits WHERE archived = 0 AND dynamicDurationEnabled = 1")
+    suspend fun dynamicHabits(): List<HabitEntity>
+
     @Query("SELECT * FROM habits WHERE id = :id")
     suspend fun getById(id: Long): HabitEntity?
 

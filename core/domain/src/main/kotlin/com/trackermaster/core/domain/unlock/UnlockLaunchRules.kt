@@ -4,7 +4,7 @@ data class UnlockCycle(val id: String, val screenOffElapsedMs: Long, val bootCou
 data class UnlockDecision(val eligible: Boolean, val destination: String)
 
 object UnlockLaunchRules {
-    val destinations = listOf("home","habits","tasks","expense","focus","journal")
+    val destinations = listOf("home","unrecorded","habits","tasks","expense","focus","journal")
     val intervalsMinutes = listOf(30,60,120,180)
     val allowedMinutes = 1..1440
     fun decide(cycle: UnlockCycle?, nowElapsedMs: Long, bootCount: Int, intervalMinutes: Int,

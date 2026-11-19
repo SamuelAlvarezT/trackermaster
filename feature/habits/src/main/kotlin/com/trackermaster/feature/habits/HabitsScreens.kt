@@ -30,6 +30,7 @@ import com.trackermaster.core.domain.habits.habitTimeSummary
 import com.trackermaster.core.domain.habits.formatHabitMinutes
 import com.trackermaster.core.domain.habits.HabitProgressRules
 import com.trackermaster.core.domain.habits.HabitScheduleVersion
+import com.trackermaster.core.domain.habits.DynamicGoal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -290,6 +291,12 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
                                 habit = habit,
                                 logs = logs,
                                 today = today,
+                                todayTargetMs = if (today == uiState.actualToday && due) {
+                                    val version = HabitProgressRules.versionOn(habit, today, habitHistory)
+                                    val log = logs.filter { it.date == today }.maxByOrNull { it.id }
+                                    if ((log?.progressTypeAtLog ?: version.progressType) in listOf(ProgressType.TIMER, ProgressType.STOPWATCH))
+                                        log?.targetDurationMsAtLog ?: version.targetDurationMs else null
+                                } else null,
                                 readOnly = uiState.selectedTab == 0 && showAll && !due && !uiState.isReorderMode,
                                 isDueOnDate = { date -> habitDue(habit, date, uiState.actualToday, habitHistory) },
                                 isReorderMode = uiState.isReorderMode,
@@ -416,6 +423,8 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
     selectedHabitForMenu?.let { habit ->
         val streakInfo by viewModel.observeStreak(habit.id).collectAsStateWithLifecycle(initialValue = StreakInfo(0, 0))
         val completionsCount by viewModel.observeCompletionsCount(habit.id).collectAsStateWithLifecycle(initialValue = 0)
+        val goalFlow = remember(habit.id, uiState.today) { viewModel.observeDynamicGoal(habit.id, uiState.today) }
+        val dynamicGoal by goalFlow.collectAsStateWithLifecycle(initialValue = null)
         
         val shareText = stringResource(R.string.habit_share_text, habit.name, streakInfo.current, streakInfo.best)
 
@@ -423,6 +432,7 @@ fun HabitsScreen(viewModel: HabitsViewModel = hiltViewModel(), openHabitId: Long
             habit = habit,
             streakInfo = streakInfo,
             completionsCount = completionsCount,
+            dynamicGoal = dynamicGoal,
             onDismissRequest = { selectedHabitForMenu = null },
             onReminderClick = {
                 reminderHabitData = habit
@@ -475,6 +485,7 @@ fun HabitRow(
     onDayClick: (LocalDate) -> Unit,
     onMenuClick: () -> Unit,
     today: LocalDate = LocalDate.now(),
+    todayTargetMs: Long? = null,
     readOnly: Boolean = false,
     isDueOnDate: (LocalDate) -> Boolean = { HabitScheduleLogic.isDueOnDate(habit, it) },
 ) {
@@ -498,6 +509,14 @@ fun HabitRow(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
+                    if (todayTargetMs != null && todayTargetMs > 0) {
+                        val done = logs.filter { it.date == today }.maxByOrNull { it.id }?.durationMs?.coerceAtLeast(0) ?: 0L
+                        val number = java.text.NumberFormat.getNumberInstance(LocalConfiguration.current.locales[0]).apply { maximumFractionDigits = 2 }
+                        Text(stringResource(R.string.habit_today_progress, "${number.format(todayTargetMs / 60_000.0)} min", "${number.format(done / 60_000.0)} min"),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        LinearProgressIndicator(progress = { (done.toFloat() / todayTargetMs).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+                    }
                     if (habit.description.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -588,6 +607,7 @@ fun HabitBottomSheet(
     habit: Habit,
     streakInfo: StreakInfo?,
     completionsCount: Int,
+    dynamicGoal: DynamicGoal? = null,
     onDismissRequest: () -> Unit,
     onReminderClick: () -> Unit,
     onDescriptionClick: () -> Unit,
@@ -622,6 +642,22 @@ fun HabitBottomSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                dynamicGoal?.let { goal ->
+                    val reason = when (goal.reason) {
+                        "NO_PROGRESS" -> stringResource(R.string.dynamic_reason_no_progress)
+                        "PARTIAL" -> stringResource(R.string.dynamic_reason_partial)
+                        "COMPLETE" -> stringResource(R.string.dynamic_reason_complete)
+                        else -> ""
+                    }
+                    val message = when {
+                        goal.reason == "EXISTING" -> stringResource(R.string.dynamic_existing_reason, goal.targetMinutes)
+                        goal.previousTargetMinutes == null -> stringResource(R.string.dynamic_initial_reason, goal.targetMinutes)
+                        else -> stringResource(R.string.dynamic_change_reason, goal.targetMinutes, goal.previousTargetMinutes ?: 0L,
+                            java.text.NumberFormat.getNumberInstance(LocalConfiguration.current.locales[0]).apply { maximumFractionDigits = 2 }
+                                .format((goal.previousProgressMs ?: 0L) / 60_000.0), reason)
+                    }
+                    Text(message, style = MaterialTheme.typography.bodySmall)
                 }
             }
 

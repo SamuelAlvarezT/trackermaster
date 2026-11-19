@@ -119,4 +119,22 @@
     <string name="p8_security_credential">Use device PIN or password</string>
     <string name="p8_security_settings">Device security settings</string>
     <string name="p8_widget_more">More spaces: %1$d</string>
+    <string name="p8_focus_confirm_title">Finish session?</string>
+    <string name="p8_focus_confirm_message">Your completed time will be saved.</string>
+    <string name="p8_focus_confirm_finish">Finish session</string>
+    <string name="p8_focus_confirm_cancel">Cancel</string>
+    <string name="p8_focus_habit_progress">Today: %1$s min completed · %2$s min remaining</string>
+    <string name="p8_focus_alarm_completed">Session completed</string>
+    <string name="p8_focus_alarm_off">Turn off alarm</string>
+    <string name="p8_focus_alarm_settings">Alarm settings</string>
+    <string name="p8_focus_alarm_system">System alarm sound</string>
+    <string name="p8_focus_alarm_file">Choose audio file</string>
+    <string name="p8_focus_alarm_vibration">Vibration</string>
+    <string name="p8_focus_alarm_preview">Play sample</string>
+    <string name="p8_focus_alarm_save">Save</string>
+    <string name="p8_focus_alarm_cancel">Cancel</string>
+    <string name="p8_focus_alarm_default">Default alarm sound</string>
+    <string name="p8_focus_alarm_selected">Selected audio</string>
+    <string name="p8_focus_alarm_fallback">The selected audio is unavailable. A default sound was used.</string>
+    <string name="p8_focus_alarm_preview_error">Could not preview this sound.</string>
 </resources>

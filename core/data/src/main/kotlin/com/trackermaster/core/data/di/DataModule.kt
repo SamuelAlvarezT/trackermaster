@@ -34,6 +34,7 @@ object DataModule {
             .addMigrations(com.trackermaster.core.database.ProgressMigration.MIGRATION_12_13)
             .addMigrations(com.trackermaster.core.database.LifeMigration.MIGRATION_13_14)
             .addMigrations(com.trackermaster.core.database.MoneyGroupMigration.MIGRATION_14_15)
+            .addMigrations(com.trackermaster.core.database.DynamicDurationMigration.MIGRATION_15_16)
             .addCallback(com.trackermaster.core.database.ProgressHistorySchema.callback)
             .addCallback(com.trackermaster.core.database.CloudSyncSchema.callback)
             .addCallback(object : RoomDatabaseRestoreCallback(context) {})
@@ -47,7 +48,8 @@ object DataModule {
         com.trackermaster.core.database.InvestmentMigration.MIGRATION_11_12,
         com.trackermaster.core.database.ProgressMigration.MIGRATION_12_13,
         com.trackermaster.core.database.LifeMigration.MIGRATION_13_14,
-        com.trackermaster.core.database.MoneyGroupMigration.MIGRATION_14_15)
+        com.trackermaster.core.database.MoneyGroupMigration.MIGRATION_14_15,
+        com.trackermaster.core.database.DynamicDurationMigration.MIGRATION_15_16)
 
     @Provides fun provideHabitDao(db: TrackermasterDatabase): HabitDao = db.habitDao()
     @Provides fun provideHabitLogDao(db: TrackermasterDatabase): HabitLogDao = db.habitLogDao()

@@ -33,6 +33,14 @@ class MoneyViewModelTest {
         vm.onEvent(MoneyEvent.OpenEntry(MoneyEntryKind.EXPENSE))
         vm.onEvent(MoneyEvent.Editor(vm.uiState.value.controls.editor!!.copy(amount = amount)))
     }
+    @Test fun noteUpdatesPreserveOtherDraftFields() = runTest(dispatcher) {
+        val vm = vm(FakeMoneyGateway()); draft(vm, "5000")
+        vm.onEvent(MoneyEvent.EditorNote("café"))
+        vm.onEvent(MoneyEvent.EditorNote("café mañana"))
+        advanceUntilIdle()
+        assertEquals("5000", vm.uiState.value.controls.editor!!.amount)
+        assertEquals("café mañana", vm.uiState.value.controls.editor!!.note)
+    }
     @Test fun receiptDraftCountTracksChanges() = runTest(dispatcher) {
         val gateway = FakeMoneyGateway(); val vm = vm(gateway)
         assertEquals(0, vm.uiState.value.receiptDraftCount)

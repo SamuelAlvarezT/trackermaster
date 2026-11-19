@@ -24,6 +24,7 @@ import com.trackermaster.core.data.progress.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onEach
 
 @Singleton
 class HabitRepository @Inject constructor(
@@ -32,14 +33,32 @@ class HabitRepository @Inject constructor(
     private val achievementDao: AchievementDao,
     private val database: TrackermasterDatabase,
     private val clock: ProgressClock,
+    private val dynamicTargets: HabitDynamicTargets = HabitDynamicTargets(database),
 ) {
     private val progressDao get() = database.progressDao()
-    fun observeDay() = clock.days()
+    fun observeDay() = clock.days().onEach { dynamicTargets.ensureAll(it) }
+    fun observeDynamicGoal(habitId: Long, date: LocalDate): Flow<DynamicGoal?> =
+        database.habitDynamicGoalDao().observe(habitId, date.toEpochDay()).map { goal ->
+            goal?.let { DynamicGoal(it.targetMinutes, it.previousTargetMinutes, it.previousProgressMs, it.reason) }
+        }
     fun observeScheduleHistory() = progressDao.observeHistory().map { rows -> rows.map { it.toDomain() } }
     fun observePendingHabits(): Flow<List<PendingHabit>> = combine(habitDao.observeAll(),
         progressDao.observeAllLogs(),progressDao.observeHistory(),clock.days()) { habits,logs,history,today ->
         HabitProgressRules.pending(habits.map { it.toDomain() },logs.map { it.toDomain() },history.map { it.toDomain() },today)
     }.flowOn(Dispatchers.Default)
+    fun observeUnrecordedDays(): Flow<List<UnrecordedHabitDay>> = combine(habitDao.observeAll(),
+        progressDao.observeAllLogs(), progressDao.observeHistory(), clock.days()) { habits, logs, history, today ->
+        HabitProgressRules.unrecordedDays(habits.map { it.toDomain() }, logs.map { it.toDomain() }, history.map { it.toDomain() }, today)
+    }.flowOn(Dispatchers.Default)
+    suspend fun recordPastDay(habit: Habit, date: LocalDate, completed: Boolean) {
+        require(date < clock.today())
+        database.withTransaction {
+            val existing = habitLogDao.getForDate(habit.id, date.toEpochMilli())?.toDomain()
+            if (existing != null && (existing.completed || existing.value != 0 || existing.durationMs != 0L || existing.checklistState.values.any { it })) return@withTransaction
+            val base = existing ?: HabitLog(habitId = habit.id, date = date)
+            logHabit(habit, base.copy(completed = completed, value = if (completed) 1 else -1))
+        }
+    }
     suspend fun getHabit(id: Long): Habit? = habitDao.getById(id)?.toDomain()
     fun observeActiveHabits(): Flow<List<Habit>> =
         habitDao.observeActive().map { list -> list.map { it.toDomain() } }
@@ -78,13 +97,16 @@ class HabitRepository @Inject constructor(
 
     suspend fun archiveHabit(habitId: Long, archive: Boolean) = database.withTransaction {
         habitDao.getById(habitId)?.let { entity ->
+            dynamicTargets.ensureInTransaction(entity.toDomain(), clock.today().minusDays(1))
             val changed=entity.copy(archived=archive)
             habitDao.update(changed)
             progressDao.saveHistory(HabitProgressRules.version(changed.toDomain(),clock.today()).toEntity())
+            dynamicTargets.ensureInTransaction(changed.toDomain(), clock.today())
         }
     }
 
-    suspend fun deleteHabit(habit: Habit) {
+    suspend fun deleteHabit(habit: Habit) = database.withTransaction {
+        database.habitDynamicGoalDao().deleteForHabit(habit.id)
         habitDao.delete(habit.toEntity())
     }
 
@@ -100,13 +122,24 @@ class HabitRepository @Inject constructor(
 
     suspend fun saveHabit(habit: Habit): Long = database.withTransaction {
         val old=habitDao.getById(habit.id)
-        val changed=if (old==null) habit.copy(createdEpochDay=clock.today().toEpochDay(),creationDateKnown=true,
-            sortOrder=habitDao.observeAll().first().size) else habit.copy(createdEpochDay=old.createdEpochDay,
+        if (old != null) dynamicTargets.ensureInTransaction(old.toDomain(), clock.today().minusDays(1))
+        if (habit.dynamicDurationEnabled) {
+            require(habit.progressType in listOf(ProgressType.TIMER, ProgressType.STOPWATCH))
+            require(habit.dynamicMinimumMinutes in 1..720 && habit.dynamicMaximumMinutes in habit.dynamicMinimumMinutes..720)
+            require(habit.dynamicInitialMinutes in habit.dynamicMinimumMinutes..habit.dynamicMaximumMinutes)
+            require(habit.dynamicAdjustmentPercent in 0..200)
+        }
+        val dynamicStart = if (!habit.dynamicDurationEnabled) null else if (old?.dynamicDurationEnabled == true)
+            old.dynamicStartEpochDay ?: clock.today().toEpochDay() else clock.today().toEpochDay()
+        val configured = habit.copy(dynamicStartEpochDay = dynamicStart)
+        val changed=if (old==null) configured.copy(createdEpochDay=clock.today().toEpochDay(),creationDateKnown=true,
+            sortOrder=habitDao.observeAll().first().size) else configured.copy(createdEpochDay=old.createdEpochDay,
             creationDateKnown=old.creationDateKnown,sortOrder=old.sortOrder,archived=old.archived)
         val id=if (old==null) habitDao.insert(changed.toEntity()) else { habitDao.update(changed.toEntity());habit.id }
         val version=HabitProgressRules.version(changed.copy(id=id),clock.today())
         val last=progressDao.history(id).lastOrNull()?.toDomain()
         if (last==null || last.copy(effectiveFrom=version.effectiveFrom)!=version) progressDao.saveHistory(version.toEntity())
+        dynamicTargets.ensureInTransaction(changed.copy(id = id), clock.today())
         id
     }
 
@@ -397,6 +430,9 @@ class TaskRepository @Inject constructor(
     private val taskDao: TaskDao,
 ) {
     fun observeTasks(): Flow<List<Task>> =
+        observeAllTasks().map { tasks -> tasks.filterNot { it.archived } }
+
+    fun observeAllTasks(): Flow<List<Task>> =
         taskDao.observeTasks().map { list -> list.map { it.toDomain() } }
 
     suspend fun insertTask(task: Task): Long =

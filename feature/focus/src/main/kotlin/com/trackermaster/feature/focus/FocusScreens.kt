@@ -10,8 +10,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.res.stringResource
@@ -29,27 +32,61 @@ import java.time.format.FormatStyle
 import androidx.compose.ui.platform.testTag
 
 @Composable
-fun FocusScreen(vm: FocusViewModel = hiltViewModel(),onStatistics: ()->Unit={}) {
+fun FocusScreen(vm: FocusViewModel = hiltViewModel(),onStatistics: ()->Unit={}, initialHabitId: Long? = null,
+    confirmStopRequest: Boolean = false, onStopRequestConsumed: () -> Unit = {}) {
     val state by vm.uiState.collectAsStateWithLifecycle()
-    FocusContent(state,vm::onAction,onStatistics)
+    LaunchedEffect(initialHabitId, state.loading) {
+        if (initialHabitId != null && !state.loading && !state.runtime.active) vm.onAction(FocusAction.HabitSelected(initialHabitId))
+    }
+    FocusContent(state,vm::onAction,onStatistics,confirmStopRequest,onStopRequestConsumed)
 }
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit,onStatistics: ()->Unit={}) {
+fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit,onStatistics: ()->Unit={},
+    confirmStopRequest: Boolean = false, onStopRequestConsumed: () -> Unit = {}) {
     val locale=LocalConfiguration.current.locales[0]
     val runtime=state.runtime
     val displayMinutes=if(runtime.active)(runtime.plannedMs/60000).toString() else state.minutes
     val habitId=if (runtime.active) runtime.habitId else state.selectedHabitId
     val habit=state.habits.firstOrNull { it.id==habitId }
     var expanded by remember { mutableStateOf(false) }
-    val progress=if(runtime.active && runtime.plannedMs>0) (runtime.effectiveMs.toFloat()/runtime.plannedMs).coerceIn(0f,1f) else 0f
+    var durationFocused by remember { mutableStateOf(false) }
+    var durationInput by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(displayMinutes)) }
+    LaunchedEffect(displayMinutes, durationFocused, runtime.active) {
+        if ((!durationFocused || runtime.active) && durationInput.text != displayMinutes) durationInput = TextFieldValue(displayMinutes)
+    }
+    var confirmStop by remember { mutableStateOf(false) }
+    var alarmSettings by remember { mutableStateOf(false) }
+    val alarmActive = runtime.sessionId > 0 && state.alarm.activeSessionId == runtime.sessionId
+    LaunchedEffect(alarmActive) { if (alarmActive) confirmStop = false }
+    if (alarmSettings) FocusAlarmDialog(state.alarm, onDismiss = { alarmSettings = false },
+        onSave = { uri, vibration -> onAction(FocusAction.SaveAlarmSettings(uri, vibration)) })
+    if (state.alarm.fallbackSessionId > 0) AlertDialog(
+        onDismissRequest = { onAction(FocusAction.ClearAlarmFallback) },
+        text = { Text(stringResource(P8R.string.p8_focus_alarm_fallback)) },
+        confirmButton = { TextButton(onClick = { onAction(FocusAction.ClearAlarmFallback) }) { Text("OK") } })
+    LaunchedEffect(confirmStopRequest, state.loading) {
+        if (confirmStopRequest && !state.loading) {
+            confirmStop = runtime.active
+            onStopRequestConsumed()
+        }
+    }
+    val progress=if(alarmActive) 1f else if(runtime.active && runtime.plannedMs>0) (runtime.effectiveMs.toFloat()/runtime.plannedMs).coerceIn(0f,1f) else 0f
     val number=remember(locale) { NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits=2;minimumFractionDigits=0 } }
     val listState=rememberLazyListState()
     val scope=rememberCoroutineScope()
+    if (confirmStop) AlertDialog(
+        onDismissRequest = { confirmStop = false },
+        title = { Text(stringResource(P8R.string.p8_focus_confirm_title)) },
+        text = { Text(stringResource(P8R.string.p8_focus_confirm_message)) },
+        confirmButton = { TextButton(onClick = { confirmStop = false; onAction(FocusAction.Stop) }) { Text(stringResource(P8R.string.p8_focus_confirm_finish)) } },
+        dismissButton = { TextButton(onClick = { confirmStop = false }) { Text(stringResource(P8R.string.p8_focus_confirm_cancel)) } }
+    )
     LazyColumn(state=listState,modifier=Modifier.fillMaxSize().imePadding().padding(horizontal=24.dp),contentPadding=PaddingValues(top=24.dp,bottom=16.dp),verticalArrangement=Arrangement.spacedBy(16.dp),horizontalAlignment=Alignment.CenterHorizontally) {
         item { Text(stringResource(P8R.string.p8_focus_title),style=MaterialTheme.typography.headlineMedium)
-            Row { TextButton({scope.launch {listState.animateScrollToItem((listState.layoutInfo.totalItemsCount-state.sessions.count {it.actualDurationMs>0 && it.completedAt!=null}-1).coerceAtLeast(0))}}) {Text("Historial")};TextButton(onStatistics) {Text("Estadísticas")}}
+            Row { TextButton({scope.launch {listState.animateScrollToItem((listState.layoutInfo.totalItemsCount-state.sessions.count {it.actualDurationMs>0 && it.completedAt!=null}-1).coerceAtLeast(0))}}) {Text("Historial")};TextButton(onStatistics) {Text("Estadísticas")} }
+            TextButton(onClick = { alarmSettings = true }) { Text(stringResource(P8R.string.p8_focus_alarm_settings)) }
         }
         if(state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         item { FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -65,17 +102,23 @@ fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit,onStatistics:
         item { Box(Modifier.size(220.dp),contentAlignment=Alignment.Center) {
             CircularProgressIndicator(progress={progress},modifier=Modifier.fillMaxSize(),strokeWidth=14.dp)
             Column(horizontalAlignment=Alignment.CenterHorizontally) {
-                Text(formatFocusTime(if(!runtime.active)(state.minutes.toLongOrNull() ?: 0)*60 else runtime.remainingSeconds.toLong(),locale),style=MaterialTheme.typography.displayMedium)
+                Text(formatFocusTime(if(alarmActive) 0 else if(!runtime.active)(state.minutes.toLongOrNull() ?: 0)*60 else runtime.remainingSeconds.toLong(),locale),style=MaterialTheme.typography.displayMedium)
                 Text(stringResource(categoryString(if(runtime.active)runtime.category else state.category)),style=MaterialTheme.typography.labelLarge)
+                if(alarmActive) Text(stringResource(P8R.string.p8_focus_alarm_completed),style=MaterialTheme.typography.labelSmall)
                 if(runtime.status==FocusRunStatus.PAUSED) Text(stringResource(P8R.string.p8_focus_paused),style=MaterialTheme.typography.labelSmall)
             }
         } }
-        item { OutlinedTextField(value=displayMinutes,onValueChange={onAction(FocusAction.Duration(it))},
-            enabled=!runtime.active && !state.loading,label={Text(stringResource(P8R.string.p8_focus_duration))},
-            isError=displayMinutes.toIntOrNull()?.let { it !in 1..720 } ?: true,
-            keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),singleLine=true,modifier=Modifier.fillMaxWidth().testTag("focus_duration")) }
+        item { OutlinedTextField(value=durationInput,onValueChange={ value ->
+            if (value.text.length <= 3 && value.text.all(Char::isDigit)) {
+                durationInput = value
+                onAction(FocusAction.Duration(value.text))
+            }
+        }, enabled=!runtime.active && !alarmActive && !state.loading,label={Text(stringResource(P8R.string.p8_focus_duration))},
+            isError=durationInput.text.toIntOrNull()?.let { it !in 1..720 } ?: true,
+            keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),singleLine=true,
+            modifier=Modifier.fillMaxWidth().onFocusChanged { durationFocused = it.isFocused }.testTag("focus_duration")) }
         item { Box(Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick={expanded=true},enabled=!runtime.active && !state.loading,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("focus_habit")) {
+            OutlinedButton(onClick={expanded=true},enabled=!runtime.active && !alarmActive && !state.loading,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("focus_habit")) {
                 Text("${stringResource(P8R.string.p8_focus_habit)}: ${habit?.name ?: stringResource(P8R.string.p8_focus_none)}")
             }
             DropdownMenu(expanded=expanded,onDismissRequest={expanded=false}) {
@@ -87,6 +130,10 @@ fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit,onStatistics:
             Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 if(habit.targetDurationMs>0) Text(stringResource(P8R.string.p8_focus_goal,
                     stringResource(P8R.string.p8_focus_minutes,number.format(habit.targetDurationMs/60_000.0))))
+                if (habit.progressType in listOf(ProgressType.TIMER, ProgressType.STOPWATCH)) {
+                    val done = state.todayHabitDurations[habit.id] ?: 0L
+                    Text(stringResource(P8R.string.p8_focus_habit_progress, number.format(done / 60_000.0), number.format((habit.targetDurationMs - done).coerceAtLeast(0) / 60_000.0)), style = MaterialTheme.typography.bodySmall)
+                }
                 if(habit.progressType==ProgressType.COUNTER || habit.progressType==ProgressType.CHECKLIST) {
                     val units=if(habit.progressType==ProgressType.COUNTER)habit.targetCount else habit.checklistItems.size
                     Text(stringResource(P8R.string.p8_focus_goal,pluralStringResource(P8R.plurals.p8_focus_units,units,units)))
@@ -96,18 +143,20 @@ fun FocusContent(state: FocusUiState,onAction: (FocusAction)->Unit,onStatistics:
         } else if(habitId!=null) item { Text(stringResource(P8R.string.p8_focus_unavailable),style=MaterialTheme.typography.bodySmall) }
         item { LazyRow(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             items(FocusCategoryType.entries,key={it.name}) { category ->
-                FilterChip(selected=(if(runtime.active)runtime.category else state.category)==category,enabled=!runtime.active,
+                FilterChip(selected=(if(runtime.active)runtime.category else state.category)==category,enabled=!runtime.active && !alarmActive,
                     onClick={onAction(FocusAction.Category(category))},label={Text(stringResource(categoryString(category)))})
             }
         } }
         item { FlowRow(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-            when(runtime.status) {
+            if (alarmActive) Button(onClick = { onAction(FocusAction.DismissAlarm) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(P8R.string.p8_focus_alarm_off))
+            } else when(runtime.status) {
                 FocusRunStatus.RUNNING -> Button(onClick={onAction(FocusAction.Pause)},modifier=Modifier.heightIn(min=48.dp)) { Text(stringResource(P8R.string.p8_focus_pause)) }
                 FocusRunStatus.PAUSED -> Button(onClick={onAction(FocusAction.Resume)},modifier=Modifier.heightIn(min=48.dp)) { Text(stringResource(P8R.string.p8_focus_resume)) }
-                else -> Button(onClick={onAction(FocusAction.Start)},enabled=!state.loading && state.minutes.toIntOrNull()?.let { it in 1..720 }==true,
+                else -> Button(onClick={onAction(FocusAction.Start)},enabled=!state.loading && durationInput.text.toIntOrNull()?.let { it in 1..720 }==true,
                     modifier=Modifier.heightIn(min=48.dp)) { Icon(Icons.Default.PlayArrow,null);Text(stringResource(P8R.string.p8_focus_start)) }
             }
-            if(runtime.active) OutlinedButton(onClick={onAction(FocusAction.Stop)},modifier=Modifier.heightIn(min=48.dp)) { Text(stringResource(P8R.string.p8_focus_stop)) }
+            if(runtime.active) OutlinedButton(onClick={confirmStop=true},modifier=Modifier.heightIn(min=48.dp)) { Text(stringResource(P8R.string.p8_focus_stop)) }
         } }
         if(state.error) item { Text(stringResource(P8R.string.p8_focus_error),color=MaterialTheme.colorScheme.error) }
         item { Text(stringResource(P8R.string.p8_focus_history),modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.titleMedium) }

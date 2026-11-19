@@ -1,0 +1,15 @@
+<resources>
+    <string name="dynamic_enabled">Dynamic duration</string>
+    <string name="dynamic_minimum_help">Up to 25 minutes is suggested as a minimum; you can change it.</string>
+    <string name="dynamic_initial">Starting duration (min)</string>
+    <string name="dynamic_minimum">Minimum duration (min)</string>
+    <string name="dynamic_maximum">Maximum duration (min)</string>
+    <string name="dynamic_adjustment">Daily adjustment intensity (%; 100 is normal)</string>
+    <string name="dynamic_invalid">Use 1–720 min, minimum ≤ starting duration ≤ maximum, and adjustment from 0 to 200%.</string>
+    <string name="dynamic_initial_reason">Initial dynamic goal: %1$d min</string>
+    <string name="dynamic_existing_reason">Previously recorded goal kept: %1$d min</string>
+    <string name="dynamic_change_reason">Goal: %1$d min. Previous: %2$d min; completed: %3$s min. Reason: %4$s.</string>
+    <string name="dynamic_reason_no_progress">no progress</string>
+    <string name="dynamic_reason_partial">partial progress</string>
+    <string name="dynamic_reason_complete">goal completed</string>
+</resources>

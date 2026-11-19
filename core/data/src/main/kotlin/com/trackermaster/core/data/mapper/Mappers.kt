@@ -52,6 +52,12 @@ fun HabitEntity.toDomain(): Habit = Habit(
     sortOrder = sortOrder,
     createdEpochDay = createdEpochDay,
     creationDateKnown = creationDateKnown,
+    dynamicDurationEnabled = dynamicDurationEnabled,
+    dynamicInitialMinutes = dynamicInitialMinutes,
+    dynamicMinimumMinutes = dynamicMinimumMinutes,
+    dynamicMaximumMinutes = dynamicMaximumMinutes,
+    dynamicAdjustmentPercent = dynamicAdjustmentPercent,
+    dynamicStartEpochDay = dynamicStartEpochDay,
 )
 
 fun Habit.toEntity(): HabitEntity = HabitEntity(
@@ -71,6 +77,12 @@ fun Habit.toEntity(): HabitEntity = HabitEntity(
     sortOrder = sortOrder,
     createdEpochDay = createdEpochDay,
     creationDateKnown = creationDateKnown,
+    dynamicDurationEnabled = dynamicDurationEnabled,
+    dynamicInitialMinutes = dynamicInitialMinutes,
+    dynamicMinimumMinutes = dynamicMinimumMinutes,
+    dynamicMaximumMinutes = dynamicMaximumMinutes,
+    dynamicAdjustmentPercent = dynamicAdjustmentPercent,
+    dynamicStartEpochDay = dynamicStartEpochDay,
 )
 
 fun HabitLogEntity.toDomain(): HabitLog = HabitLog(
@@ -153,6 +165,7 @@ fun TaskEntity.toDomain(): Task = Task(
     plannedDate = plannedDate,
     completedAtEpoch = completedAtEpoch,
     cancelledAtEpoch = cancelledAtEpoch,
+    archived = archived,
 )
 
 fun Task.toEntity(): TaskEntity = TaskEntity(
@@ -164,5 +177,6 @@ fun Task.toEntity(): TaskEntity = TaskEntity(
     plannedDate = plannedDate,
     completedAtEpoch = completedAtEpoch,
     cancelledAtEpoch = cancelledAtEpoch,
+    archived = archived,
 )
 

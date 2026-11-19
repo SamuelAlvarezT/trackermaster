@@ -14,6 +14,16 @@ import com.trackermaster.core.data.settings.SettingsRepository
 import com.trackermaster.core.domain.model.*
 import com.trackermaster.core.domain.money.*
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import com.trackermaster.core.data.progress.FocusAlarmStore
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -60,7 +70,7 @@ class BackupRestoreTest {
                 }
                 copied.execSQL("INSERT INTO snapshot_precision(amount) VALUES(2)")
                 copied.rawQuery("SELECT MAX(id) FROM snapshot_precision",null).use { it.moveToFirst();assertEquals(101L,it.getLong(0)) }
-                assertEquals(15,copied.version)
+                assertEquals(16,copied.version)
             }
         } finally { db.close();folder.deleteRecursively() }
     }
@@ -68,6 +78,8 @@ class BackupRestoreTest {
         val db=Room.databaseBuilder(context,TrackermasterDatabase::class.java,"trackermaster.db").allowMainThreadQueries().build()
         val settings=SettingsRepository(context);val preferences=MoneyPreferencesRepository(context)
         settings.setTheme(ThemeMode.OLED);settings.setLocale("es");preferences.setPrivacy(true)
+        val alarm = FocusAlarmStore(context)
+        alarm.saveSelection("content://synthetic/alarm", false); alarm.arm(9123); alarm.activate(9123)
         val receipt=File(context.filesDir,"money/receipts/synthetic.bin").apply { parentFile!!.mkdirs();writeBytes(byteArrayOf(1,2,3)) }
         val sql=db.openHelper.writableDatabase
         sql.execSQL("INSERT INTO accounts(id,name,type,currencyCode,initialBalance,initialBalanceMinor,spaceId,archived) VALUES(1,'Nequi','CHECKING','COP',100,10000,2,0)")
@@ -84,6 +96,16 @@ class BackupRestoreTest {
         try {
             coordinator.prepare(Uri.fromFile(archive))
             assertFalse(RestoreBootstrap.hasPending(context));assertNotNull(coordinator.preview.value)
+            val staged = File(context.noBackupFilesDir, "restore-staging").listFiles()!!.single()
+            val alarmFile = File(staged, "files/datastore/focus_alarm.preferences_pb")
+            val alarmJob = SupervisorJob()
+            try {
+                val values = PreferenceDataStoreFactory.create(scope = CoroutineScope(alarmJob + Dispatchers.IO), produceFile = { alarmFile }).data.first()
+                assertEquals("content://synthetic/alarm", values[stringPreferencesKey("sound_uri")])
+                assertEquals(false, values[booleanPreferencesKey("vibrate")])
+                assertNull(values[longPreferencesKey("armed_session")])
+                assertNull(values[longPreferencesKey("active_session")])
+            } finally { alarmJob.cancelAndJoin() }
             db.moneyDao().account(1).let { assertEquals("Current data",it!!.name) }
             coordinator.cancel();assertFalse(RestoreBootstrap.hasPending(context))
             coordinator.prepare(Uri.fromFile(archive));coordinator.confirm();assertTrue(RestoreBootstrap.hasPending(context))

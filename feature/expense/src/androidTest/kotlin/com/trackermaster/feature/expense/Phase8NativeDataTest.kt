@@ -96,7 +96,7 @@ class Phase8NativeDataTest {
         assertEquals(rotation,store.settings.first().rotation)
         assertTrue(store.acknowledge(delivery.token,delivery.destination))
         store=UnlockLaunchStore(context,clock)
-        assertEquals((rotation+1)%6,store.settings.first().rotation)
+        assertEquals((rotation+1)%com.trackermaster.core.domain.unlock.UnlockLaunchRules.destinations.size,store.settings.first().rotation)
         File(context.filesDir,"native-phase8").mkdirs()
         File(context.filesDir,"datastore/unlock_launch_settings.preferences_pb").copyTo(File(context.filesDir,"native-phase8/unlock.preferences_pb"),overwrite=true)
         store.configure(false,30,"es")

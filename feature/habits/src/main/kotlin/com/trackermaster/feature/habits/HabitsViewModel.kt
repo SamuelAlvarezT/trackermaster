@@ -87,6 +87,8 @@ class HabitsViewModel @Inject constructor(private val repo: HabitRepository) : V
 
     fun observeHabitLogs(habitId: Long): Flow<List<HabitLog>> = repo.observeHabitLogs(habitId)
 
+    fun observeDynamicGoal(habitId: Long, date: LocalDate) = repo.observeDynamicGoal(habitId, date)
+
     fun observeStreak(habitId: Long): Flow<StreakInfo> = repo.streakFor(habitId)
 
     fun observeCompletionsCount(habitId: Long): Flow<Int> = repo.observeCompletionsCount(habitId)

@@ -147,6 +147,7 @@ sealed interface MoneyEvent {
     data class OpenEntry(val kind: MoneyEntryKind, val row: MoneyHistoryRow? = null,
                          val source: Long? = null, val targetPocket: Long? = null) : MoneyEvent
     data class Editor(val value: MoneyEditorUiState) : MoneyEvent
+    data class EditorNote(val value: String) : MoneyEvent
     data object SaveEntry : MoneyEvent
     data object CloseEditor : MoneyEvent
     data class EntryDate(val day: LocalDate) : MoneyEvent

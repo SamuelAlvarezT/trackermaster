@@ -1,0 +1,15 @@
+<resources>
+    <string name="dynamic_enabled">Duración dinámica</string>
+    <string name="dynamic_minimum_help">Se sugieren hasta 25 minutos como mínimo; puedes cambiarlo.</string>
+    <string name="dynamic_initial">Duración inicial (min)</string>
+    <string name="dynamic_minimum">Duración mínima (min)</string>
+    <string name="dynamic_maximum">Duración máxima (min)</string>
+    <string name="dynamic_adjustment">Intensidad del ajuste diario (%; 100 es normal)</string>
+    <string name="dynamic_invalid">Usa valores entre 1 y 720 min, con mínimo ≤ inicial ≤ máximo y ajuste entre 0 y 200 %.</string>
+    <string name="dynamic_initial_reason">Meta dinámica inicial: %1$d min</string>
+    <string name="dynamic_existing_reason">Se conservó la meta ya registrada: %1$d min</string>
+    <string name="dynamic_change_reason">Meta: %1$d min. Anterior: %2$d min; realizado: %3$s min. Motivo: %4$s.</string>
+    <string name="dynamic_reason_no_progress">sin progreso</string>
+    <string name="dynamic_reason_partial">progreso parcial</string>
+    <string name="dynamic_reason_complete">meta completada</string>
+</resources>

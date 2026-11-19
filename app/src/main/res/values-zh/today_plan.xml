@@ -1,0 +1,13 @@
+<resources>
+    <string name="today_plan_title">今日计划</string>
+    <string name="today_plan_empty">今天没有待办事项。</string>
+    <string name="today_plan_habit">习惯</string>
+    <string name="today_plan_habit_time">习惯 · 剩余 %1$s</string>
+    <string name="today_plan_task_due">任务 · 截止 %1$s</string>
+    <string name="today_plan_task_undated">任务 · 无截止日期</string>
+    <string name="yesterday_review_title">昨日回顾</string>
+    <plurals name="yesterday_review_count">
+        <item quantity="one">%d 个习惯尚未记录</item>
+        <item quantity="other">%d 个习惯尚未记录</item>
+    </plurals>
+</resources>

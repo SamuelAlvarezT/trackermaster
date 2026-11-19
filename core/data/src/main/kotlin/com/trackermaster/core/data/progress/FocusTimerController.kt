@@ -25,6 +25,7 @@ class FocusTimerController @Inject constructor(@ApplicationContext private val c
         const val PAUSE="com.trackermaster.focus.PAUSE"
         const val RESUME="com.trackermaster.focus.RESUME"
         const val STOP="com.trackermaster.focus.STOP"
+        const val DISMISS_ALARM="com.trackermaster.focus.DISMISS_ALARM"
         const val RECOVER="com.trackermaster.focus.RECOVER"
     }
 }

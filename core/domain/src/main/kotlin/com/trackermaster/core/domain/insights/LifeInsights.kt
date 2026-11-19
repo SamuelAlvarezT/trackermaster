@@ -116,6 +116,10 @@ object LifeCalculations {
     fun variation(current: Double,previous: Double): String = when {
         previous==0.0 && current==0.0 -> "Sin cambio (base 0)"
         previous==0.0 -> "Sin base para variación porcentual"
-        else -> "%+.1f %%".format(java.util.Locale.ROOT,(current-previous)/kotlin.math.abs(previous)*100)
+        else -> {
+            val change = (current-previous)/kotlin.math.abs(previous)*100
+            val formatter = java.text.DecimalFormat("+#,##0.#;-#,##0.#", java.text.DecimalFormatSymbols(java.util.Locale.US))
+            "${formatter.format(change)} %"
+        }
     }
 }

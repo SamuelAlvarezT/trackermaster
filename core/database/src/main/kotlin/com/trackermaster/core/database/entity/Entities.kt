@@ -24,6 +24,12 @@ data class HabitEntity(
     val sortOrder: Int = 0,
     @ColumnInfo(defaultValue = "0") val createdEpochDay: Long = 0,
     @ColumnInfo(defaultValue = "0") val creationDateKnown: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val dynamicDurationEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "10") val dynamicInitialMinutes: Int = 10,
+    @ColumnInfo(defaultValue = "10") val dynamicMinimumMinutes: Int = 10,
+    @ColumnInfo(defaultValue = "60") val dynamicMaximumMinutes: Int = 60,
+    @ColumnInfo(defaultValue = "100") val dynamicAdjustmentPercent: Int = 100,
+    val dynamicStartEpochDay: Long? = null,
 )
 
 @Entity(tableName = "habit_logs", indices = [Index("habitId"), Index("dateEpoch")])
@@ -186,5 +192,6 @@ data class TaskEntity(
     val plannedDate: String? = null,
     val completedAtEpoch: Long? = null,
     val cancelledAtEpoch: Long? = null,
+    @ColumnInfo(defaultValue = "0") val archived: Boolean = false,
 )
 

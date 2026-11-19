@@ -10,4 +10,5 @@
     <string name="habit_history_unavailable">Historical schedule is not available for this date.</string>
     <string name="habit_scheduled_date">Scheduled for %1$s</string>
     <string name="habit_not_date">Not due on %1$s</string>
+    <string name="habit_today_progress">Today: %1$s · %2$s completed</string>
 </resources>

@@ -6,12 +6,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
@@ -41,7 +44,7 @@ import javax.inject.Inject
 class TasksViewModel @Inject constructor(
     private val repo: TaskRepository
 ) : ViewModel() {
-    val tasks = repo.observeTasks().stateIn(
+    val tasks = repo.observeAllTasks().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
@@ -64,6 +67,10 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             repo.deleteTask(task)
         }
+    }
+
+    fun archiveTask(task: Task) {
+        viewModelScope.launch { repo.updateTask(task.copy(archived = !task.archived)) }
     }
 
     fun planTask(task: Task, day: String?) {
@@ -91,6 +98,7 @@ class TasksViewModel @Inject constructor(
 @Composable
 fun TasksScreen(
     modifier: Modifier = Modifier,
+    initialTaskId: Long? = null,
     vm: TasksViewModel = hiltViewModel()
 ) {
     val tasks by vm.tasks.collectAsStateWithLifecycle()
@@ -99,13 +107,19 @@ fun TasksScreen(
     var search by remember {mutableStateOf(false)}
     var query by remember {mutableStateOf("")}
     var filtering by remember {mutableStateOf(false)}
-    var filter by remember {mutableStateOf("Todas")}
+    var filter by remember {mutableStateOf("Pendientes")}
     var order by remember {mutableStateOf("Recientes")}
     val visible=tasks.filter { it.title.contains(query,true) && when(filter) {
-        "Pendientes" -> !it.completed;"Completadas" ->it.completed
-        "Vencidas" -> !it.completed && it.plannedDate?.let { d ->runCatching {java.time.LocalDate.parse(d)<java.time.LocalDate.now()}.getOrDefault(false)}==true
-        else ->true
+        "Pendientes" -> !it.archived && !it.completed;"Completadas" -> !it.archived && it.completed
+        "Archivadas" -> it.archived
+        "Vencidas" -> !it.archived && !it.completed && it.plannedDate?.let { d ->runCatching {java.time.LocalDate.parse(d)<java.time.LocalDate.now()}.getOrDefault(false)}==true
+        else -> !it.archived
     }}.let { list ->when(order) {"Título" ->list.sortedBy {it.title.lowercase()};"Vencimiento" ->list.sortedBy {it.plannedDate ?: "9999"};else ->list} }
+    val listState = rememberLazyListState()
+    LaunchedEffect(initialTaskId, visible.map { it.id }) {
+        val index = visible.indexOfFirst { it.id == initialTaskId }
+        if (initialTaskId != null && index >= 0) listState.scrollToItem(index)
+    }
     Scaffold(
         contentWindowInsets=WindowInsets(0,0,0,0),
         topBar = {
@@ -114,7 +128,7 @@ fun TasksScreen(
                     IconButton({search=!search}) {Icon(Icons.Default.Search,"Buscar tareas")}
                     Box {IconButton({filtering=true}) {Icon(Icons.Default.FilterList,"Filtrar y ordenar")}
                         DropdownMenu(filtering,{filtering=false}) {
-                            listOf("Todas","Pendientes","Completadas","Vencidas").forEach {f ->DropdownMenuItem(text={Text(f)},onClick={filter=f;filtering=false})}
+                            listOf("Todas","Pendientes","Completadas","Archivadas","Vencidas").forEach {f ->DropdownMenuItem(text={Text(f)},onClick={filter=f;filtering=false})}
                             listOf("Recientes","Título","Vencimiento").forEach {o ->DropdownMenuItem(text={Text("Ordenar: $o")},onClick={order=o;filtering=false})}
                         }
                     }
@@ -130,6 +144,7 @@ fun TasksScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Text("Filtro: $filter", style = MaterialTheme.typography.labelLarge)
             if(search) OutlinedTextField(query,{query=it},label={Text("Buscar tareas")},modifier=Modifier.fillMaxWidth())
             // Task input row
             Row(
@@ -177,14 +192,17 @@ fun TasksScreen(
                 }
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(visible, key = { it.id }) { task ->
                         TaskRow(
                             task = task,
+                            initiallyExpanded = task.id == initialTaskId,
                             onToggle = { vm.toggleTask(task) },
                             onDelete = { vm.deleteTask(task) },
+                            onArchive = { vm.archiveTask(task) },
                             onToggleSubtask = { index -> vm.toggleSubtask(task, index) },
                             onAddSubtask = { title -> vm.addSubtask(task, title) },
                             onPlan = { day -> vm.planTask(task, day) },
@@ -201,11 +219,13 @@ fun TaskRow(
     task: Task,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
+    onArchive: () -> Unit = {},
     onToggleSubtask: (Int) -> Unit,
     onAddSubtask: (String) -> Unit,
     onPlan: (String?) -> Unit = {},
+    initiallyExpanded: Boolean = false,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember(task.id, initiallyExpanded) { mutableStateOf(initiallyExpanded) }
     var subtaskText by remember { mutableStateOf("") }
     var plannedDay by remember(task.plannedDate) { mutableStateOf(task.plannedDate.orEmpty()) }
     val completedSubtasks = task.subtasks.count { it.completed }
@@ -254,6 +274,10 @@ fun TaskRow(
                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = "Subtasks"
                     )
+                }
+                IconButton(onClick = onArchive) {
+                    Icon(if (task.archived) Icons.Default.Unarchive else Icons.Default.Archive,
+                        contentDescription = if (task.archived) "Desarchivar tarea" else "Archivar tarea")
                 }
                 IconButton(onClick = onDelete) {
                     Icon(

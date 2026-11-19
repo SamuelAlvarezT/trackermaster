@@ -1,0 +1,13 @@
+<resources>
+    <string name="unrecorded_title">未记录的习惯</string>
+    <string name="unrecorded_home">首页</string>
+    <string name="unrecorded_empty">没有等待记录的往日习惯。</string>
+    <string name="unrecorded_date">待记录日期：%1$s</string>
+    <string name="unrecorded_done">已完成</string>
+    <string name="unrecorded_not_done">未完成</string>
+    <string name="unrecorded_focus">今天在 Focus 中进行</string>
+    <string name="unrecorded_cancel">取消</string>
+    <string name="unrecorded_confirm_title">确认更改过去的记录</string>
+    <string name="unrecorded_confirm_detail">%1$s · %2$s：%3$s</string>
+    <string name="unrecorded_confirm">确认</string>
+</resources>

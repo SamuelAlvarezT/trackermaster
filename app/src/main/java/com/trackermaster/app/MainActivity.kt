@@ -52,6 +52,7 @@ import javax.inject.Inject
 class MainActivity : FragmentActivity() {
 
     private var requestedTab by mutableStateOf<String?>(null)
+    private var focusConfirmStop by mutableStateOf(false)
     private var navigationRequest by mutableIntStateOf(0)
     private var autoToken by mutableStateOf<String?>(null)
     private var quickEntry by mutableStateOf<String?>(null)
@@ -63,6 +64,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var unlockStore: UnlockLaunchStore
     @Inject lateinit var unlockController: UnlockMonitorController
     @Inject lateinit var focusProgress: FocusProgressRepository
+    @Inject lateinit var focusAlarmStore: FocusAlarmStore
     @Inject lateinit var focusController: FocusTimerController
     @Inject lateinit var backupManager: BackupManager
     @Inject lateinit var lifeReviews: com.trackermaster.core.data.insights.LifeReviews
@@ -75,8 +77,11 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch {
             if(unlockStore.settings.first().enabled && !UnlockMonitorSignals.running.value) unlockController.start()
             val focus=focusProgress.checkpoint()
-            if(focus.status==com.trackermaster.core.domain.focus.FocusRunStatus.RUNNING && !FocusTimerSignals.running.value)
-                runCatching { focusController.send(FocusTimerController.RECOVER) }
+            val alarm = focusAlarmStore.state.first()
+            val recover = focus.status in listOf(com.trackermaster.core.domain.focus.FocusRunStatus.RUNNING, com.trackermaster.core.domain.focus.FocusRunStatus.PAUSED) ||
+                (focus.status == com.trackermaster.core.domain.focus.FocusRunStatus.COMPLETED && alarm.dismissedSessionId != focus.sessionId &&
+                    (alarm.armedSessionId == focus.sessionId || (alarm.pendingStartAfter?.let { focus.sessionId > it } == true)))
+            if (recover && !FocusTimerSignals.running.value) runCatching { focusController.send(FocusTimerController.RECOVER) }
         }
     }
 
@@ -90,6 +95,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         handleShareIntent(intent)
         requestedTab = intent?.getStringExtra("tab")
+        focusConfirmStop = intent?.getBooleanExtra("focus_confirm_stop", false) == true
         autoToken = intent?.getStringExtra(UnlockLaunchStore.EXTRA_TOKEN)
         quickEntry=intent?.getStringExtra("money_quick_entry")
         quickToken=savedInstanceState?.getString("money_widget_token") ?: java.util.UUID.randomUUID().toString()
@@ -125,6 +131,7 @@ class MainActivity : FragmentActivity() {
                         lifecycleScope.launch { settingsRepository.setOnboardingComplete() }
                     })
                     else rootState.SaveableStateProvider("authenticated-root") { TrackermasterRoot(startTab=requestedTab ?: loaded.initialSection,navigationRequest=navigationRequest,
+                        focusConfirmStop=focusConfirmStop,onFocusStopConsumed={focusConfirmStop=false;intent?.removeExtra("focus_confirm_stop")},
                         quickEntry=quickEntry,quickToken=quickToken,onQuickConsumed={quickEntry=null;intent?.removeExtra("money_quick_entry")},
                         canAcknowledge=activityResumed && windowFocused,onDestinationReady={ route -> acknowledgeAutomaticOpening(route) })
                     }
@@ -158,6 +165,7 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         requestedTab = intent.getStringExtra("tab")
+        focusConfirmStop = intent.getBooleanExtra("focus_confirm_stop", false)
         autoToken = intent.getStringExtra(UnlockLaunchStore.EXTRA_TOKEN)
         quickEntry=intent.getStringExtra("money_quick_entry")
         quickToken=java.util.UUID.randomUUID().toString()
@@ -212,6 +220,7 @@ class MainActivity : FragmentActivity() {
 
 @Composable
 fun TrackermasterRoot(startTab: String? = null, navigationRequest: Int = 0, canAcknowledge: Boolean = false,
+    focusConfirmStop: Boolean = false, onFocusStopConsumed: () -> Unit = {},
     quickEntry: String? = null,quickToken: String="",onQuickConsumed: ()->Unit={},onDestinationReady: (String)->Unit = {}) {
     val navController = rememberNavController()
     val navBackStack by navController.currentBackStackEntryAsState()
@@ -221,11 +230,12 @@ fun TrackermasterRoot(startTab: String? = null, navigationRequest: Int = 0, canA
     LaunchedEffect(startTab, navigationRequest) {
         when (startTab) {
             "home" -> navController.navigate(Routes.Home.route) { launchSingleTop=true }
+            "unrecorded" -> navController.navigate("unrecorded") { launchSingleTop=true }
             "habits" -> navController.navigate(Routes.Habits.route) { launchSingleTop=true }
             "tasks" -> navController.navigate(Routes.Tasks.route) { launchSingleTop=true }
             "mood" -> navController.navigate(Routes.Journal.route) { launchSingleTop=true }
             "expense" -> navController.navigate(Routes.Expense.route) { launchSingleTop=true }
-            "focus" -> navController.navigate(Routes.Focus.route) { launchSingleTop=true }
+            "focus" -> if (currentRoute != Routes.Focus.route) navController.navigate(Routes.Focus.route) { launchSingleTop=true }
             "journal" -> navController.navigate(Routes.Journal.route) { launchSingleTop=true }
             "insights" -> navController.navigate(Routes.Insights.route) { launchSingleTop=true }
         }
@@ -269,10 +279,15 @@ fun TrackermasterRoot(startTab: String? = null, navigationRequest: Int = 0, canA
             composable(Routes.Habits.route+"?habitId={habitId}",arguments=listOf(androidx.navigation.navArgument("habitId") {
                 type=androidx.navigation.NavType.StringType;nullable=true;defaultValue=null
             })) { entry -> HabitsScreen(openHabitId=entry.arguments?.getString("habitId")?.toLongOrNull()) }
-            composable(Routes.Tasks.route) { TasksScreen() }
+            composable(Routes.Tasks.route + "?taskId={taskId}", arguments = listOf(androidx.navigation.navArgument("taskId") {
+                type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null
+            })) { entry -> TasksScreen(initialTaskId = entry.arguments?.getString("taskId")?.toLongOrNull()) }
             composable(Routes.Mood.route) { JournalScreen() }
             composable(Routes.Expense.route) { ExpenseScreen(quickEntry=quickEntry,quickToken=quickToken,onQuickConsumed=onQuickConsumed) }
-            composable(Routes.Focus.route) { FocusScreen(onStatistics={navController.navigate("focus_insights")}) }
+            composable("unrecorded") { com.trackermaster.app.ui.UnrecordedHabitsScreen(onFocus = { id -> navController.navigate("focus?habitId=$id") }, onBack = { navController.navigate(Routes.Home.route) { launchSingleTop = true } }) }
+            composable(Routes.Focus.route + "?habitId={habitId}", arguments = listOf(androidx.navigation.navArgument("habitId") {
+                type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null
+            })) { entry -> FocusScreen(onStatistics={navController.navigate("focus_insights")}, initialHabitId=entry.arguments?.getString("habitId")?.toLongOrNull(), confirmStopRequest=focusConfirmStop, onStopRequestConsumed=onFocusStopConsumed) }
             composable(Routes.Journal.route) { JournalScreen() }
             composable(Routes.Insights.route) { InsightsScreen(onBack={navController.popBackStack()}) }
             composable("goals") { InsightsScreen(initialTab=1,onBack={navController.popBackStack()}) }

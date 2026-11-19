@@ -8,6 +8,8 @@ import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -40,6 +42,7 @@ internal fun MoneyEditorDialog(state: MoneyHomeUiState, onEvent: (MoneyEvent) ->
 @Composable
 fun MoneyEditorContent(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
     val editor = state.controls.editor ?: return
+    var noteValue by rememberSaveable(editor.requestId, stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(editor.note)) }
     val locale = LocalConfiguration.current.locales[0]
     val decimal = remember(locale) { DecimalFormatSymbols(locale).decimalSeparator }
     var keypadTarget by remember { mutableStateOf("amount") }
@@ -112,7 +115,10 @@ fun MoneyEditorContent(state: MoneyHomeUiState, onEvent: (MoneyEvent) -> Unit) {
                             Icon(Icons.Default.CalendarMonth, null); Spacer(Modifier.width(8.dp)); Text("${stringResource(R.string.m_date)} · $date")
                         }
                         Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(editor.note, { update(editor.copy(note = it)) }, Modifier.fillMaxWidth().onFocusChanged {
+                        OutlinedTextField(noteValue, { value ->
+                            noteValue = value
+                            onEvent(MoneyEvent.EditorNote(value.text))
+                        }, Modifier.fillMaxWidth().testTag("money_note_input").onFocusChanged {
                             if (it.isFocused) keypadTarget = "note"
                         },
                             label = { Text(stringResource(R.string.m_note)) }, minLines = 2, enabled = !editor.saving)

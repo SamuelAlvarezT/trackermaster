@@ -56,5 +56,7 @@ class LifeInsightsTest {
         assertTrue(LifeCalculations.variation(1.0,0.0).contains("Sin base"))
         assertTrue(LifeCalculations.variation(0.0,0.0).contains("Sin cambio"))
         assertFalse(LifeCalculations.variation(0.0,2.0).contains("NaN"))
+        assertEquals("+50 %", LifeCalculations.variation(3.0,2.0))
+        assertEquals("+5.5 %", LifeCalculations.variation(105.5,100.0))
     }
 }

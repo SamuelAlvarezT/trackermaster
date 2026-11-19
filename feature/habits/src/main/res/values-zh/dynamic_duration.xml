@@ -1,0 +1,15 @@
+<resources>
+    <string name="dynamic_enabled">动态时长</string>
+    <string name="dynamic_minimum_help">建议最低时长不超过 25 分钟；可自行更改。</string>
+    <string name="dynamic_initial">初始时长（分钟）</string>
+    <string name="dynamic_minimum">最短时长（分钟）</string>
+    <string name="dynamic_maximum">最长时长（分钟）</string>
+    <string name="dynamic_adjustment">每日调整幅度（%；100 为标准）</string>
+    <string name="dynamic_invalid">时长须为 1–720 分钟，且最短 ≤ 初始 ≤ 最长；调整幅度为 0–200%。</string>
+    <string name="dynamic_initial_reason">初始动态目标：%1$d 分钟</string>
+    <string name="dynamic_existing_reason">保留已记录目标：%1$d 分钟</string>
+    <string name="dynamic_change_reason">目标：%1$d 分钟；上次目标：%2$d 分钟；已完成：%3$s 分钟。原因：%4$s。</string>
+    <string name="dynamic_reason_no_progress">没有进度</string>
+    <string name="dynamic_reason_partial">部分完成</string>
+    <string name="dynamic_reason_complete">达到目标</string>
+</resources>

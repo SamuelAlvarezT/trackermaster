@@ -128,6 +128,7 @@ class UnlockMonitorService: Service() {
 }
 
 private fun sectionString(route: String): Int=when(route) {
+    "unrecorded" -> P8R.string.p8_section_habits
     "habits" -> P8R.string.p8_section_habits
     "tasks" -> P8R.string.p8_section_tasks
     "expense" -> P8R.string.p8_section_money

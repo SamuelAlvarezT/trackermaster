@@ -118,4 +118,22 @@
     <string name="p8_security_credential">使用设备 PIN 码或密码</string>
     <string name="p8_security_settings">设备安全设置</string>
     <string name="p8_widget_more">更多分区：%1$d</string>
+    <string name="p8_focus_confirm_title">结束专注吗？</string>
+    <string name="p8_focus_confirm_message">已完成的时间将被保存。</string>
+    <string name="p8_focus_confirm_finish">结束专注</string>
+    <string name="p8_focus_confirm_cancel">取消</string>
+    <string name="p8_focus_habit_progress">今天：已完成 %1$s 分钟 · 剩余 %2$s 分钟</string>
+    <string name="p8_focus_alarm_completed">专注已完成</string>
+    <string name="p8_focus_alarm_off">关闭闹钟</string>
+    <string name="p8_focus_alarm_settings">闹钟设置</string>
+    <string name="p8_focus_alarm_system">系统闹钟声音</string>
+    <string name="p8_focus_alarm_file">选择音频文件</string>
+    <string name="p8_focus_alarm_vibration">振动</string>
+    <string name="p8_focus_alarm_preview">试听</string>
+    <string name="p8_focus_alarm_save">保存</string>
+    <string name="p8_focus_alarm_cancel">取消</string>
+    <string name="p8_focus_alarm_default">默认闹钟声音</string>
+    <string name="p8_focus_alarm_selected">已选音频</string>
+    <string name="p8_focus_alarm_fallback">所选音频不可用，已使用备用声音。</string>
+    <string name="p8_focus_alarm_preview_error">无法试听此声音。</string>
 </resources>

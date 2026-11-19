@@ -11,6 +11,7 @@ object BackupValidation {
             "trackermaster_settings.preferences_pb"->setOf("biometric","onboarding","defumblr_enabled","lockscreen_widgets_enabled","app_was_open_before_screen_off","new_interface_enabled")
             "money_settings.preferences_pb"->setOf("detailed","sections","privacy")
             "unlock_launch_settings.preferences_pb"->setOf("enabled")
+            "focus_alarm.preferences_pb"->setOf("vibrate")
             else->emptySet()
         }
         val integers=when(name) {
@@ -21,11 +22,13 @@ object BackupValidation {
         val longs=when(name) {
             "trackermaster_settings.preferences_pb"->setOf("defumblr_last_shown","last_backup_at")
             "money_settings.preferences_pb"->setOf("last_account","last_pocket","widget_space","widget_account")
+            "focus_alarm.preferences_pb"->setOf("armed_session","active_session","dismissed_session","fallback_session","pending_start_after")
             else->emptySet()
         }
         val strings=when(name) {
             "trackermaster_settings.preferences_pb"->setOf("theme","locale","defumblr_interval","defumblr_morning_date","initial_section","backup_frequency")
             "money_settings.preferences_pb"->setOf("widget_currency")
+            "focus_alarm.preferences_pb"->setOf("sound_uri")
             "unlock_launch_settings.preferences_pb"->setOf("locale","last_acknowledged","last_outcome")
             else->emptySet()
         }

@@ -11,8 +11,9 @@ fun habitTimeSummary(rows: List<Pair<Habit, HabitLog?>>): HabitTimeSummary {
     var planned = 0L
     var remaining = 0L
     for ((habit, log) in rows) {
-        if (habit.progressType !in listOf(ProgressType.TIMER, ProgressType.STOPWATCH) || habit.targetDurationMs <= 0) continue
-        val target = habit.targetDurationMs
+        val type = log?.progressTypeAtLog ?: habit.progressType
+        val target = log?.targetDurationMsAtLog ?: habit.targetDurationMs
+        if (type !in listOf(ProgressType.TIMER, ProgressType.STOPWATCH) || target <= 0) continue
         planned = Math.addExact(planned, target)
         val manual = log?.completed == true && log.completionSource != "measured"
         val deficit = if (manual) 0L else (target - (log?.durationMs ?: 0L).coerceAtLeast(0L)).coerceAtLeast(0L)

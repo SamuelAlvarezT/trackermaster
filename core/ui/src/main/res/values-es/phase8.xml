@@ -119,4 +119,22 @@
     <string name="p8_security_credential">Usar PIN o contraseña del teléfono</string>
     <string name="p8_security_settings">Seguridad del dispositivo</string>
     <string name="p8_widget_more">Más espacios: %1$d</string>
+    <string name="p8_focus_confirm_title">¿Finalizar sesión?</string>
+    <string name="p8_focus_confirm_message">Se guardará el tiempo realizado hasta ahora.</string>
+    <string name="p8_focus_confirm_finish">Finalizar sesión</string>
+    <string name="p8_focus_confirm_cancel">Cancelar</string>
+    <string name="p8_focus_habit_progress">Hoy: %1$s min realizados · %2$s min pendientes</string>
+    <string name="p8_focus_alarm_completed">Sesión completada</string>
+    <string name="p8_focus_alarm_off">Apagar alarma</string>
+    <string name="p8_focus_alarm_settings">Configuración de alarma</string>
+    <string name="p8_focus_alarm_system">Sonido de alarma del sistema</string>
+    <string name="p8_focus_alarm_file">Elegir archivo de audio</string>
+    <string name="p8_focus_alarm_vibration">Vibración</string>
+    <string name="p8_focus_alarm_preview">Escuchar muestra</string>
+    <string name="p8_focus_alarm_save">Guardar</string>
+    <string name="p8_focus_alarm_cancel">Cancelar</string>
+    <string name="p8_focus_alarm_default">Sonido de alarma predeterminado</string>
+    <string name="p8_focus_alarm_selected">Audio seleccionado</string>
+    <string name="p8_focus_alarm_fallback">El audio elegido no está disponible. Se utilizó un sonido alternativo.</string>
+    <string name="p8_focus_alarm_preview_error">No se pudo reproducir la muestra.</string>
 </resources>

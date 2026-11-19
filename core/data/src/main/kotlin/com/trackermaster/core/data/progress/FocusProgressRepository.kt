@@ -26,7 +26,8 @@ data class FocusRuntimeState(
 }
 
 @Singleton
-class FocusProgressRepository @Inject constructor(private val db: TrackermasterDatabase, private val clock: ProgressClock) {
+class FocusProgressRepository @Inject constructor(private val db: TrackermasterDatabase, private val clock: ProgressClock,
+    private val dynamicTargets: HabitDynamicTargets = HabitDynamicTargets(db)) {
     private val dao get() = db.progressDao()
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun observeTodaySeconds(): Flow<Long> = clock.days().flatMapLatest { day ->
@@ -94,6 +95,7 @@ class FocusProgressRepository @Inject constructor(private val db: TrackermasterD
                 val previous=dao.contribution(value.sessionId,day.toEpochDay())?.durationMs ?: 0
                 dao.saveContribution(FocusHabitContributionEntity(value.sessionId,day.toEpochDay(),value.habitId,Math.addExact(previous,amount)))
                 if(habit==null) continue
+                dynamicTargets.ensureInTransaction(habit, day)
                 val existing=db.habitLogDao().getForDate(habit.id,day.toEpochMilli())?.toDomain()
                 val version=HabitProgressRules.versionOn(habit,day,history)
                 val duration=Math.addExact(existing?.durationMs?.coerceAtLeast(0) ?: 0,amount)

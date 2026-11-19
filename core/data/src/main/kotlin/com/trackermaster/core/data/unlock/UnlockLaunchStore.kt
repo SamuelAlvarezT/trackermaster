@@ -20,7 +20,7 @@ private val Context.unlockRuntime by preferencesDataStore("unlock_launch_runtime
 
 data class UnlockLaunchSettings(val enabled: Boolean=false,val intervalMinutes: Int=30,val rotation: Int=0,
     val localeTag: String="en",val lastOutcome: String="NONE", val lastOffWall: Long? = null, val lastUnlockWall: Long? = null, val lastAttemptWall: Long? = null, val evaluation: String = "NONE") {
-    val destination get()=UnlockLaunchRules.destinations[Math.floorMod(rotation,6)]
+    val destination get()=UnlockLaunchRules.destinations[Math.floorMod(rotation,UnlockLaunchRules.destinations.size)]
 }
 data class UnlockDelivery(val token: String,val destination: String,val issuedElapsedMs: Long)
 

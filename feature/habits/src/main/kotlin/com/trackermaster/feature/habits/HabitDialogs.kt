@@ -261,6 +261,7 @@ fun FullScreenCalendarDialog(
         minOf(creation, oldestLog ?: creation, currentMonth)
     }
     val monthCount = java.time.temporal.ChronoUnit.MONTHS.between(firstMonth, currentMonth).toInt() + 1
+    val calendarState = remember(firstMonth, currentMonth) { LazyListState(firstVisibleItemIndex = monthCount - 1) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -291,10 +292,11 @@ fun FullScreenCalendarDialog(
                 
                 LazyColumn(
                     modifier = Modifier.weight(1f),
+                    state = calendarState,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(monthCount, key = { it }) { index ->
-                        val month = currentMonth.minusMonths(index.toLong())
+                        val month = firstMonth.plusMonths(index.toLong())
                         CalendarMonthGrid(yearMonth = month, habit = habit, logs = logs, isDueOnDate = isDueOnDate, onDayClick = { date ->
                             if (java.time.YearMonth.from(date) < currentMonth) pendingDate = date else onDayClick(date)
                         })
@@ -336,6 +338,20 @@ fun HabitEditorDialog(
     var scheduleType by remember { mutableStateOf(if (initialHabit?.scheduleType == ScheduleType.SPECIFIC_DAYS) ScheduleType.CUSTOM else initialHabit?.scheduleType ?: ScheduleType.DAILY) }
     var targetCountStr by remember { mutableStateOf(initialHabit?.targetCount?.toString() ?: "1") }
     var targetDurationMinutesStr by remember { mutableStateOf((initialHabit?.targetDurationMs?.div(60000L))?.toString() ?: "10") }
+    val initialMinutes = ((initialHabit?.targetDurationMs ?: 600_000L) / 60_000).toInt().coerceIn(1, 720)
+    var dynamicEnabled by remember { mutableStateOf(initialHabit?.dynamicDurationEnabled ?: false) }
+    var dynamicInitial by remember { mutableStateOf((initialHabit?.dynamicInitialMinutes ?: initialMinutes).toString()) }
+    var dynamicMaximum by remember { mutableStateOf((initialHabit?.dynamicMaximumMinutes ?: initialMinutes).toString()) }
+    var dynamicMinimum by remember { mutableStateOf((initialHabit?.dynamicMinimumMinutes ?: minOf(25, initialMinutes)).toString()) }
+    var minimumEdited by remember { mutableStateOf(initialHabit != null) }
+    var dynamicAdjustment by remember { mutableStateOf((initialHabit?.dynamicAdjustmentPercent ?: 100).toString()) }
+    val timed = progressType == ProgressType.TIMER || progressType == ProgressType.STOPWATCH
+    val minimum = dynamicMinimum.toIntOrNull()
+    val maximum = dynamicMaximum.toIntOrNull()
+    val initial = dynamicInitial.toIntOrNull()
+    val adjustment = dynamicAdjustment.toIntOrNull()
+    val dynamicValid = minimum != null && maximum != null && initial != null && adjustment != null &&
+        minimum in 1..720 && maximum in minimum..720 && initial in minimum..maximum && adjustment in 0..200
     var scheduleDaysBitmask by remember { mutableStateOf(initialHabit?.scheduleDaysBitmask ?: 1) }
     var scheduleEdited by remember { mutableStateOf(false) }
     
@@ -346,7 +362,7 @@ fun HabitEditorDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState()).imePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.habit_name_label)) }, singleLine = true)
                 Text(stringResource(R.string.habit_progress_label, progressType.name))
-                ProgressType.entries.take(3).chunked(2).forEach { choices ->
+                ProgressType.entries.filter { it != ProgressType.CHECKLIST }.chunked(2).forEach { choices ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         choices.forEach { type ->
                             FilterChip(progressType == type, { progressType = type }, { Text(type.name, maxLines = 1) }, modifier = Modifier.weight(1f))
@@ -358,6 +374,21 @@ fun HabitEditorDialog(
                     OutlinedTextField(targetCountStr, { targetCountStr = it }, label = { Text("Target Count") }, singleLine = true)
                 } else if (progressType == ProgressType.TIMER || progressType == ProgressType.STOPWATCH) {
                     OutlinedTextField(targetDurationMinutesStr, { targetDurationMinutesStr = it }, label = { Text("Target Minutes") }, singleLine = true)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.dynamic_enabled), modifier = Modifier.weight(1f))
+                        Switch(checked = dynamicEnabled, onCheckedChange = { dynamicEnabled = it })
+                    }
+                    if (dynamicEnabled) {
+                        Text(stringResource(R.string.dynamic_minimum_help), style = MaterialTheme.typography.bodySmall)
+                        OutlinedTextField(dynamicInitial, { dynamicInitial = it }, label = { Text(stringResource(R.string.dynamic_initial)) }, singleLine = true)
+                        OutlinedTextField(dynamicMinimum, { dynamicMinimum = it; minimumEdited = true }, label = { Text(stringResource(R.string.dynamic_minimum)) }, singleLine = true)
+                        OutlinedTextField(dynamicMaximum, {
+                            dynamicMaximum = it
+                            if (!minimumEdited) it.toIntOrNull()?.takeIf { value -> value > 0 }?.let { value -> dynamicMinimum = minOf(25, value).toString() }
+                        }, label = { Text(stringResource(R.string.dynamic_maximum)) }, singleLine = true)
+                        OutlinedTextField(dynamicAdjustment, { dynamicAdjustment = it }, label = { Text(stringResource(R.string.dynamic_adjustment)) }, singleLine = true)
+                        if (!dynamicValid) Text(stringResource(R.string.dynamic_invalid), color = MaterialTheme.colorScheme.error)
+                    }
                 }
 
                 Text(stringResource(R.string.habit_schedule_label, scheduleType.name))
@@ -397,10 +428,10 @@ fun HabitEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            TextButton(enabled = name.isNotBlank() && (!timed || !dynamicEnabled || dynamicValid), onClick = {
                 if (name.isNotBlank()) {
                     val count = targetCountStr.toIntOrNull() ?: 1
-                    val mins = (targetDurationMinutesStr.toLongOrNull() ?: 10L).coerceIn(5L, 60L)
+                    val mins = (targetDurationMinutesStr.toLongOrNull() ?: 10L).coerceIn(1L, 720L)
                     onSave(
                         initialHabit?.copy(
                             name = name,
@@ -408,7 +439,12 @@ fun HabitEditorDialog(
                             scheduleType = if (scheduleType == ScheduleType.CUSTOM && (initialHabit?.scheduleType != ScheduleType.CUSTOM || scheduleEdited)) ScheduleType.SPECIFIC_DAYS else scheduleType,
                             scheduleDaysBitmask = scheduleDaysBitmask,
                             targetCount = count,
-                            targetDurationMs = mins * 60000L
+                            targetDurationMs = mins * 60000L,
+                            dynamicDurationEnabled = timed && dynamicEnabled,
+                            dynamicInitialMinutes = initial ?: initialMinutes,
+                            dynamicMinimumMinutes = minimum ?: minOf(25, initialMinutes),
+                            dynamicMaximumMinutes = maximum ?: initialMinutes,
+                            dynamicAdjustmentPercent = adjustment ?: 100
                         ) ?: Habit(
                             name = name,
                             progressType = progressType,
@@ -416,6 +452,11 @@ fun HabitEditorDialog(
                             scheduleDaysBitmask = scheduleDaysBitmask,
                             targetCount = count,
                             targetDurationMs = mins * 60000L,
+                            dynamicDurationEnabled = timed && dynamicEnabled,
+                            dynamicInitialMinutes = initial ?: initialMinutes,
+                            dynamicMinimumMinutes = minimum ?: minOf(25, initialMinutes),
+                            dynamicMaximumMinutes = maximum ?: initialMinutes,
+                            dynamicAdjustmentPercent = adjustment ?: 100,
                             colorArgb = 0xFF6750A4.toInt() // Can be updated to use theme dynamically later
                         )
                     )
